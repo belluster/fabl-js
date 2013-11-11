@@ -1,0 +1,113 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+/*
+The variable home specifies the environment for interpreting symbols.
+home itself is a variable in fabl (shared).
+Each home should define the variable path, which is a search path.
+*/
+
+var stdPath = emptysequence(ob);
+
+void function resetPath()
+  {
+  if (nul(path)) path = emptysequence(ob);
+  else reset(path);
+  if (nul(cPath)) cPath = emptysequence(ob);
+  else reset(cPath);
+  push(path,fabl);
+  push(path,fimp);
+  path * stdPath;
+  copyInto(cPath,path);
+  }
+
+void function initPath()
+{
+  if (nul(path)) path = emptysequence(ob);
+  else reset(path);
+  if (nul(cPath)) cPath = emptysequence(ob);
+  else reset(cPath);
+  push(path,fabl);
+  push(path,fimp);
+  copyInto(cPath,path);
+}
+
+
+
+void function initHome(ob x)
+{
+   if (nul(get(x,regardingPath))) 
+      set(x,regardingPath,sequence(fabl,fimp,x)~ob,SeqOfOb);
+//   if (nul(get(x,regardingNamespaces)))
+//      set(x,regardingNamespaces,mkObject(),ob);
+}
+
+var ob theLastHome;
+
+void function setHome(ob x)
+{
+   theLastHome = home;
+   initHome(x);
+   home = x;
+   collectSubject(x);
+}
+
+void function lastHome()
+{
+  if (nnul(theLastHome))
+     {
+	 home = theLastHome;
+	 theLastHome = nil;
+	 }
+}
+
+
+Property function global(id x)
+{
+  return regarding(x);
+}
+
+
+
+
+ob function selectUri(ob x,SeqOfId pth)
+{
+   var int ln,i,ob cx;
+   ln = length(pth);
+   cx = x;
+   for (i=0;i<ln;i++)
+       {
+	   cx = selectUri(cx,pth[i]);
+	   if (nul(cx)) return cx;
+	   }
+   return cx;
+}
+
+
+
+
+var fablInitialized = false;
+void function initFabl()
+{
+if ( not(fablInitialized))
+{
+initPrimops();
+initParse();
+init_flat();
+asmInit();
+fablInitialized = true;
+}
+}
+
+
+     
+
+   

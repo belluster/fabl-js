@@ -1,0 +1,66 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+var stringbufReset_fun = getVariant(home,'reset',sequence(string)) ~ Xob;
+var stringBuf_tprint_fun = getVariant(home,'tprint',sequence(string)) ~ Xob;
+var stringStringPlus_fun = getVariant(home,'plus',sequence(string,string)) ~ Xob;
+var stringStringTimes_fun = getVariant(home,'times',sequence(string,string)) ~ Xob;
+var terpri_fun = getVariant(home,'terpri',emptysequence(Sort))~Xob;
+
+void function afterError()
+{
+  
+}
+
+void function beforeError()
+{
+  
+}
+
+
+var afterError_fun = getVariant(home,'afterError',emptysequence(Sort))~Xob;
+var beforeError_fun = getVariant(home,'beforeError',emptysequence(Sort))~Xob;
+var new_fun = getVariant(home,'iNew',sequence(Sort))~Xob;
+var mk_emptyseq_fun = getVariant(home,'mk_emptysequence',sequence(Sort))~Xob;
+var seqLength_fun = getVariant(home,'seqLength',sequence(ob)) ~ Xob;
+var seqobAdd_fun = getVariant(home,'seqobAdd',sequence(ob,ob)) ~ Xob;
+var seqReset_fun = getVariant(home,'seqReset',sequence(ob)) ~ Xob;
+var seqCopy_fun = getVariant(home,'seqCopy',sequence(ob)) ~ Xob;
+var seqobCopy_fun = getVariant(home,'seqCopy',sequence(ob)) ~ Xob;//
+var seqSetLength_fun = getVariant(home,'seqSetLength',sequence(ob,int)) ~ Xob;
+
+
+var seqintAdd_fun = getVariant(home,'seqintAdd',sequence(ob,int)) ~ Xob;
+var seqbyteAdd_fun = getVariant(home,'seqbyteAdd',sequence(ob,byte)) ~ Xob;
+var seqdoubleAdd_fun = getVariant(home,'seqdoubleAdd',sequence(ob,double)) ~ Xob;
+//var seqdoubleAdd_fun = nil ~ Xob;
+
+var seqobAppend_fun = getVariant(home,'seqobAppend',sequence(ob,ob)) ~ Xob;
+var seqintAppend_fun = getVariant(home,'seqintAppend',sequence(ob,ob)) ~ Xob;
+var seqbyteAppend_fun = getVariant(home,'seqbyteAppend',sequence(ob,ob)) ~ Xob;
+var seqdoubleAppend_fun = getVariant(home,'seqdoubleAppend',sequence(ob,ob)) ~ Xob;
+var seqLength_fun = getVariant(home,'seqLength',sequence(ob)) ~ Xob;
+
+var seqobContains_fun = getVariant(home,'seqobContains',sequence(ob,ob)) ~ Xob;
+var seqintContains_fun = getVariant(home,'seqintContains',sequence(ob,int)) ~ Xob;
+var seqbyteContains_fun = getVariant(home,'seqbyteContains',sequence(ob,byte)) ~ Xob;
+var seqdoubleContains_fun = getVariant(home,'seqdoubleContains',sequence(ob,double)) ~ Xob;
+
+
+var obassert_fun = getVariant(home,'assert',sequence(ob,Property,ob)) ~ Xob;
+var intassert_fun = getVariant(home,'assert',sequence(ob,Property,int)) ~ Xob;
+var doubleassert_fun = getVariant(home,'assert',sequence(ob,Property,double)) ~ Xob;
+void function times(string s,Sort tp)
+{
+}
+
+//void function plus(string s,Sort x)
+//{writeln('PLUS(STRING,CLASS);');tb();times(s,x)}//remove

@@ -1,0 +1,277 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+var daysOfWeek = sequence('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+
+var monthNames = sequence('January','February','March','April','May','June',
+                          'July','August','September','October','November','December');
+
+var dayLetters = sequence('S','M','T','W','T','F','S');
+
+
+var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+boolean function isLeapYear(int yr)
+{
+   if (not(mod(yr,4) == 0)) return false;
+   else
+      {
+	  if (!(mod(yr,100) == 0)) return true;
+	  else
+	  if (mod(yr,400) == 0) return true;
+	  else return false;
+	  }
+}
+
+
+
+int function daysInYear(int yr)
+{
+   if (isLeapYear(yr)) return 366;
+   else return 365;
+}
+
+int function daysInMonth(int mn,boolean leapyear)
+{
+   if (mn == 1) 
+      {
+	  if (leapyear) return 29; else 
+	  return 28;
+	  }
+   else return daysInMonth[mn];
+}
+
+
+// internal rep is days since 1/1/2000
+
+
+// fills in a sequence with year month day
+
+
+void function extractYMD(SeqOf(int) rs,date d) // days since 1/1/2000
+{
+  var int dy,yr,nyd,yl,diy,mn,first,ml,dim,boolean ly;
+  dy = toInt(d);
+  nyd = 0;//new years day
+  if (dy >= 0)
+     {
+     yr = 2000;
+     yl = daysInYear(yr);
+     while ((dy-nyd) >= yl)
+        {
+		yr++;
+		nyd = nyd + yl;
+		yl = daysInYear(yr);
+		}
+	 }
+  else
+     {
+     yr = 1999;
+	 yl = daysInYear(yr);
+     while ((dy-nyd) <  0)
+        {
+		yr--;
+		nyd = nyd - yl;
+		yl = daysInYear(yr);
+		}
+     yr++;
+	 }
+  diy = dy - nyd;
+  mn = 0; // Jan
+  ly = isLeapYear(yr);
+  first = 0;
+  ml = daysInMonth(mn,ly);
+  while ((diy-first)>=ml)
+        {
+		mn++;
+		first = first + ml;
+		ml = daysInMonth(mn,ly);
+//		ml;mn;first;
+		}
+  dim = diy - first;
+  reset(rs);
+  push(rs,yr);
+  push(rs,mn+1);
+  push(rs,dim+1);
+}
+
+var dateBuf = new(SeqOf(int));
+
+void function times(string rs,date d)
+{
+   var int mn,dy;
+   extractYMD(dateBuf,d);
+   rs * dateBuf[0];
+   rs * '-';
+   mn = dateBuf[1];
+   if (mn < 10) rs * '0';
+   rs * mn;
+   rs * '-';
+   dy = dateBuf[2];
+   if (dy < 10) rs * '0';
+   rs * dy;
+}
+
+/* 
+extractYMD(dateBuf,toDate(10000000));dateBuf;
+*/
+
+
+date function mkDate(int yr,mn,dy)
+{
+   var int dys,i,boolean ly;
+   dys = 0;
+   if (yr >= 2000)
+      {
+      for (i=2000;i<yr;i++)
+	      dys = dys + daysInYear(i);
+	  }
+   else
+      {
+	  for (i=1999;yr<=i;i--)
+	      dys = dys - daysInYear(i);
+	  }
+   ly = isLeapYear(yr);
+   for (i=0;i<(mn-1);i++)
+       dys = dys + daysInMonth(i,ly);
+   dys = dys + (dy - 1);
+   return toDate(dys);
+
+}
+
+
+int function dayOfWeek(date d)
+{
+   var int dy,md;
+   dy = toInt(d);
+   md = mod(dy-1,7);
+   if (md < 0) return 7 + md;
+   return md;
+}
+
+id function dayOfWeekName(date d)
+{
+   var int dy;
+   dy = dayOfWeek(d);
+   return daysOfWeek[dy];
+}
+
+/*
+dayOfWeekName(mkDate(2004,4,10));
+
+*/
+
+boolean function lessp(date x,y)
+{
+   return toInt(x) < toInt(y);
+}
+
+boolean function greaterp(date x,y)
+{
+   return toInt(x) < toInt(y);
+}
+
+boolean function leq(date x,y)
+{
+   return toInt(x) <= toInt(y);
+}
+
+
+boolean function geq(date x,y)
+{
+   return toInt(x) >= toInt(y);
+}
+
+boolean function equal(date x,y)
+{
+   return toInt(x) == toInt(y);
+}
+
+
+date function plus(date d,int i)
+{
+   return toDate(toInt(d)+i);
+}
+
+
+
+date function difference(date d,int i)
+{
+   return toDate(toInt(d)-i);
+}
+
+
+// assumes the xsd standard format ccyy-mm-dd; returns nul if bad format
+// allows Thh:mm, but ignores time
+ob function parseXsdDate(string s)
+{
+   var SeqOf(string) sp,spt,string ys,ms,ds,int dim,yy,mm,dd;
+   spt = split(s,ascii_T);
+   sp = split(spt[0],ascii_minus);
+   if (length(sp) != 3) return nil;
+   ys = sp[0];
+   if (!isInt(ys)) return nil;
+   yy = toInt(ys);
+   ms = sp[1];
+   if (!isInt(ms)) return nil;
+   mm = toInt(ms);
+   if ((mm < 1)||(12 < mm)) return nil;
+   ds = sp[2];
+   if (!isInt(ds)) return nil;
+   dd = toInt(ds);
+   if ((dd < 1)||(31 < dd)) return nil;
+   if (mm == 2)
+      {
+	  if (dd > 29) return nil;
+	  if ((dd == 29) && !isLeapYear(yy)) return nil;
+	  }
+   else
+      {
+	  dim = daysInMonth[mm-1];
+	  if (dd > dim) return nil;
+	  }
+   return mkDate(yy,mm,dd) ~ ob;
+}
+
+
+date function nextMonth(date d)
+{
+   var int m,y;
+   extractYMD(dateBuf,d);
+   m = dateBuf[1];
+   y = dateBuf[0];
+   if (m == 12) 
+      {
+	  y++;
+	  m = 1;
+	  }
+    else
+	  m++;
+	return mkDate(y,m,1);
+}
+
+
+date function firstOfMonth(date d)
+{
+   var int m,y;
+   extractYMD(dateBuf,d);
+   m = dateBuf[1];
+   y = dateBuf[0];
+	return mkDate(y,m,1);
+}
+/*
+parseXsdDate("2004-2-29")~date;
+parseXsdDate("2005-2-29");
+
+*/
+
+

@@ -1,0 +1,129 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+/* treatment of gotos:
+
+statements in an Xblock can be of class Xlabel.  An Xlabel
+can give several alternative names for the same statement.
+*/
+
+
+id function aLabelOf(Xob x)
+   {
+     var SeqOfId lbs,ob olbs,int lk;
+     if (not(Xobish(x))) return nil ~ id;
+	 olbs = obsel(x~ob,Xob1_labels);
+	 if (nul(olbs)) return nil~id;
+     lk = obkind(olbs);
+	 if ((lk == nstring_kind) || (lk == wstring_kind)) return olbs~id;
+     lbs = olbs ~ SeqOfId;
+	 if (length(lbs) > 0) return lbs[0] ~ id;
+      return nil ~ id;
+    }
+
+
+
+ob function labelsOf(Xob x)
+   {
+   if (not(Xobish(x))) return nil;
+   return  obsel(x~ob,Xob1_labels);
+  }
+
+boolean function isLabeled(Xob x,id nm)
+   {
+   var ob lbs;
+   if (not(Xobish(x))) return false;
+   lbs = obsel(x~ob,Xob1_labels);
+   if (nul(lbs)) return false;
+ //   lbs = labels(x);
+  if (obkind(lbs) == seq_kind) return contains(lbs~SeqOfId,nm);
+  return eq(nm,lbs);
+   }
+
+
+void function addLabel(Xob x,id nm)
+  {
+  var SeqOfId lbs,ob olbs,int lk;
+  if (not(Xobish(x))) error('Cannot add label an atomic Xob ');
+  olbs = obsel(x~ob,Xob1_labels);
+  if (nul(olbs))
+	  obset(x~ob,Xob1_labels,nm~ob);
+   else
+      {
+	  lk = obkind(olbs);
+	  if ((lk==nstring_kind)||(lk==wstring_kind))
+	     {
+         lbs = sequence(olbs~id,nm);
+	     obset(x~ob,Xob1_labels,lbs ~ ob);
+		 }
+	  else
+	     {
+		 lbs = olbs~SeqOfId;
+		 if (not(contains(lbs,nm))) push(lbs,nm);
+		 }
+	  }
+   }
+ 
+void  function addLabels(Xob x,SeqOfId s)
+   {
+   var SeqOfId lbs,ob olbs,int ln;
+   if (not(Xobish(x))) error('Cannot add label to an atomic Xob');
+   ln = length(s);
+   if (ln == 0) return;
+   if (ln == 1) {addLabel(x,s[0]~id);return;}
+   olbs = obsel(x~ob,Xob1_labels);
+   if (nul(olbs))
+      {
+	  obset(x~ob,Xob1_labels,copy(s) ~ ob);
+	  return;
+	  }
+   else
+      {	  
+	  if (obkind(olbs) == seq_kind)
+	     {
+		 lbs = olbs ~ SeqOfId;
+		 lbs * s;
+		 }
+	  else
+	     {
+		 lbs = sequence(olbs~id);
+		 lbs*s;
+	     obset(x~ob,Xob1_labels,lbs ~ ob);
+		 }
+	  }
+   }
+
+//copy all the labels appearing on src to dst; returns dst
+
+void function copyLabels(Xob dst,src)
+  {
+  var SeqOfId slbs,ob olbs,int lk;
+  if (not(Xobish(src))) return;
+  olbs = obsel(src~ob,Xob1_labels);
+  if (nul(olbs)) return;
+//  labels(slb);
+//  olbs = labels(slb);
+  lk = obkind(olbs);
+  if (lk == seq_kind)
+     {
+	 slbs = olbs ~ SeqOfId;
+	 addLabels(dst,slbs);
+	 }
+  else
+     addLabel(dst,olbs~id);
+  }
+
+boolean function hasLabel(Xob x)
+  {
+  return Xobish(x) && nnul(obsel(x~ob,Xob1_labels));
+  }
+

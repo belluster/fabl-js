@@ -1,0 +1,52 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+/*
+compile("file://../lib/rss-1.0.fb","file://../libsrc/rss-1.0-1.fbl");
+*/
+
+
+namespace('rss',"http://purl.org/rss/1.0/");
+
+setTopic(namespace('rss'));
+startCollectingTriples();
+
+
+allocate('rss:title',FunctionalProperty);
+rss:title.rdfs:range = string;
+
+allocate('rss:link',FunctionalProperty);
+rss:link.rdfs:range = string;
+
+allocate('rss:description',Property);
+rss:description.rdfs:range = string;
+
+allocate('rss:items',FunctionalProperty);
+rss:items.rdfs:range = rdf:Seq;
+
+allocate('rss:channel',Class);
+
+
+allocate('rss:item',Class);
+
+
+
+
+
+
+
+/*
+load('file://./lib/dublin_core-1.1.fb');
+
+*/
+
+

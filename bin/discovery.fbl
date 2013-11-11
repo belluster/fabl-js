@@ -1,0 +1,10 @@
+
+stdDiscovery();
+isDefinedBy("http://www.mapbureau.com/lib/rdfmapper-2.0","{stdlibPrefix}rdfmapper-2.0.fb");
+isDefinedBy("http://www.mapbureau.com/lib/libgeom2d-1.0","{stdlibPrefix}libgeom2d-1.0-2.fb");
+isDefinedBy("http://www.mapbureau.com/lib/rdfmapper-2.1","{stdlibPrefix}rdfmapper-2.1.fb");
+
+
+
+
+

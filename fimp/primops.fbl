@@ -1,0 +1,198 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+// primops are functions that map to pcode ops (rather
+// than to pcode function calls)
+
+
+var Xob seqob_put_fun;
+ var Xob seqint_put_fun;
+var Xob seqchar_put_fun;
+var Xob seqdouble_put_fun;
+var Xob seqob_get_fun;
+var Xob seqint_get_fun;
+var Xob seqchar_get_fun;
+var Xob seqdouble_get_fun;
+var Xob nul_fun;
+var Xob nnul_fun;
+var Xob seqbyte_get_fun;
+var Xob seqbyte_put_fun;
+var Xob obEq_fun;
+var Xob obsel_fun;
+var Xob obmsel_fun; //mget
+var Xob intsel_fun;
+var Xob doublesel_fun;
+var Xob bitsel_fun;
+var Xob obset_fun;
+var Xob intset_fun;
+var Xob doubleset_fun;
+var Xob bitset_fun;
+var Xob float_fun;
+
+
+//introduce the primops
+
+Binding function put(ob x,ob ky,ob vl,Sort s)
+{
+   return set(x~ob,regarding(ky),vl,s);
+}
+
+var intToOb_fun = getVariant(home,'integer_to_ob',sequence(int))~Xob;
+
+var    primOps = mkResource();
+
+// defined up in fun
+Function function internFunction(ob cn,id nm,Sort rtp,SeqOfType itps)
+{
+  return nil~Function;
+}
+
+boolean function anonymous(Sort tp)
+{
+  return nul(name(tp ~ ob)) && nul(obsel(tp~ob,Sort_constructor));
+}
+
+// should be in C
+boolean function anonymous(SeqOfType tps)
+{
+  var int ln,i,Sort tp;
+  ln = length(tps);
+  for (i = 0;i<ln;i++) 
+      {
+	  tp = tps[i];
+	  if ( nul(name(tp ~ ob)) && nul(obsel(tp~ob,Sort_constructor))) return true;
+	  }
+  return false;
+}
+
+
+
+
+Function function getVariant(ob cn,id nm,SeqOfType itps)
+  {
+  var Sort tp,Function fn,boolean cls;
+  if (anonymous(itps)) return nil~Function;
+  cls = collectingSubjects();
+  set_collectingSubjects(false);
+  tp = mkFunctionType(int,itps);
+
+  fn = mkFunctionOb(nm,cn,tp);
+  set_collectingSubjects(cls);
+  return identifyFunction(fn);
+}
+
+
+void function initPrimops()
+{
+
+   put(primOps,internFunction(home,'unary_minus',int,sequence(int))~ob,integer_minus_op ~ ob,int);
+   put(primOps,internFunction(home,'plus_plus',int,sequence(int))~ob,integer_increment_op ~ ob,int);
+   put(primOps,internFunction(home,'minus_minus',int,sequence(int))~ob,integer_decrement_op ~ ob,int);
+   put(primOps,internFunction(home,'plus',int,sequence(int,int))~ob,integer_plus_op ~ ob,int);
+   put(primOps,internFunction(home,'difference',int,sequence(int,int))~ob,integer_difference_op ~ ob,int);
+   put(primOps,internFunction(home,'quotient',int,sequence(int,int))~ob,integer_quotient_op ~ ob,int);
+   put(primOps,internFunction(home,'times',int,sequence(int,int))~ob,integer_times_op ~ ob,int);
+   put(primOps,internFunction(home,'equal',boolean,sequence(int,int))~ob,integer_equal_op ~ ob,int);
+   put(primOps,internFunction(home,'lessp',boolean,sequence(int,int))~ob,integer_lessp_op ~ ob,int);
+   put(primOps,internFunction(home,'leq',boolean,sequence(int,int))~ob,integer_leq_op ~ ob,int);
+   put(primOps,internFunction(home,'lnot',int,sequence(int))~ob,integer_not_op ~ ob,int);
+   put(primOps,internFunction(home,'land',int,sequence(int,int))~ob,integer_and_op ~ ob,int);
+   put(primOps,internFunction(home,'lor',int,sequence(int,int))~ob,integer_or_op ~ ob,int);
+   put(primOps,internFunction(home,'lshift',int,sequence(int,int))~ob,integer_lshift_op ~ ob,int);
+   float_fun = internFunction(home,'float',double,sequence(int))~Xob;
+   put(primOps,float_fun~ob,integer_float_op ~ ob,int);
+   put(primOps,internFunction(home,'not',boolean,sequence(boolean))~ob,boole_not_op ~ ob,int);
+   put(primOps,internFunction(home,'and',boolean,sequence(boolean,boolean))~ob,boole_and_op ~ ob,int);
+   put(primOps,internFunction(home,'or',boolean,sequence(boolean,boolean))~ob,boole_or_op ~ ob,int);
+   put(primOps,internFunction(home,'nul',boolean,sequence(ob))~ob,ob_nul_op ~ ob,int);
+   put(primOps,internFunction(home,'nnul',boolean,sequence(ob))~ob,ob_nnul_op ~ ob,int);
+ 
+   put(primOps,internFunction(home,'unary_minus',double,sequence(double))~ob,double_minus_op ~ ob,int);
+   put(primOps,internFunction(home,'plus',double,sequence(double,double))~ob,double_plus_op ~ ob,int);
+   put(primOps,internFunction(home,'difference',double,sequence(double,double))~ob,double_difference_op ~ ob,int);
+   put(primOps,internFunction(home,'quotient',double,sequence(double,double))~ob,double_quotient_op ~ ob,int);
+   put(primOps,internFunction(home,'times',double,sequence(double,double))~ob,double_times_op ~ ob,int);
+   put(primOps,internFunction(home,'equal',boolean,sequence(double,double))~ob,double_equal_op ~ ob,int);
+   put(primOps,internFunction(home,'lessp',boolean,sequence(double,double))~ob,double_lessp_op ~ ob,int);
+   put(primOps,internFunction(home,'leq',boolean,sequence(double,double))~ob,double_leq_op ~ ob,int);
+   put(primOps,internFunction(home,'um_eq',boolean,sequence(ob,ob))~ob,ob_eq_op ~ ob,int);
+
+   seqob_get_fun = internFunction(home,'seqob_get',ob,sequence(ob,int))~Xob;
+   put(primOps,seqob_get_fun~ob,seqob_get_op~ob,int);
+
+   seqint_get_fun = internFunction(home,'seqint_get',int,sequence(ob,int))~Xob;
+   put(primOps,seqint_get_fun~ob,seqint_get_op~ob,int);
+
+
+   seqdouble_get_fun = internFunction(home,'seqdouble_get',double,sequence(ob,int))~Xob;
+   put(primOps,seqdouble_get_fun~ob,seqdouble_get_op~ob,int);
+
+   seqbyte_get_fun = internFunction(home,'seqbyte_get',int,sequence(ob,int))~Xob;
+   put(primOps,seqbyte_get_fun~ob,seqbyte_get_op~ob,int);
+
+
+   seqob_put_fun = internFunction(home,'seqob_put',void,sequence(ob,int,ob))~Xob;
+   put(primOps,seqob_put_fun~ob,seqob_put_op~ob,int);
+
+
+   seqint_put_fun = internFunction(home,'seqint_put',void,sequence(ob,int,int))~Xob;
+   put(primOps,seqint_put_fun~ob,seqint_put_op~ob,int);
+
+   seqdouble_put_fun = internFunction(home,'seqdouble_put',void,sequence(ob,int,double))~Xob;
+   put(primOps,seqdouble_put_fun~ob,seqdouble_put_op~ob,int);
+
+   seqbyte_put_fun = internFunction(home,'seqbyte_put',void,sequence(ob,int,int))~Xob;
+   put(primOps,seqbyte_put_fun~ob,seqbyte_put_op~ob,int);
+
+   nul_fun = getVariant(home,'nul',sequence(ob))~Xob;
+   nnul_fun = getVariant(home,'nnul',sequence(ob))~Xob;
+   obEq_fun = getVariant(home,'um_eq',sequence(ob,ob))~Xob;
+
+// LATER DOUBLE
+
+
+// 
+
+
+//pseudo ops 
+
+   put(primOps,internFunction(home,'greaterp',boolean,sequence(double,double))~ob,double_greaterp_op ~ ob,int);
+   put(primOps,internFunction(home,'geq',boolean,sequence(double,double))~ob,double_geq_op ~ ob,int);
+   put(primOps,internFunction(home,'greaterp',boolean,sequence(int,int))~ob,integer_greaterp_op ~ ob,int);
+   put(primOps,internFunction(home,'geq',boolean,sequence(int,int))~ob,integer_geq_op ~ ob,int);
+
+
+   put(primOps,internFunction(home,'obsel',ob,sequence(ob,Property))~ob,ob_selectproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'obmsel',ob,sequence(ob,Property))~ob,ob_mselectproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'intsel',int,sequence(ob,Property))~ob,integer_selectproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'doublesel',double,sequence(ob,Property))~ob,double_selectproperty_op ~ ob,int);
+
+
+   put(primOps,internFunction(home,'obset',void,sequence(ob,Property,ob))~ob,ob_setproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'intset',void,sequence(ob,Property,int))~ob,integer_setproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'doubleset',void,sequence(ob,Property,double))~ob,double_setproperty_op ~ ob,int);
+
+   put(primOps,internFunction(home,'bitsel',int,sequence(ob,Property,int))~ob,bit_selectproperty_op ~ ob,int);
+   put(primOps,internFunction(home,'bitset',void,sequence(ob,Property,int,int))~ob,bit_setproperty_op ~ ob,int);
+// not yet in use
+   put(primOps,internFunction(home,'stringBufGet',int,sequence(string,int))~ob,stringbuf_get_op ~ ob,int);
+   put(primOps,internFunction(home,'stringBufPut',void,sequence(string,int))~ob,stringbuf_put_op ~ ob,int);
+   obsel_fun = getVariant(home,'obsel',sequence(ob,Property))~Xob;
+   obmsel_fun = getVariant(home,'obmsel',sequence(ob,Property))~Xob;
+   intsel_fun = getVariant(home,'intsel',sequence(ob,Property))~Xob;
+   doublesel_fun = getVariant(home,'doublesel',sequence(ob,Property))~Xob;
+   bitsel_fun = getVariant(home,'bitsel',sequence(ob,Property,int))~Xob;
+
+   obset_fun = getVariant(home,'obset',sequence(ob,Property,ob))~Xob;
+   intset_fun = getVariant(home,'intset',sequence(ob,Property,int))~Xob;
+   doubleset_fun = getVariant(home,'doubleset',sequence(ob,Property,double))~Xob;
+   bitset_fun = getVariant(home,'bitset',sequence(ob,Property,int,int))~Xob;
+}

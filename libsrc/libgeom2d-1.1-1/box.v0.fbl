@@ -1,0 +1,270 @@
+
+
+
+void function times(string bf,geom2d:Box p)
+{
+   bf * '[';
+   bf * p.geom:xmin;
+   bf *  ', ';
+   bf * p.geom:xmax;
+   bf * ' ; ';
+   bf * p.geom:ymin;
+   bf *  ', ';
+   bf * p.geom:ymax;
+   bf * ']';
+}
+
+
+
+
+geom2d:Box function mkBox(double xmin,xmax,ymin,ymax)
+{
+   var geom2d:Box rs;
+   rs = new(geom2d:Box);
+   rs . geom:xmin = xmin;
+   rs . geom:xmax = xmax;
+   rs . geom:ymin = ymin;
+   rs . geom:ymax = ymax;
+  return rs;
+}
+
+SeqOf(geom2d:Point) function sides(geom2d:Box bx)
+{
+   var double xmin,xmax,ymin,ymax,geom2d:Point fp;
+   xmin = bx.geom:xmin;
+   xmax = bx.geom:xmax;
+   ymin = bx.geom:ymin;
+   ymax = bx.geom:ymax;
+   fp = mkPoint(xmin,ymin);
+   return [fp,mkPoint(xmax,ymin),mkPoint(xmax,ymax),mkPoint(xmin,ymax),fp];
+}
+
+
+
+void function copyto(geom2d:Box dst,geom2d:Box src)
+  {
+  dst . geom:xmin = src . geom:xmin;
+  dst . geom:xmax = src . geom:xmax;
+  dst . geom:ymin = src . geom:ymin;
+  dst . geom:ymax = src . geom:ymax;
+  }
+
+
+boolean function contains(geom2d:Box bx,geom2d:Point p)
+{
+   var double x,y;
+   x = p . geom:x;
+   y = p . geom:y;
+   return (bx.geom:xmin <= x) &&
+            (x <= bx.geom:xmax) &&
+           (bx.geom:ymin <= y) &&
+            (y <= bx.geom:ymax);
+}
+
+
+
+boolean function intersects(geom2d:Box bx0,bx1)
+{
+   if ((bx0.geom:xmax) < (bx1.geom:xmin)) return false;
+   if ((bx1.geom:xmax) < (bx0.geom:xmin)) return false;
+   if ((bx0.geom:ymax) < (bx1.geom:ymin)) return false;
+   if ((bx1.geom:ymax) < (bx0.geom:ymin)) return false;
+   return true;
+}
+
+
+void function expandToContain(geom2d:Box bx,geom2d:Point p)
+{
+   var double px,py;
+   if (nul(p)) return;
+   px = p.geom:x;
+   py = p.geom:y;
+   bx . geom:xmin = min(px,bx.geom:xmin);
+   bx . geom:xmax = max(px,bx.geom:xmax);
+   bx . geom:ymin = min(py,bx.geom:ymin);
+   bx . geom:ymax = max(py,bx.geom:ymax);
+}
+
+
+void function expandToContain(geom2d:Box bx,abx)
+{
+   if (nul(abx)) return;
+   bx . geom:xmin = min(abx.geom:xmin,bx.geom:xmin);
+   bx . geom:xmax = max(abx.geom:xmax,bx.geom:xmax);
+   bx . geom:ymin = min(abx.geom:ymin,bx.geom:ymin);
+   bx . geom:ymax = max(abx.geom:ymax,bx.geom:ymax);
+}
+
+
+
+
+geom2d:Box function bounds(geom2d:Point p)
+{
+   var double px,py;
+   px = p.geom:x;
+   py = p.geom:y;
+   return mkBox(px,px,py,py);
+}
+
+geom2d:Box function bounds(SeqOf(geom2d:Point) pnts)
+{
+  var geom2d:Box rs,int ln,i,geom2d:Point fp;
+  ln = length(pnts);
+  if (ln == 0) return nil ~geom2d:Box;
+  fp = pnts[0];
+  rs = mkBox(fp.geom:x,fp.geom:x,fp.geom:y,fp.geom:y);
+  for (i=1;i<ln;i++) expandToContain(rs,pnts[i]);
+  return rs;
+}
+
+
+
+
+
+geom2d:Box function bounds(SeqOf(SeqOf(geom2d:Point)) pnts)
+{
+  var geom2d:Box rs,int ln,i,SeqOf(geom2d:Point) fp;
+  ln = length(pnts);
+  if (ln == 0) return nil ~geom2d:Box;
+  fp = pnts[0];
+  rs = bounds(fp);
+  for (i=1;i<ln;i++)
+     expandToContain(rs,bounds(pnts[i]));
+  return rs;
+}
+
+
+
+double function width(geom2d:Box a)
+{
+   return a.geom:xmax - a.geom:xmin;
+}
+
+
+double function height(geom2d:Box a)
+{
+   return a.geom:ymax - a.geom:ymin;
+}
+
+
+void function setWidth(geom2d:Box bnds,double w)
+{
+   var double cx;
+   cx = 0.5*(bnds.geom:xmin+bnds.geom:xmax);
+   bnds.geom:xmin = cx - 0.5 * w;
+   bnds.geom:xmax = cx + 0.5 * w;
+}
+
+
+void function setHeight(geom2d:Box bnds,double h)
+{
+   var double cy;
+   cy = 0.5*(bnds.geom:ymin+bnds.geom:ymax);
+   bnds.geom:ymin = cy - 0.5 * h;
+   bnds.geom:ymax = cy + 0.5 * h;
+}
+
+void function setDimensions(geom2d:Box bnds,double w,h)
+{
+   setWidth(bnds,w);
+   setHeight(bnds,h);
+}
+
+   
+geom2d:Point function center(geom2d:Box bnds)
+  {
+  return mkPoint(0.5*(bnds.geom:xmin+bnds.geom:xmax),0.5*(bnds.geom:ymin+bnds.geom:ymax));
+  }
+
+geom2d:Point function lowerLeft(geom2d:Box bnds)
+{
+   return mkPoint(bnds.geom:xmin,bnds.geom:ymin);
+}
+
+
+void function setCenter(geom2d:Box bnds,geom2d:Point c)
+{
+   var double hw,hh;
+   hw = width(bnds) * 0.5;
+   hh = height(bnds) * 0.5;
+   bnds . geom:xmin = c.geom:x - hw;
+   bnds . geom:xmax = c.geom:x + hw;
+   bnds . geom:ymin = c.geom:y - hh;
+   bnds . geom:ymax = c.geom:y + hh;
+//   trigger(bnds.modified);
+}
+
+
+
+SeqOf(geom2d:Box) function quadrants(geom2d:Box bx)
+{
+   var double xmin,xmax,ymin,ymax,cx,cy,geom2d:Box bx00,bx10,bx01,bx11;
+   xmin = bx.geom:xmin;
+   xmax = bx.geom:xmax;
+   ymin = bx.geom:ymin;
+   ymax = bx.geom:ymax;
+   cx = 0.5 * (xmin+xmax);
+   cy = 0.5 * (ymin+ymax);
+   bx00 = mkBox(xmin,cx,ymin,cy);
+   bx10 = mkBox(cx,xmax,ymin,cy);
+   bx01 = mkBox(xmin,cx,cy,ymax);
+   bx11 = mkBox(cx,xmax,cy,ymax);
+   return [bx00,bx10,bx01,bx11];
+}
+
+// by factor
+geom2d:Box function expand(geom2d:Box rc,double xfc,yfc)
+{
+   var double wde,hte;
+   wde = xfc * width(rc);
+   hte = yfc * height(rc);
+   return mkBox(rc.geom:xmin - wde,rc.geom:xmax + wde,rc.geom:ymin-hte,rc.geom:ymax+hte);
+}
+
+// by factor; keep the center the same
+geom2d:Box function scale(geom2d:Box rc,double scl)
+{
+   var double hwd,hht,cntx,cnty,geom2d:Point cnt;
+   hwd = 0.5*scl * width(rc);
+   hht = 0.5*scl * height(rc);
+   cnt = center(rc);
+   cntx = cnt.geom:x;
+   cnty = cnt.geom:y;
+   return mkBox(cntx-hwd,cntx+hwd,cnty-hht,cnty+hht);
+}
+
+
+// by absolute amount
+
+geom2d:Box function expandAbs(geom2d:Box rc,double wde,hte)
+{
+   return mkBox(rc.geom:xmin - wde,rc.geom:xmax + wde,rc.geom:ymin-hte,rc.geom:ymax+hte);
+}
+
+boolean function null(geom2d:Box rc)
+{
+   if (nul(rc)) return true;
+   return (rc.geom:xmin == 0.0) && (rc.geom:xmax == 0.0) && (rc.geom:ymin == 0.0) && (rc.geom:ymax == 0.0);
+}
+
+
+
+geom2d:Box function mkBox(double wd,ht)
+{
+  return mkBox(-0.5*wd,0.5*wd,-0.5*ht,0.5*ht);
+}
+
+geom2d:Point function xExtent(geom2d:Box r)
+{ 
+   return mkPoint(r.geom:xmax-r.geom:xmin,0);
+}
+
+geom2d:Point function yExtent(geom2d:Box r)
+{ 
+   return mkPoint(0,r.geom:ymax-r.geom:ymin);
+}
+
+geom2d:Point function extent(geom2d:Box r)
+{
+  return  mkPoint(r.geom:xmax-r.geom:xmin,r.geom:ymax-r.geom:ymin);
+}

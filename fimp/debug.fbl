@@ -1,0 +1,32 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+var dbObs = emptysequence(ob);
+var dbInts = emptysequence(int);
+var dbDoubles = emptysequence(double);
+//var sequence_of(double) db_doubles; //LATER doubles
+
+void function extractDb(int n)
+{
+   reset(dbObs);
+   reset(dbInts~string);// LATER reset(dbInts);
+//   if (nul(db_doubles)) db_doubles = emptysequence(double);
+//   else reset(db_doubles);
+   consoleStackExtract(n,dbObs~ob,dbInts~ob,dbDoubles~ob);
+}
+
+void function db(int n)
+{
+extractDb(n);
+}
+
+

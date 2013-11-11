@@ -1,0 +1,113 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+// sets up globals for quick access to this and that
+// eg, allows using Xob1 instead of fabl:Xob1
+//var owlns =  'http://www.w3.org/2002/07/owl#';
+
+constant fablVersion = "2.0.8";
+
+constant xsdNS = selectUri(root,  sequence('http',':','www.w3.org','2000','10','XMLSchema','#'));
+constant rdfNS = selectUri(root,  sequence('http',':','www.w3.org','1999','02','22-rdf-syntax-ns','#'));
+constant owlNS = selectUri(root,  sequence('http',':','www.w3.org','2002','07','owl','#'));
+constant rdfsNS = selectUri(root, sequence('http',':','www.w3.org','2000','01','rdf-schema','#'));
+
+var fimp = path[1];
+var fabl = path[0];
+var cPath = emptysequence(ob);
+
+constant Property = selectUri(rdfNS,'Property')~Sort;
+constant int = selectUri(xsdNS,'int')~Sort;
+constant string = selectUri(xsdNS,'string')~Sort;
+//constant StringBuf = string;
+constant id = selectUri(fabl,'id')~Sort;
+constant double = selectUri(xsdNS,'double')~Sort;
+constant boolean = selectUri(xsdNS,'boolean')~Sort;
+constant byte = selectUri(xsdNS,'byte')~Sort;
+constant date = selectUri(xsdNS,'date')~Sort;
+constant hexBinary = selectUri(xsdNS,'hexBinary')~Sort;
+constant Any = selectUri(rdfsNS,'Resource')~Sort;
+constant void = selectUri(fabl,'void')~Sort;
+constant ob = Any;
+constant Resource = Any;
+
+constant BitField_lowbit = selectUri(fabl,sequence('BitField','lowbit'))~Property;
+constant BitField_highbit = selectUri(fabl,sequence('BitField','highbit'))~Property;
+constant BitField_ofProperty = selectUri(fabl,sequence('BitField','ofProperty'))~Property;
+constant Restriction_bitField = selectUri(owlNS,sequence('Restriction','bitField'))~Property;
+constant Restriction_allValuesFrom = selectUri(owlNS,'allValuesFrom')~Property;
+constant Restriction_onProperty = selectUri(owlNS,'onProperty')~Property;
+constant List_first = selectUri(rdfNS,'first')~Property;
+constant List_rest = selectUri(rdfNS,'rest')~Property;
+constant Restriction = selectUri(owlNS,'Restriction')~Sort;
+
+constant Xob1 = selectUri(fabl,'Xob1')~Sort;
+constant Xob = selectUri(fabl,'Xob')~Sort;
+//var Type = selectUri(fabl,'Sort')~Sort;
+var Sort = selectUri(rdfsNS,'Class')~Sort;
+constant Class = selectUri(rdfsNS,'Class')~Sort;
+constant fablType = selectUri(fabl,'Type');
+constant Xblock = selectUri(fabl,'Xblock')~Sort;
+constant Xapply = selectUri(fabl,'Xapply')~Sort;
+//var Any = selectUri(fabl,'Any')~Sort;
+constant Xsequence = selectUri(fabl,'Xsequence')~Sort;
+constant BitField = selectUri(fabl,'BitField')~Sort;
+constant Xcast = selectUri(fabl,'Xcast')~Sort;
+constant XselectProperty = selectUri(fabl,'XselectProperty')~Sort;
+constant XselectIndex = selectUri(fabl,'XselectIndex')~Sort;
+constant Xassign = selectUri(fabl,'Xassign')~Sort;
+constant Xfor = selectUri(fabl,'Xfor')~Sort;
+constant Xwhile = selectUri(fabl,'Xwhile')~Sort;
+constant Xreturn = selectUri(fabl,'Xreturn')~Sort;
+constant Xblock = selectUri(fabl,'Xblock')~Sort;
+constant Xgo = selectUri(fabl,'Xgo')~Sort;
+constant Xif = selectUri(fabl,'Xif')~Sort;
+//constant Xlabel = selectUri(fabl,'Xlabel')~Sort;
+constant Dblock = selectUri(fabl,'Dblock')~Sort;
+constant Pcode = selectUri(fabl,'Pcode')~Sort;
+constant PcodeArg = selectUri(fabl,'PcodeArg')~Sort;
+constant TempStackMark = selectUri(fabl,'TempStackMark')~Sort;
+constant Token = selectUri(fabl,'Token')~Sort;
+constant Regarding = selectUri(fabl,'Regarding')~Sort;
+constant DblockLayout = selectUri(fabl,'DblockLayout')~Sort;
+constant Function = selectUri(fabl,'Function')~Sort;
+constant Binding = selectUri(fabl,'Binding')~Sort;
+constant HashSeq = selectUri(fabl,'HashSeq')~Sort;
+//var Xob1_type = selectUri(Xob1~ob,'type')~Property;
+//var Xob1_booles = selectUri(Xob1~ob,'booles')~Property;
+var uwriteBuffer = mkStringBuf('');
+constant true = 1 ~ boolean;
+constant false = 0 ~ boolean;
+
+constant SeqOfFunction = SeqOf(Function);
+constant SeqOfOb = SeqOf(ob);
+constant SeqOfId = SeqOf(id);
+constant SeqOfXob = SeqOf(Xob);
+constant SeqOfType = SeqOf(Sort);
+constant SeqOfBinding= SeqOf(Binding);
+constant SeqOfPcodeArg= SeqOf(PcodeArg);
+constant SeqOfToken = SeqOf(Token);
+constant SeqOfString = SeqOf(string);
+
+constant Property rangeProperty;
+constant FunctionalProperty = selectUri(owlNS,'FunctionalProperty')~Sort;
+constant Property subClassOf;
+
+// TEMPORARY
+
+var char = int;
+
+var owlOnProperty = selectUri(owlNS ,'onProperty')~Property;
+var owlAllValuesFrom  = selectUri(owlNS ,'allValuesFrom')~Property;
+var owlCardinality = selectUri(owlNS ,'cardinality')~Property;
+var fablRestrictions = selectUri(fabl,'restrictions')~Property;
+var  owlRestrictionBitField = selectUri(Restriction~ob,'bitField')~Property;
+//boot_bitField = bootProperty(owlns + 'Restriction/bitField');

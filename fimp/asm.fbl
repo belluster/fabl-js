@@ -1,0 +1,676 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+/* assembler: flattened xob to pcode */
+
+
+var HashSeq dblockObTable;
+var SeqOfOb dblockObs;
+var HashSeq dblockIntTable;
+var SeqOfOb dblockInts;
+var HashSeq dblockDoubleTable;
+var SeqOfOb dblockDoubles ;
+//var HashSeq asmLabels;  // maps labels to addresses in the pcode 
+// asm_jumps[n] is an id or sequence of ids specifying the target of the jump at n
+var SeqOfOb asmJumps;  
+
+var dblockLayout = nil ~ DblockLayout;
+var asmDblock = nil ~ Dblock;
+var asmFunction = nil  ~Function; //built by the assembly process
+var asmParams = nil ~ SeqOfOb;
+var ob asmLabels;  // maps labels to addresses in the pcode 
+
+var pcodeArgVerbose = false;
+pcodeArgVerbose = false;//not needed
+
+
+DblockLayout function mkDblockLayout(int nmo,nmi,nmd)
+{
+  var DblockLayout rs;
+  rs = iNew(DblockLayout)~DblockLayout;
+  intset(rs~ob,DblockLayout_numobs,nmo);
+  intset(rs~ob,DblockLayout_numints,nmi);
+  intset(rs~ob,DblockLayout_numdoubles,nmd);
+  intset(rs~ob,DblockLayout_doubleoffset,nmo+nmi);
+//  rs = new(DblockLayout);
+//  rs . numobs = nmo;
+//  rs . numints = nmi;
+//  rs . numdoubles = nmd;
+//  rs . doubleoffset = nmo + nmi; // LATER put padding word in if necessary
+  return rs;
+}
+
+Dblock function alloc(DblockLayout d)
+{
+   return allocDblock(intsel(d~ob,DblockLayout_numobs),
+                      intsel(d~ob,DblockLayout_numints),
+					  intsel(d~ob,DblockLayout_numdoubles));
+//return allocDblock(d.numobs,d.numints,d.numdoubles);
+}   
+
+void function computeDblockLayout()
+  {
+  dblockLayout = mkDblockLayout(length(dblockObs),length(dblockInts),length(dblockDoubles));
+  }
+
+
+var ob nilStandin;
+var int nilStandinIdx;
+// LATER turn this back into a seqofbyte
+
+var SeqOfByte asmBuf;
+var SeqOfPcodeArg pcodeArgBuf;
+
+void function asmInit()
+  {
+  dblockObTable = mkHashSeq();
+  dblockObs = contents(dblockObTable);
+  dblockIntTable = mkHashSeq();
+  dblockInts = contents(dblockIntTable);
+  dblockDoubleTable = mkHashSeq();
+  dblockDoubles = contents(dblockDoubleTable);
+  asmLabels = mkResource()~ob;
+  asmJumps = emptysequence(ob);
+//  asmBuf = emptysequence(byte);
+  asmBuf = mkSeqOfByte();
+  pcodeArgBuf  = emptysequence(PcodeArg);
+  nilStandin = '_nilStandin_'~ob;  // any unique ob will do here
+  }
+
+void function asmReset()
+  {
+  reset(asmBuf);
+  reset(dblockObTable);
+  reset(dblockIntTable);
+  reset(dblockDoubleTable);
+  reset(pcodeArgBuf);
+  reset(asmLabels~HashSeq); // LATER introduce a better name for this (eg resetProperties)
+  reset(asmJumps);
+  nilStandinIdx = -1;
+  }
+
+int function mode(PcodeArg x)
+  {
+  var int k;
+  k = intsel(x~ob,PcodeArg_kind);  
+  return selectBits(k,5,7);
+//  return selectBits(x.kind,5,7);
+  }
+
+boolean function selectionFromSequence(PcodeArg x)
+  {
+  var int md;
+  md = intsel(x~ob,PcodeArg_kind);
+//  md = mode(x);
+  return ((md == pam_local_sequence_select)||(md == pam_binding_sequence_select));
+  }
+
+
+int function vstorage(PcodeArg x)
+  {
+  var int k;
+  k = intsel(x~ob,PcodeArg_kind);  
+  return selectBits(k,0,4);
+//  return get_bits(x.kind,0,4);
+  }
+
+
+// functions to handle the formal parameters of a function
+
+void function addParameter(Binding bnd)
+     {
+	 var int vstr;
+
+	 vstr = storage(obsel(bnd~ob,Binding_type)~Sort);
+//	 vstr = storage(sort(bnd));
+     if (vstr == storage_ob) put(dblockObTable,bnd~ob);
+	 else
+	 if (vstr == storage_int) put(dblockIntTable,bnd~ob);
+     else
+		put(dblockDoubleTable,bnd~ob);
+     }
+
+
+boolean function isNulXob(Xob x)
+  {
+  if (eq(x,nulXob)) return true; else
+  return (isConstant(x)&&nul(constantValue(x)));
+  }
+
+// a third variant of put, that returns the index of where x was put (or was found)
+int function put3(HashSeq h,ob x)
+{
+   var int p2,idx;
+   p2 = put2(h,x);
+   if (p2 < 0) idx =  (-p2)-1;
+   else idx = p2 - 1;
+//   writeln('p2 = ',p2,' idx = ',idx);;
+   return idx;
+}
+
+PcodeArg function mkPcodeArg(Xob x)
+  {
+  var Sort s,ssls,xs,srcsrt,int vstr,pcp,md,dstr,db_idx,sl_idx,pcl,knd,
+      Binding  fld,Xob ssl,XselectProperty fsel,
+	  XselectIndex ssel,Binding xb,src,boolean isext,
+	  boolean xbl,src_in_dblock,PcodeArg rs,ob vl;
+  if (nul(x) ) error('internal');//|| is_nul_Xob(x)) return nil ~ PcodeArg;
+  xs = type(x);
+  vstr = storage(xs);
+  pcp = length(asmBuf);
+  if (isBinding(x~ob)) 
+     {
+	 xb = x ~ Binding;
+	 xbl = inDblock(xb);//local binding
+     if (xbl) md = pam_local; else md = pam_binding_value;
+	 sl_idx = -1;
+     pcl = 3; //pcode length
+
+     if ((vstr == storage_ob) || not(xbl))
+		{//local ob-valued binding or ob kind of non-local binding
+        db_idx = put3(dblockObTable,x~ob);
+	    dstr = storage_ob;  // kind of storage allocated in the dblock for this fellow
+	    } 
+	 else
+	 if (vstr == storage_int) 
+		{ //local int
+		db_idx = put3(dblockIntTable,x~ob);
+		dstr = storage_int;
+		} 
+     else
+		{ //local double
+		db_idx = put3(dblockDoubleTable,x~ob);
+		dstr = storage_double;
+		}
+	 }
+  else
+  if (isFunction(x~ob)) 
+     {
+     md = pam_local;
+	 sl_idx = -1;
+     pcl = 3; //pcode length
+     db_idx = put3(dblockObTable,x~ob);
+	 dstr = storage_ob;  // kind of storage allocated in the dblock for this fellow
+	 }
+  else
+  if (isConstant(x~Xob))
+     {
+	  vl = constantValue(x);
+	  if (vstr == storage_ob)
+	     {
+		 if (nul(vl)) 
+		    {
+			db_idx = put3(dblockObTable,nilStandin);
+			nilStandinIdx = db_idx;
+			}
+	      else
+	        db_idx = put3(dblockObTable,vl);
+		  }
+	  else
+	  if (vstr == storage_int)
+	     db_idx = put3(dblockIntTable,vl);
+	  else
+	     db_idx = put3(dblockDoubleTable,vl);
+	  md = pam_local;
+	  dstr = vstr;
+	  sl_idx = -1;
+	  pcl = 3;
+	  }
+  else 
+     {
+	 dstr = storage_ob;
+	 if (hasType(x~ob,XselectProperty)) 
+	    {
+		fsel = x~XselectProperty; 
+		src = obsel(fsel~ob,XselectProperty_source)~Binding;
+//		src = fsel.source~Binding
+		}
+     else
+	 if (hasType(x~ob,XselectIndex)) 
+	    {
+		ssel = x~XselectIndex;
+		src = obsel(ssel~ob,XselectIndex_source)~Binding;
+//		src = ssel.source~Binding;
+		}
+	 else
+	    error('Expected selection');
+	 if (not(isBinding(src~ob))) error('Expected binding as source of selection');
+	 src_in_dblock = inDblock(src);
+	 srcsrt = obsel(src~ob,Binding_type)~Sort;
+//	 srcsrt = type(src);
+     db_idx = put3(dblockObTable,src~ob);
+	 if (nnul(fsel))
+	    {
+		sl_idx = put3(dblockObTable,obsel(fsel~ob,XselectProperty_selector));
+//		sl_idx = put3(dblockObTable,fsel.selector~ob); 
+        pcl = 5;
+		if (src_in_dblock) 
+		   {
+		   md = pam_local_field_select;
+		   }
+		else
+		   {
+		   md = pam_binding_field_select;
+		   }
+        }
+	 else
+	    {
+/*      The selection argument will either be an int constant
+        or a local (dblock) binding. [The flattening process should
+		copy  values of non-local bindings to a local in this case]
+*/
+		ssl = obsel(ssel~ob,XselectIndex_selector)~Xob;
+//        ssl = ssel.selector;
+		sl_idx = put3(dblockIntTable,ssl~ob); // this is an index into the dblock
+		if (src_in_dblock) 
+		   md = pam_local_sequence_select;
+		else
+		   md = pam_binding_sequence_select;
+        pcl = 5;
+		}
+	  }
+
+
+    knd = setBits(setBits(0,0,4,vstr),5,7,md);
+    rs = iNew(PcodeArg)~PcodeArg;
+	intset(rs~ob,PcodeArg_kind,knd);
+	intset(rs~ob,PcodeArg_dblockStorage,dstr);
+	intset(rs~ob,PcodeArg_dblockIndex,db_idx);
+	intset(rs~ob,PcodeArg_selectionIndex,sl_idx);
+	intset(rs~ob,PcodeArg_pcodePos,pcp);
+	intset(rs~ob,PcodeArg_pcodeLength,pcl);
+/*
+    rs = new(PcodeArg);
+	rs . kind = knd;
+	rs . dblock_storage = dstr;
+	rs . dblock_index = db_idx;
+	rs . selection_index = sl_idx;
+	rs . pcode_pos = pcp;
+	rs . pcode_length = pcl;
+*/
+
+
+	return rs;
+	}
+
+
+
+void function times(string bf,PcodeArg a)
+{
+   bf * '[PcodeArg]';
+//  writeTo(bf,'[PcodeArg kind=',intsel(a~ob,PcodeArg_kind),' db_index=',intsel(a~ob,PcodeArg_dblockIndex),'sel_index=',intsel(a~ob,PcodeArg_selectionIndex),']');
+//  writeTo(bf,'[PcodeArg kind=',intsel(a~ob,a.kind,' db_index=',a.dblock_index,'sel_index=',a.selection_index,']');
+}
+
+//void function plus(string s,PcodeArg x){times(s,x)}//remove
+
+
+void function asmWriteByte(int x)
+  {
+
+  addByte(asmBuf,x);
+  }
+
+void function asmWriteShort(int x)
+  {
+  addByte(asmBuf,byte0(x)~int);
+  addByte(asmBuf,byte1(x)~int);
+  }
+
+
+
+void function asmPutShort(int n,x)
+  {
+  setByte(asmBuf,n,byte0(x)~int);
+  setByte(asmBuf,n+1,byte1(x)~int);
+//  asmBuf[n] = byte0(x)~byte;
+//  asmBuf[n+1] = byte1(x)~byte;
+  }
+
+int function getAsmShort(int x)
+   {
+   return lor(selectByte(asmBuf,x),lshift(selectByte(asmBuf,x+1),8));
+//   return lor(asmBuf[x]~int,lshift(asmBuf[x+1]~int,8));
+   }
+
+
+void function writeOut(PcodeArg a)
+     {
+	 if (nul(a)) {asmWriteByte(null_pcode_arg);return}
+	 push(pcodeArgBuf,a);
+//	 asmWriteByte(a.kind);
+	 asmWriteByte(intsel(a~ob,PcodeArg_kind));
+	 asmWriteShort(0);  // since the write value isn't known
+	 if (intsel(a~ob,PcodeArg_pcodeLength) == 5)
+
+	     asmWriteShort(0);
+	 
+     }
+
+void function writeDbIndices(PcodeArg a,DblockLayout dbl)
+  {
+  var int dbi,dbs,ps,sli;
+  sli = intsel(a~ob,PcodeArg_selectionIndex);
+  dbi = intsel(a~ob,PcodeArg_dblockIndex);
+  dbs = intsel(a~ob,PcodeArg_dblockStorage);
+  ps = intsel(a~ob,PcodeArg_pcodePos);
+//  sli = a . selection_index;
+//  dbi = a . dblock_index;
+//  dbs = a . dblock_storage;
+//  ps = a.pcode_pos;
+  if (dbs == storage_ob) asmPutShort(ps+1,dbi); else
+  if (dbs == storage_int) 
+     asmPutShort(ps+1,dbi + intsel(dbl~ob,DblockLayout_numobs));
+  else asmPutShort(ps+1,dbi*2 + intsel(dbl~ob,DblockLayout_doubleoffset));
+//  if (dbs == storage_int) asmPutShort(ps+1,dbi + (dbl.numobs));
+//  else asmPutShort(ps+1,dbi*2 + (dbl.doubleoffset));
+  if (intsel(a~ob,PcodeArg_pcodeLength) == 5)
+
+     {
+	 if (selectionFromSequence(a)) asmPutShort(ps+3,sli + intsel(dbl~ob,DblockLayout_numobs));
+//	 if (selectionFromSequence(a)) asmPutShort(ps+3,sli + (dbl.numobs));
+	 else asmPutShort(ps+3,sli);
+	 }
+  }
+
+void function writeDbIndices()
+  {
+  var int ln,i;
+  ln = length(pcodeArgBuf);
+  for (i = 0;i<ln;i++)
+      writeDbIndices(pcodeArgBuf[i]~PcodeArg,dblockLayout);
+  }
+
+
+void function asmArg(Xob x)
+  {
+  writeOut(mkPcodeArg(x));
+  }
+
+
+
+void function assemble(Xassign x)
+   {
+   asmWriteByte(assign_op);
+    asmArg(obsel(x~ob,Xassign_source)~Xob);
+   asmArg(obsel(x~ob,Xassign_dest)~Xob);
+//   asmArg(x.source);
+//   asmArg(x.dest);
+  }
+
+var Xob lastFun;
+
+// recall:dest follows arguments
+void function assemble(Xapply x)
+   {
+   var Xob fn,dst,ob op,SeqOfXob arl,int ln,i,opi;
+//   fn = fun_of(x);
+   fn = obsel(x~ob,Xapply_functionOf)~Xob;
+   op = get(primOps~ob,regarding(fn~ob));
+   dst = obsel(x~ob,Xapply_dest)~Xob;
+    arl = obsel(x~ob,Xapply_arguments)~SeqOfXob;
+//   dst = x.dest;
+//    arl = arguments(x);
+   ln = length(arl);
+  if (nnul(op)) 
+     {
+	 opi = op ~ int;
+	 if (opi == integer_increment_op)
+	    {
+		if (nul(dst)) opi = noreturn_increment_op;
+		}
+     else
+	 if (opi == integer_decrement_op)
+	    {
+		if (nul(dst)) opi = noreturn_decrement_op;
+		}
+	 else
+	 if ((opi == integer_geq_op)||(opi == integer_greaterp_op))// replace with leq,lessp and reverse args
+	    {
+		if (opi == integer_geq_op)
+		  asmWriteByte(integer_leq_op);
+		else asmWriteByte(integer_lessp_op);
+		asmArg(arl[1]);
+		asmArg(arl[0]);
+		asmArg(dst);
+		return;
+		}
+	 else		 
+	 if ((opi == double_geq_op)||(opi == double_greaterp_op))// replace with leq,lessp and reverse args
+	    {
+		if (opi == double_geq_op)
+		  asmWriteByte(double_leq_op);
+		else asmWriteByte(double_lessp_op);
+		asmArg(arl[1]);
+		asmArg(arl[0]);
+		asmArg(dst);
+		return;
+		}		 
+      asmWriteByte(opi);
+	  }
+   else
+      {
+	  if (nul(dst)) 
+	     asmWriteByte(call_op);
+	  else
+	     asmWriteByte(assign_call_op);
+	  asmWriteByte(length(arl));
+	  lastFun = fn;
+	  asmArg(fn);
+	  }
+   for (i =0;i<ln;i++)
+	   asmArg(arl[i]);
+   if (nnul(dst)) asmArg(dst);
+   }
+
+
+var Function(void,Xob) assemble;
+
+//format: sequence_ob:byte,length:short,sequence_sort,elements...,dest
+
+void function assemble(Xsequence x)
+   {
+   var Xob dst,sqs,SeqOfXob arl,int ln,i;
+   sqs = meta(type(x ~ Xob));
+   dst = obsel(x~ob,Xsequence_dest)~Xob;
+//  dst = x.dest;
+   if (nul(dst)) return;// if there is no dest, there is nothing to do (due to flattening)
+//   arl = arguments(x);
+   arl = obsel(x~ob,Xsequence_arguments)~SeqOfXob;
+   asmWriteByte(sequence_op);
+   ln = length(arl);
+   asmWriteShort(ln);
+   asmArg(sqs);
+   for (i =0;i<ln;i++)
+	   asmArg(arl[i]);
+   if (nnul(dst)) asmArg(dst);
+   }
+
+
+
+
+void function assemble(Xreturn x)
+   {
+   var Xob v;
+//   v = x. value;
+   v = obsel(x~ob,Xreturn_value)~Xob;
+   if (nul(v)) asmWriteByte(return_void_op); else
+      {
+	  asmWriteByte(return_op);
+      asmArg(v);
+	  }
+   }
+
+
+
+void function assemble(Xblock x)
+   {
+   var SeqOfXob st,int ln,i;
+//   st = x.statements;
+   st = obsel(x~ob,Xblock_statements)~SeqOfXob;
+   ln = length(st);
+   for (i =0;i<ln;i++)
+	   assemble(st[i]);
+   }
+
+void function assemble(Xgo x)
+   {
+   var Xob cn,int idx;
+//   cn = condition(x);
+   cn = obsel(x~ob,Xgo_condition)~Xob;
+   if (nul(cn)) 
+      {
+	  asmWriteByte(jump_s_op);
+	  }
+   else
+      {
+	  if (bitsel(x~ob,Xgo_booles,Xgo_goIfFalse)~boolean) asmWriteByte(iffalse_s_op);
+//	  if (go_if_false(x)) asmWriteByte(iffalse_s_op);
+	  else asmWriteByte(iftrue_s_op);
+	  asmArg(cn);
+	  }
+   idx = length(asmBuf);
+   seqobExpand(asmJumps~ob,idx+1);
+//   expand_(asmJumps,idx+1); // when the expand macro comes along, use that instead
+   asmJumps[idx] = obsel(x~ob,Xgo_toLabel);
+//   asmJumps[idx] = to_label(x) ~ ob;
+   asmWriteShort(0);
+   }
+
+void function asmRecordLabels(Xob x,int idx)
+   {
+   var ob lb,SeqOfOb lbs,int ln,i;
+   lb = labelsOf(x);
+   if (nnul(lb)) 
+      {
+	  if (obkind(lb~ob)==string_kind) // single label case
+		 put(asmLabels,lb~ob,idx~ob,int);
+	  else
+	     {
+		 lbs = lb~SeqOfOb;
+		 ln = length(lbs);
+		 for (i = 0;i<ln;i++)
+			 put(asmLabels,lbs[i]~ob,idx~ob,int);
+		 }
+	  }
+   }
+
+void function assemble1(Xob x)
+  {
+  if (Xobish(x))
+     {
+	 asmRecordLabels(x,length(asmBuf));
+	 if (bitsel(x~ob,Xob1_booles,Xob1_isNoop)~boolean) {asmWriteByte(noop_op);return}
+//	 if (isNoop(x~Xob1)) {asmWriteByte(noop_op);return}
+	 if (hasType(x~ob,Xassign)) {assemble(x~Xassign);return}
+	 if (hasType(x~ob,Xapply)) {assemble(x~Xapply);return}
+	 if (hasType(x~ob,Xreturn)) {assemble(x~Xreturn);return}
+	 if (hasType(x~ob,Xblock)) {assemble(x~Xblock);return}
+	 if (hasType(x~ob,Xgo)) {assemble(x~Xgo);return}
+	 if (hasType(x~ob,Xsequence)) {assemble(x~Xsequence);return}
+     }
+}
+
+
+var asmVerbose = false;
+asmVerbose = false;//notneeded
+
+void function assemble(Xob x)
+   {
+   var int ci;
+   ci = length(asmBuf);
+   assemble1(x);
+   if (asmVerbose) writeln('assembled ',x,' range = ',ci,'-',length(asmBuf)-1);
+   }
+
+void function asmResolveJumps()
+  {
+  var int i,ln,ob cj,trg,int trgi;
+  ln = length(asmJumps);
+  for (i = 0;i<ln;i++)
+      {
+	  cj = asmJumps[i];
+	  if (nnul(cj)) 
+	     {
+		 trg = get(asmLabels~ob,regarding(cj));
+		 if (nul(trg)) error('internal');
+		 trgi = trg ~ int;
+		 if (asmVerbose) writeln('resolved jump at ',i,' to ',cj,' to address ',trgi);
+		 asmPutShort(i,trgi-i);
+	     }
+	  }
+  }
+
+
+
+
+// for local bindings appearing in the tables, the value of the
+// binding and not the binding itself belongs in the dblock
+
+ob function toDblockEntry(ob o)
+  {
+  if (not(isBinding(o))) return o;
+  if (inDblock(o~Binding)) return bindingValue(o~Binding);
+  return o;
+  }
+
+void function asmBuildDblock()
+  {
+  var int i,o,r,ioff,roff,j;
+  if (nilStandinIdx >= 0)
+     dblockObs[nilStandinIdx] = nil;
+  i = length(dblockInts);
+  o = length(dblockObs);
+  r = length(dblockDoubles);
+  dblockLayout = mkDblockLayout(o,i,r);
+  ioff = intsel(dblockLayout~ob,DblockLayout_numobs);
+  roff = intsel(dblockLayout~ob,DblockLayout_doubleoffset);
+//  ioff = dblockLayout.numobs;
+//  roff = dblockLayout.doubleoffset;
+  asmDblock = alloc(dblockLayout);
+  for (j = 0;j<o;j++)
+	  setOb(asmDblock,j,toDblockEntry(dblockObs[j]));
+  for (j = 0;j<i;j++)
+	    setInt(asmDblock,ioff+j,toDblockEntry(dblockInts[j])~int);
+ for (j = 0;j<r;j++) 
+   setDouble(asmDblock,roff + 2*j,toDblockEntry(dblockDoubles[j])~double);
+  }
+
+void function asmWrapup()
+   {
+   asmResolveJumps();
+   asmBuildDblock();
+   writeDbIndices();
+   }
+
+void function tprint_storage(int n)
+  {
+  if (n == storage_ob) write('ob'); else
+  if (n == storage_int) write('int'); else
+  if (n == storage_double) write('double'); else
+  if (n == storage_bit) write('bit'); else
+  if (n == storage_byte) write('byte'); else
+  if (n == storage_short) write('short');
+  }
+
+void function pcodeArgw(int n)
+  {
+  writeln(pcodeArgBuf[n]~ PcodeArg);
+  }
+
+
+
+     
+   
+     
+
+		
+

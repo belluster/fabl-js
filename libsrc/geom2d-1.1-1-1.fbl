@@ -1,0 +1,160 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+/*
+compile("file://../lib/geom2d-1.1-1.fb","file://../libsrc/geom2d-1.1-1-1.fbl");
+*/
+
+/* assumes prior  loading of the following code, normally in init.fbl
+load("{stdlibPrefix}discovery-1.1.fb");
+discovery:namespaces_0();
+discovery:discovery_0();
+*/
+
+install(namespace('geom'));
+
+setHomeAndTopic(namespace('geom2d'));
+startCollectingTriples();
+
+
+class("geom2d:Shape");
+endClass();
+
+geom2d:Shape .. rdfs:subClassOf = geom:Shape;
+
+
+class("geom2d:Point");
+restrict geom:x {cardinality 1;allValuesFrom double}
+restrict geom:y {cardinality 1;allValuesFrom double}
+endClass();
+
+geom2d:Point .. rdfs:subClassOf = geom:Point;
+geom2d:Point .. rdfs:subClassOf = geom2d:Shape;
+
+
+
+class("geom2d:Transformation");
+endClass();
+
+geom2d:Transformation .. rdfs:subClassOf = geom:Transformation;
+
+
+allocate("geom2d:a",Property);
+allocate("geom2d:b",Property);
+allocate("geom2d:c",Property);
+allocate("geom2d:d",Property);
+allocate("geom2d:e",Property);
+allocate("geom2d:f",Property);
+
+
+class("geom2d:Matrix");
+restrict geom2d:a {cardinality 1;allValuesFrom double}
+restrict geom2d:b {cardinality 1;allValuesFrom double}
+restrict geom2d:c {cardinality 1;allValuesFrom double}
+restrict geom2d:d {cardinality 1;allValuesFrom double}
+restrict geom2d:e {cardinality 1;allValuesFrom double}
+restrict geom2d:f {cardinality 1;allValuesFrom double}
+endClass();
+
+geom2d:Matrix .. rdfs:subClassOf = geom2d:Transformation;
+
+
+// note:  rdf:Seq is used here instead of SeqOf(geom2d:Shape)  
+// to keep this vocabulary within standard RDF/OWL
+
+class("geom2d:Group");
+//restrict geom:elements {cardinality 1;allValuesFrom SeqOf(geom2d:Shape)}
+restrict geom:transform {maxCardinality 1;allValuesFrom geom2d:Transformation}
+endClass();
+
+geom2d:Group .. rdfs:subClassOf = geom:Group;
+geom2d:Group .. rdfs:subClassOf = geom2d:Shape;
+
+class("geom2d:Curve");
+endClass();
+
+geom2d:Curve .. rdfs:subClassOf = geom2d:Shape;
+geom2d:Curve .. rdfs:subClassOf = geom:Curve;
+
+
+allocate("geom2d:u",Property);
+allocate("geom2d:v",Property);
+allocate("geom2d:w",Property);
+
+class("geom2d:Line");
+restrict geom2d:u {cardinality 1;allValuesFrom double}
+restrict geom2d:v {cardinality 1;allValuesFrom double}
+restrict geom2d:w {cardinality 1;allValuesFrom double}
+endClass();
+
+class("geom2d:OpenCurve");
+restrict geom:end0 {cardinality 1;allValuesFrom geom2d:Point}
+restrict geom:end1 {cardinality 1;allValuesFrom geom2d:Point}
+endClass();
+
+geom2d:OpenCurve .. rdfs:subClassOf = geom2d:Curve;
+geom2d:OpenCurve .. rdfs:subClassOf = geom:OpenCurve;
+
+
+class("geom2d:ClosedCurve");
+endClass();
+
+geom2d:ClosedCurve .. rdfs:subClassOf = geom2d:Curve;
+geom2d:ClosedCurve .. rdfs:subClassOf = geom:ClosedCurve;
+
+class("geom2d:FilledCurve");
+endClass();
+
+geom2d:FilledCurve .. rdfs:subClassOf = geom2d:Shape;
+
+
+
+class("geom2d:Segment");
+endClass();
+
+
+geom2d:Segment .. rdfs:subClassOf = geom2d:OpenCurve;
+geom2d:Segment .. rdfs:subClassOf = geom:Segment;
+
+
+
+allocate("geom2d:points",Property);
+
+class("geom2d:Polyline");
+//restrict geom:points {cardinality 1;allValuesFrom SeqOf(geom2d:Point)}
+endClass();
+
+
+geom2d:Polyline .. rdfs:subClassOf = geom2d:Curve;
+geom2d:Polyline .. rdfs:subClassOf = geom:Polyline;
+
+
+allocate("geom2d:pathData",Property);
+
+class("geom2d:SVGPath");
+restrict geom2d:pathData {cardinality 1;allValuesFrom string}
+endClass();
+
+class("geom2d:Box");
+restrict geom:xmin {cardinality 1;allValuesFrom double}
+restrict geom:xmax {cardinality 1;allValuesFrom double}
+restrict geom:ymin {cardinality 1;allValuesFrom double}
+restrict geom:ymax {cardinality 1;allValuesFrom double}
+endClass();
+
+
+
+
+geom2d:Box .. rdfs:subClassOf = geom2d:Shape;
+geom2d:Box .. rdfs:subClassOf = geom:Box;
+
+
+class("geom2d:Circle");
+restrict geom:center {cardinality 1;allValuesFrom geom2d:Point}
+restrict geom:radius {cardinality 1;allValuesFrom double}
+endClass();

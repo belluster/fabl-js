@@ -1,0 +1,221 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+
+int function getShort(SeqOfByte cd,int x)
+   {
+   return lor(selectByte(cd,x),lshift(selectByte(cd,x+1),8));
+//   return lor(cd[x]~int,lshift(cd[x+1]~int,8));
+   }
+
+
+// returns the pc just past the arg at n
+int function disasmArg(SeqOfByte cd,Dblock db,int n)
+   {
+   var int knd,md,vstr,dstr,ln,fs,ss,boolean ssidb;
+//   sss = s;
+   knd = selectByte(cd,n);
+//   knd = cd[n]~int;
+   md = selectBits(knd,5,7);
+   vstr = selectBits(knd,0,4);
+   write('[');
+   dstr = storage_ob;  //type of dblock entry for first stage
+   ssidb = false; //selector (if any) is int sequence selection in dblock
+   if (md == pam_local) 
+      {
+	  ln = 3;
+	  dstr = vstr;
+	  write('local ');
+	  }
+   else
+   if (md == pam_binding_value)
+      {
+	  ln = 3;
+	  write('binding_value ');
+	  }
+   else
+   if (md == pam_local_field_select)
+      {
+	  ln = 5;
+	  write('local_field_select ');
+	  }
+   else
+   if (md == pam_binding_field_select)
+      {
+	  ln = 5;
+	  write('binding_field_select ');
+	  }
+   else
+   if (md == pam_local_sequence_select)
+      {
+	  ln = 5;
+	  ssidb = true;
+	  write('local_sequence_select ');
+	  }
+   else
+   if (md == pam_binding_sequence_select)
+      {
+	  ln = 5;
+	  ssidb = true;
+	  write('binding_sequence_select ');
+	  }
+   tprint_storage(vstr);
+   fs = getShort(cd,n+1);
+   write(' dblock[',fs,']=');
+   if (dstr == storage_ob) write(selectOb(db,fs)); else
+   if (dstr == storage_int) write(selectInt(db,fs));
+// LATER DOUBLE    else write(selectDouble(db,fs)); 
+   if (ln == 5) 
+      {
+	  ss = getShort(cd,n+3);
+	  if (ssidb) 
+	     {
+		  write(' dblock[',ss,']=');
+          write(selectInt(db,ss)); 
+		  }
+//	  else write('[[',ss,']]');// here is the only difference in fabl2;
+	  else write('[[',selectOb(db,ss),']]');// here is the only difference in fabl2;
+	  }
+   write(']');
+   return n+ln;
+   }
+
+
+
+// works for any operator which has the form
+// op [fixed number of args]
+int function opDisasm(SeqOfByte cd,Dblock db,int pc,int numargs)
+  {
+  var int op,cp,i;
+  op = selectByte(cd,pc);
+//  op = cd[pc]~int;
+  write(opNames[op],' ');
+  cp = pc+1;
+  for (i = 0;i<numargs;i++)
+	 cp = disasmArg(cd,db,cp);
+  writeln('');
+  return  cp;
+  }
+
+int function callDisasm(SeqOfByte cd,Dblock db,int pc,boolean asr)
+    {
+	var int cp,numargs,acnt,i;
+	if (asr) write('assign_call '); else write('call ');
+	numargs = selectByte(cd,pc+1);
+//	numargs = cd[pc+1]~int;
+	if (asr) acnt = numargs+2; else acnt = numargs+1;
+	cp = pc + 2;
+	for (i =0;i<acnt;i++) {write('    ',cp,'  ');cp = disasmArg(cd,db,cp);terpri();}
+	return cp;
+	}
+
+
+int function sequenceDisasm(SeqOfByte cd,Dblock db,int pc)
+    {
+	var int cp,numargs,i;
+	writeln('sequence ');
+	numargs = getShort(cd,pc+1)+1;//including dest
+	cp = pc + 3;
+	write('   ');cp = disasmArg(cd,db,cp);writeln(''); // the sort
+	for (i =0;i<numargs;i++) {write('   ');cp = disasmArg(cd,db,cp);writeln('');}
+	writeln('end_sequence');
+	return cp;
+	}
+
+int function jump_sDisasm(SeqOfByte cd,Dblock db,int pc)
+    {
+	writeln('jump_s ',getShort(cd,pc+1)+pc+1);
+	return pc + 3;
+	}
+
+
+int function iftrue_sDisasm(SeqOfByte cd,Dblock db,int pc)
+    {
+	var int cp;
+	write('iftrue_s ');
+	cp = disasmArg(cd,db,pc+1);
+	writeln(' ',getShort(cd,cp)+cp);
+	return cp + 2;
+	}
+
+
+int function iffalse_sDisasm(SeqOfByte cd,Dblock db,int pc)
+    {
+	var int cp;
+	write('iffalse_s ');
+	cp = disasmArg(cd,db,pc+1);
+	writeln(' ',getShort(cd,cp)+cp);
+	return cp + 2;
+	}
+
+int  function disasmStep(SeqOfByte cd,Dblock db,int pc)
+  {
+  var int knd,op;
+  op = selectByte(cd,pc);
+//  op = cd[pc]~int;
+  knd =  opKinds[op];
+  if ((op == assign_op) || (knd == opKind_int_int)) return opDisasm(cd,db,pc,2);
+  if (knd == opKind_int_int_int) return opDisasm(cd,db,pc,3); 
+  if (knd == opKind_call) 
+     {
+	 if (op == call_op) return callDisasm(cd,db,pc,false);
+	 else return callDisasm(cd,db,pc,true);
+	 }
+  if ((op == integer_float_op)) return opDisasm(cd,db,pc,2);
+  if ((op == double_plus_op)) return opDisasm(cd,db,pc,3);
+  if ((op == return_op)) return opDisasm(cd,db,pc,1);
+  if ((op == ob_nul_op) || (op == ob_nnul_op)) return opDisasm(cd,db,pc,2);
+  if ((op == ob_eq_op)) return opDisasm(cd,db,pc,3);
+
+
+  if (op == return_void_op) return opDisasm(cd,db,pc,0);
+  if (op == jump_s_op) return jump_sDisasm(cd,db,pc);
+  if (op == iftrue_s_op) return iftrue_sDisasm(cd,db,pc);
+  if (op == iffalse_s_op) return iffalse_sDisasm(cd,db,pc);
+  if (op == sequence_op) return sequenceDisasm(cd,db,pc);
+  if ((op == noreturn_increment_op)||(op == noreturn_decrement_op))  return opDisasm(cd,db,pc,1);
+  if ((op == integer_increment_op)||(op == integer_decrement_op))  return opDisasm(cd,db,pc,2);
+  if ((op == seqbyte_get_op)||(op == seqob_get_op)||(op == seqint_get_op))  return opDisasm(cd,db,pc,3);
+  if ((op == seqbyte_put_op)||(op == seqob_put_op)||(op == seqint_put_op))  return opDisasm(cd,db,pc,4);
+  if ((op == arraychar_get_op)||(op == arrayob_get_op)||(op == arrayint_get_op))  return opDisasm(cd,db,pc,3);
+  if ((op == arraychar_put_op)||(op == arrayob_put_op)||(op == arrayint_put_op))  return opDisasm(cd,db,pc,4);
+ error('not yet: ',op,'=',opNames[op]);
+  }
+
+void function rawDisasm(SeqOfByte cd,Dblock db)
+{
+  var int ln,i;
+  ln = length(cd);
+  writeln('*** Pcode ***');
+  for (i = 0;i<ln;i++) writeln(i,' ',selectByte(cd,i));
+//  for (i = 0;i<ln;i++) writeln(i,' ',cd[i]~int);
+  writeln('** End Pcode ***');
+  }
+
+var disasm_raw = false;
+disasm_raw = false;//notneeded
+void function disasm(SeqOfByte cd,Dblock db)
+  {
+  var int ln,cp;
+  if (disasm_raw) rawDisasm(cd,db);
+  ln = length(cd);
+  cp = 0;
+  while (cp < ln) 
+       {
+	   write(cp,': ');
+       cp = disasmStep(cd,db,cp);
+	   terpri();
+	   }
+  writeln('***');
+  }
+

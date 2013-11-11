@@ -1,0 +1,186 @@
+
+
+geom2d:Point function mkPoint(double x,y)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = x;
+   rs . geom:y = y;
+   return rs;
+}
+
+
+void function copyto(geom2d:Point x,geom2d:Point y)
+  {
+  x . geom:x = y . geom:x;
+  x . geom:y = y . geom:y;
+  }
+
+
+var nullPoint = mkPoint(0,0);
+// the printer
+
+void function times(string bf,geom2d:Point p)
+{
+   bf * '[';
+   bf * p.geom:x;
+   bf *  ',';
+   bf * p.geom:y;
+   bf * ']';
+}
+
+
+
+geom2d:Point function plus(geom2d:Point p,q)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = p . geom:x + q.geom:x;
+   rs . geom:y = p . geom:y + q.geom:y;
+   return rs;
+}
+
+
+geom2d:Point function difference(geom2d:Point p,q)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = p . geom:x - q.geom:x;
+   rs . geom:y = p . geom:y - q.geom:y;
+   return rs;
+}
+
+
+// dot product
+double function times(geom2d:Point p,q)
+    {  
+	return p.geom:x * q.geom:x +  p.geom:y * q.geom:y
+	}
+
+
+
+geom2d:Point function unary_minus(geom2d:Point p)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = - p . geom:x;
+   rs . geom:y = - p . geom:y;
+   return rs;
+}
+
+
+
+
+geom2d:Point function quotient(geom2d:Point p,double y)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = (p . geom:x)/y;
+   rs . geom:y = (p . geom:y)/y;
+   return rs;
+}
+
+
+
+geom2d:Point function times(geom2d:Point p,double y)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = y*(p . geom:x);
+   rs . geom:y = y*(p . geom:y);
+   return rs;
+}
+
+
+
+geom2d:Point function times(double y,geom2d:Point p)
+{
+   var geom2d:Point rs;
+   rs = new(geom2d:Point);
+   rs . geom:x = y*(p . geom:x);
+   rs . geom:y = y*(p . geom:y);
+   return rs;
+}
+
+double function length(geom2d:Point p)
+{
+   var double x,y,z;
+   x = p . geom:x;
+   y = p . geom:y;
+   return sqrt(x*x + y*y);
+}
+
+
+
+geom2d:Point function normalize(geom2d:Point x)
+  {
+  var double ln;
+  ln = length(x);
+  if (ln == 0.0) error('Attempt to normalize null Point');
+  return  x/length(x);
+  }
+
+
+double function distance(geom2d:Point p,q)
+{
+   var double dx,dy;
+   dx = (p.geom:x - q.geom:x);
+   dy = (p.geom:y - q.geom:y);
+   return sqrt(dx*dx+dy*dy);
+}
+
+
+// ASSUMES p is of non-zero length
+
+double function direction(geom2d:Point p)
+{
+   return atan2(p.geom:y,p.geom:x);
+}
+
+
+
+double function direction(geom2d:Point e0,geom2d:Point e1)
+{
+  var double xv,yv;
+  xv = e1.geom:x - e0.geom:x;
+  yv = e1.geom:y - e0.geom:y;
+  return atan2(yv,xv);
+}
+
+
+
+
+//about x axis
+
+geom2d:Point function reflectX(geom2d:Point p)
+{
+  return mkPoint(p.geom:x,-p.geom:y);
+}
+
+//about y axis
+geom2d:Point function reflectY(geom2d:Point p)
+{
+  return mkPoint(-p.geom:x,p.geom:y);
+}
+
+geom2d:Point function rotate90(geom2d:Point p)
+  {
+  return mkPoint(-p.geom:y,p.geom:x);
+  }
+
+
+
+geom2d:Point function rotateM90(geom2d:Point p)
+  {
+  return mkPoint(p.geom:y,-p.geom:x);
+  }
+
+
+
+
+
+
+
+
+
+

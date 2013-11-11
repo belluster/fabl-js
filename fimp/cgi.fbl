@@ -1,0 +1,383 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+// cgi support
+
+// replaces %XX by the character with hex value XX
+
+string function urldecode(string ix)
+{
+  var int idx,ln,hxv,lb,string x,hx,rs;
+  // first replace + by space
+  x = replaceChar(ix,ascii_plus,ascii_space,0,length(ix));
+  idx = indexOf(x,ascii_percent);
+  if (idx<0) return x;
+  ln = length(x);
+  rs = slice(x,0,idx);
+  hx = "  ";
+  while ((0 <= idx) && ((idx + 3) <= ln))
+      {
+	  reset(hx);
+	  addChar(hx,x[idx+1]);
+	  addChar(hx,x[idx+2]);
+	  hxv = hex(hx);
+	  addChar(rs,hxv);
+	  lb = idx + 3;
+	  idx = indexOf(x,ascii_percent,lb);
+	  if (idx < 0) rs * slice(x,lb,ln);
+	  else rs * slice(x,lb,idx);
+	  }
+  return rs;
+}
+
+boolean function safeChar1(int c)
+{
+   if ((48 <= c) && (c <= 57)) return true;
+   if ((65 <= c) && (c <= 90)) return true;
+   if ((97 <= c) && (c <= 122)) return true;
+   if ((c == ascii_minus) ||  
+       (c == ascii_underbar) || 
+	   (c == ascii_dot) ||
+	   (c == ascii_bang) || 
+	   (c == ascii_twiddle) ||
+	   (c == ascii_star) ||
+	   (c == ascii_squote) || 
+	   (c == ascii_lparen) ||
+	   (c == ascii_rparen)) return true;
+  return false;
+}
+
+var SeqOf(boolean) safeChars ;
+
+void function initSafeChars()
+{
+   var int i;
+   safeChars = new(SeqOf(boolean));
+   seqintExpand(safeChars,123);
+   for (i=0;i<122;i++) safeChars[i] = safeChar1(i);
+}
+
+initSafeChars();
+
+
+boolean function urlencodeIsSafeChar(int i)
+{
+   if (i>122) return false;
+   return safeChars[i];
+}
+
+
+
+
+string function appendTwoCharHex(string rs,int x)
+   {
+   var int c,fc,sc;
+   c = lshift(land(x,240),-4);
+   if (c < 10) fc = 48 + c;
+   else fc = 87 + c;
+   c = land(x,15);
+   if (c < 10) sc = 48 + c;
+   else sc = 87 + c;
+   addChar(rs,fc);
+   addChar(rs,sc);
+}
+
+
+string function urlencode(string x)
+{
+  var string rs,int i,ln,c;
+  // first replace + by space
+  ln = length(x);
+  rs = "";
+  for (i = 0;i<ln;i++)
+      {
+	  c = x[i];
+	  if (c == ascii_space) addChar(rs,ascii_plus);
+	  else
+	  if (urlencodeIsSafeChar(c)) addChar(rs,c);
+	  else 
+	     {
+		 addChar(rs,ascii_percent);
+		 appendTwoCharHex(rs,c);
+		 }
+	  }
+  return rs;
+}
+
+
+
+string function javascriptEscape(string x)
+{
+  var string rs,int i,ln,c;
+  // first replace + by space
+  ln = length(x);
+  rs = "";
+  for (i = 0;i<ln;i++)
+      {
+	  c = x[i];
+	  if (c == ascii_plus) addChar(rs,ascii_plus);
+	  else
+	  if (urlencodeIsSafeChar(c)) addChar(rs,c);
+	  else 
+	     {
+		 addChar(rs,ascii_percent);
+		 appendTwoCharHex(rs,c);
+		 }
+	  }
+  return rs;
+}
+/*
+urldecode("abc%26def%24dd%3");
+urldecode("%26def%24dd%3");
+
+*/
+
+
+
+  
+  
+   
+  
+// first, a variant of getenv
+
+string function getenv(id ev)
+{
+   var string rs;
+   rs = "";
+   if (getenv(rs,ev) < 0) return nil~string;
+   return rs;
+}
+
+
+var crlf = SB('');
+addChar(crlf,13);
+addChar(crlf,10);
+
+var crcrlf = SB('');
+addChar(crcrlf,13);
+addChar(crcrlf,13);
+addChar(crcrlf,10);
+
+var cgiMode = false;
+var headerEmitted = false;
+
+void function httpHeader(string tp,int ln)
+  {
+  
+  if (!headerEmitted)
+     {
+	 write("HTTP 200",crlf);
+	 write("Server: fabl/2.0",crlf);
+	 if (ln > 0) write("Content-Length: ",ln);
+	 write('Content-Type: ',tp,crlf,crlf);
+     headerEmitted = true;
+	 }
+ }
+
+void function htmlHeader(int ln)
+{
+   silent(false);
+   emitHtmlHeader(ln);
+//   httpHeader('text/html');
+}
+
+void function htmlHeader()
+{
+   htmlHeader(-1);
+}
+
+void function plainTextHeader()
+{
+   if (setHttpHeaderEmitted())
+   {
+   silent(false);
+	 write("Server: fabl/2.0",crlf);
+	 write('Content-Type: text/plain',crlf,crlf);
+   }
+}
+  
+// for debugging
+var writeServedPageTo = nil ~string;
+
+
+/*
+writeServedPageTo = "file:///home/websites/mapbureau/fablbin/pg.html";
+*/
+
+var Function(boolean,string,string) fwrite;
+
+void function serveHtml(string bf)
+{
+  if (nnul(writeServedPageTo)) fwrite(writeServedPageTo,bf);
+  htmlHeader();
+ // htmlHeader();
+  write(bf);
+  quit();
+}
+
+void function preError()
+{
+   if (cgiMode) htmlHeader();
+}
+
+
+
+   
+   
+// crcrlf if linefeed is present (for enctype plain/text post)
+// post with enctyp plain/text apparently delimits with 13,10 sequences
+
+
+ob function parseHttpVars(string s)
+{
+   var ob rs,SeqOf(string) spl,int ln,i,idx,string vr,vl,cv,boolean urlencoded;
+   rs = new(Resource);
+   if (find(s,crlf) < 0)
+     {
+	 urlencoded = true;
+      spl = split(s,"&"[0]);
+	  }
+   else
+     {
+      spl = split(s,crlf);
+	  urlencoded = false;
+	  }
+   ln = length(spl);
+   for (i = 0;i<ln;i++)
+       {
+	   cv = spl[i];
+	   idx = indexOf(cv,ascii_equal);
+	   if (idx > 0)
+	      {
+		  vr = slice(cv,0,idx);
+		  vl = slice(cv,idx+1,length(cv));
+		  if (urlencoded) vl = urldecode(vl);
+		  set(rs,regarding(toId(vr)),vl~ob);
+		  }
+	   }
+   return rs;
+}
+
+
+SeqOf(string) function parseApplication(string s)
+{
+   var int idx,eidx,ln,SeqOf(string) rs,args,string argst;
+   idx = indexOf(s,ascii_lparen);
+   if (idx < 0) return nil~SeqOf(string);
+   eidx = lastIndexOf(s,ascii_rparen);
+   if (eidx < 0) return nil~SeqOf(string);
+   rs = [slice(s,0,idx)];
+   ln = length(s);
+   argst = slice(s,idx+1,eidx);
+   args = split(argst,ascii_comma);
+   rs * args;
+   return rs;
+}
+
+/*
+parseApplication("abc(def,hij)
+*/
+
+
+var httpContentLengthString = "";
+var httpContentLength = 0;
+var httpContentType = "";
+var httpContent = "";
+var httpRequestMethod = "";
+var httpQueryString = "";
+var ob httpGet;
+var ob httpPost;
+var ob httpVars;
+
+
+void function setCgiVars(boolean parse)
+{
+   if (length(httpRequestMethod) == 0)
+   {
+   httpGet = nil;
+   httpPost = nil;
+   getenv(httpRequestMethod,'REQUEST_METHOD');
+   if (httpRequestMethod == "GET")
+      {
+	  getenv(httpQueryString,'QUERY_STRING');
+	  httpContent = httpQueryString;
+	  if (parse)
+	     {
+		 httpGet = parseHttpVars(httpQueryString);
+	     httpVars = httpGet;
+		 }
+	  return;
+	  }
+   if (httpRequestMethod == "POST")
+      {
+	  getenv(httpContentLengthString,'CONTENT_LENGTH');
+	  httpContentLength = toInt(httpContentLengthString);
+	  reset(httpContent);
+	  readFromStdin(httpContent,httpContentLength);
+	  if (parse)
+	     {
+		 httpPost = parseHttpVars(httpContent);
+	     httpVars = httpPost;
+		 }
+	  return;
+	  }
+   }
+}
+
+void function setCgiVars()
+{
+   setCgiVars(true);
+}
+
+void function parseCgi()
+{
+   setCgiVars(true);
+}
+
+
+
+
+
+string function extractUploadPart0(string x)
+{
+   var int bndi,ebnd,string bnd;
+   bndi = indexOf(x,crlf);
+   if (bndi < 0) return nil~string;
+   bnd = slice(x,0,bndi);
+//    writeln(bnd);quit();
+  ebnd = indexOf(x,bnd,bndi);
+   if (ebnd < 0) return nil~string;
+   return slice(x,bndi+1,ebnd);
+}
+
+var crlfcrlf = "{crlf}{crlf}";
+
+string function extractUploadContent(string x)
+{
+   var int bndi,string prt0;
+   prt0 = extractUploadPart0(x);
+   if (nul(prt0)) return prt0;
+   bndi = indexOf(prt0,crlfcrlf);
+   if (bndi < 0) return nil~string;
+   return slice(prt0,bndi+4,length(x));
+}
+
+
+
+
+
+
+/*
+var vv = parseHttpVars("aa=bb&c=def");
+vv['aa']~string;
+vv['c']~string;
+*/
+

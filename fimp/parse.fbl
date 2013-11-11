@@ -1,0 +1,804 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+var parse_verbose = false;
+parse_verbose = false;//notneeded
+
+void function atline()
+{
+write('At ',scan_linenumber,' ');
+}
+
+void function parse2error(id s)
+{
+write('At ',scan_linenumber,' ');error(s);
+}
+
+
+
+
+// returns true if any consolidation was done
+
+ob function mkApplication(Token op,ob a0)
+   {
+   return cons(op~ob,cons(a0,rdf:nil));
+   }
+
+
+ob function mkApplication(Token op,ob a0,a1)
+   {
+   return cons(op~ob,cons(a0,cons(a1,rdf:nil)));
+   }
+
+
+
+ob function mkApplication(ob op,SeqOfOb a)
+  {
+  return cons(op ~ ob,toList(a));
+  }
+
+
+ob function mkArrayRef(ob op,SeqOfOb a)
+  {
+  return cons('array_ref'~ob,cons(op ~ ob,toList(a)));
+  }
+
+
+
+var Function(ob,ob) detokenify;
+
+ob function detokenify(ob x)
+   {
+   var ob dt,Token tk;
+   if (isList(x)) return cons(detokenify(car(x)),detokenify(cdr(x)));
+   if (hasType(x,Token))
+      {
+	  tk = x ~ Token;
+	  dt = _datum(tk);
+	  if (_isString(tk)) return list2('_quote_'~ob,dt);
+	  else return _datum(x~Token);
+	  }
+   return x;
+   }
+
+/*
+assumption: stack s is empty, or there is an expression (rather than an operator)
+on top of ths stack.  So, the top of the stack looks like IE or IPE,
+where I means infix, P prefix, and E expression. 
+consolidate replaces  E I E on the stack by (apply I E1 E2) if the
+right binding power of I is greater than or equal to bp
+*/
+
+boolean function consolidateStep(SeqOfOb s,int bp)
+{
+    var int ln,rbp,Token lastop,ob ne;
+    ln = length(s);
+	if (ln > 1)
+	   {
+	   lastop = s[ln-2]~Token;
+	   rbp = right_bp(lastop);
+	   if (rbp >= bp) // lastop owns the expression on the top of the stack
+	      {
+		  if (_isPrefix(lastop)) 
+		     {
+			 ne = mkApplication(lastop,s[ln-1]);
+			 pop(s,2);
+			 push(s,ne);
+			 return true;
+			 }
+		 else
+		     {
+			 ne = mkApplication(lastop,s[ln-3],s[ln-1]);
+			 pop(s,3);
+			 push(s,ne);
+			 return true;
+			 }
+		 }
+	}
+   return false;
+}
+
+void function consolidate(SeqOfOb s,int bp)
+    {
+	while (consolidateStep(s,bp)) true;
+	}
+
+
+var Function(ob,Token)  parseExpression;
+var Function(ob,Token,Token)  parseExpression;
+
+
+
+var Token term_token; // the token which was the terminator for parseStatement
+
+// unit = either an atom, a parenthesized expression, of a bracketed expression
+
+
+
+
+ob function mkSequence(SeqOfOb a)
+  {
+  return cons('sequence'~ob,toList(a));
+  }
+
+
+
+ob function parseUnit()
+  {
+  var Token tk,SeqOf(ob) a;
+  tk = scanToken();   
+  if (_isAtom(tk)) return tk ~ ob;
+  if (same(tk,t_lparen))
+	 return parseExpression(t_rparen);
+  if (same(tk,t_lbracket))	 
+      {
+      a = parseCommafied(t_rbracket);
+	  return mkSequence(a);
+	  }
+  atline();error('Did not expect ',tk);
+  }
+
+
+
+SeqOfOb function parseCommafied(Token trm)
+  {
+  var Token tk,SeqOfOb rs,ob cp;
+  tk = scanToken();
+  if (same(tk,trm)) return nil~SeqOfOb;
+  rs = emptysequence(ob);
+  unscanToken();
+  cp = parseExpression(trm,t_comma);
+  push(rs,cp);
+  while (not(same(last_token,trm))) 
+     {
+     cp = parseExpression(trm,t_comma);
+     push(rs,cp);
+	 }
+  return rs;
+  }
+
+// this parses  an application f(a,b,c), a qualified name a:b  or an atom f
+var parsedId = nil~Token;
+
+ob function parseAppOrId(boolean allowAtom)
+   {
+   var Token tk,tk2,tk3,SeqOfOb sq;
+   tk = scanToken();
+   if (not(_isId(tk))) 
+      {
+	  parsedId = tk;
+	  if (allowAtom) return tk ~ob;
+	  parse2error('expected id or application here');
+	  }
+   tk2  = scanToken();
+   if (same(tk2,t_lparen)) 
+      {
+      sq = parseCommafied(t_rparen);
+      return mkApplication(tk~ob,sq);
+	  }
+   else
+   if (same(tk2,t_colon))
+      {
+      tk3  = scanToken();
+      if (not(_isId(tk3))) parse2error('expected id after :');
+      return list3(t_colon~ob,tk~ob,tk3~ob);
+	  }
+   else
+     {
+	  unscanToken();
+      return tk~ob;
+	  }
+   }
+
+ob function parseAppOrId()
+   {
+   return parseAppOrId(false);
+   }
+
+ob function parseAtomAppOrId()
+   {
+   return parseAppOrId(true);
+   }
+
+
+
+/* inputs:  stk ( the parse stack), termintor (terminator expected)
+
+assumption: there is an expression (rather than an operator)
+on top of ths stack.  So, the top of the stack looks like IE or IPE,
+where I means infix, P prefix, and E expression. 
+Cases: the next token tk is an infix, a terminator, a left bracket, or a left paren.
+ Subcases:
+   if tk  is an infix op;
+      let tk2 be the following token.
+	    if tk2 is an atom or left paren, put tk2 (resp the parse of the parenthesized exp)
+	    on top of the stack and consolodate
+	 
+	    if tk2 is a prefix, let tk3 be the following token
+	       if tk3 is an atom or left paren, put tk3 (resp the parse of the parenthesized exp)
+	       on top of the stack and consolodate
+		   other cases illegal
+
+		other cases illegal
+   if tk is lparen
+
+
+If infix, consolodate the stack until the right binding power of the next operator
+down on the stack is less than the left binding power of the current operator
+*/
+
+   // stk = current parse stack, trm = terminator expected
+   // returns terminating token or nul if more to do
+   // State: expression is at top of stack
+   // grab either 
+
+Token function parseExpressionStep(SeqOfOb s,Token trm1,trm2,trm3)
+{
+   var Token tk,tk2,pfx,ob rval,boolean islp,smd,SeqOfOb a,ob op,ap,int ln;
+   tk = scanToken();
+   if (_isTerminator(tk)) 
+      {
+	  if (same(tk,trm1) || same(tk,trm2) || same(tk,trm3))  
+	     {
+	     consolidate(s,-1);
+		 return tk;
+		 }
+	  else {atline();error('Expected ',trm1,' or ',trm2,' not ',tk)};
+	  }
+    if (same(tk,t_lparen))
+      {
+ 	  consolidate(s,left_bp(t_lparen));
+      a = parseCommafied(t_rparen);
+	  ln = length(s);
+	  op = s[ln-1];
+	  ap = mkApplication(op,a);
+	  s[ln-1] = ap;
+	  return nil~Token;
+	  }
+    if (same(tk,t_lbracket))
+      {
+ 	  consolidate(s,left_bp(t_lbracket));
+      a = parseCommafied(t_rbracket);
+	  ln = length(s);
+	  op = s[ln-1];
+	  ap = mkArrayRef(op,a);
+	  s[ln-1] = ap;
+	  return nil~Token;
+	  }
+   if (not(_isInfix(tk)||_isPostfix(tk))) parse2error('Infix or postfix operator expected here'); 
+   consolidate(s,left_bp(tk));
+   if (_isPostfix(tk))
+      {
+	  ln = length(s);
+	  s[ln-1] = list2(tk~ob,s[ln-1]);
+	  return nil ~ Token;
+	  }
+   tk2 = scanToken();
+   if (parse_verbose) writeln('parseExpressionStep: tk2 = ',tk2);
+   smd = same(tk2,t_difference);
+   pfx = nil ~ Token;
+   if (smd||_isPrefix(tk2)) 
+      {
+	  if (smd) pfx = instantiate(t_minus,_position(tk2));
+	  else pfx =  tk2;
+	  tk2 = scanToken();
+	  }
+   islp = same(tk2,t_lparen);
+   if (islp||_isAtom(tk2))
+      {
+	  if (islp) {unscanToken();rval = parseUnit();}
+	  else rval = tk2~ob;
+	  push(s,tk~ob);
+	  if (nnul(pfx)) push(s,pfx~ob);
+	  push(s,rval);
+	  }
+   else 
+   if (same(tk2,t_lbracket))
+      {
+	  unscanToken();
+	  rval = parseUnit();
+	  push(s,tk~ob);
+	  if (nnul(pfx)) push(s,pfx~ob);
+	  push(s,rval);
+	  }
+   else   
+   {atline();error('Did not expect ',tk2)}
+   return nil ~ Token;
+   }
+
+// parseToplevel calls this with one fellow on the stack; if the 
+// stack is empty put one item on the stack before looping
+
+ob function parseExpression(SeqOfOb s,Token trm1,trm2,trm3)
+  {
+  var Token ct,tk;
+  if (length(s) == 0) 
+     {
+	 tk = scanToken();
+     if (same(tk,trm1) || same(tk,trm2)  || same(tk,trm3)) return nil;
+     if (same(tk,t_difference))
+	    push(s,instantiate(t_minus,_position(tk))~ob);
+	 else
+	 if (_isPrefix(tk)) push(s,tk~ob);
+	 else 
+        unscanToken();
+     push(s ,parseUnit());
+	 }
+  ct = parseExpressionStep(s,trm1,trm2,trm3);
+  while (nul(ct)) ct=parseExpressionStep(s,trm1,trm2,trm3);
+  if (parse_verbose) writeln('parseExpression = ',detokenify(s[0]));
+  return s[0];
+  }
+
+ob function parseExpression(Token trm1,trm2,trm3)
+  {
+  return parseExpression(emptysequence(ob),trm1,trm2,trm3);
+  }
+  
+ob function parseExpression(Token trm1,trm2)
+  {
+  return parseExpression(trm1,trm2,nil ~ Token);
+  }
+ob function parseExpression(Token trm1)
+  {
+  return parseExpression(trm1,nil ~ Token,nil~Token);
+  }
+
+
+// this parses an expression or an assignement	 
+ob function parseSimpleStatement(Token trm0,trm1)
+  {
+  var ob rs,rhs;
+  rs = parseExpression(t_assign,trm0,trm1);
+  if (same(last_token,t_assign))
+	    {
+		rhs = parseExpression(trm0,trm1);
+		rs = mkApplication(t_assign,rs,rhs);
+		}
+  return rs;
+  }
+
+ob function parseSimpleStatement(Token trm0)
+  {
+  return parseSimpleStatement(trm0,nil ~ Token);
+  }
+
+
+var Function(ob) parseStatement;
+var Function(ob,SeqOfOb) parseStatement;
+
+
+
+
+boolean function isBlockParse(ob x)
+  {
+  return isList(x) && eq(car(x),'block');
+  }
+
+// a statement may be terminated by a left bracket as well as a semicolon
+// in the case of bracket termination, the bracket is not consumed by
+// the parse of the statement (because it must actually be the terminator
+// for the enclosing block).  
+
+ob function parseBlock() // assumes last token was ascii_lcurly
+   {
+   var SeqOfOb rs,ob ap;
+   rs = emptysequence(ob);
+   push(rs ,parseStatement());
+   while (not(same(term_token,t_rcurly))) 
+		push(rs,parseStatement());
+   // consume the curly bracket
+   scanToken();
+   term_token = t_semi;
+   ap = list2('block'~ob,toList(rs));
+   if (parse_verbose) writeln('parseBlock = ',detokenify(ap));
+   return ap;
+   }
+
+
+/*assumes if has just been parsed*/
+
+
+ob function parseIf()
+  {
+  var Token tk,etk,ob cnd,tr,fls;
+  tk = scanToken();
+  if (not(same(tk,t_lparen))) parse2error('Expected (condition) after if');
+  unscanToken();
+  cnd = parseUnit();
+  tr = parseStatement();
+  if (same(term_token,t_semi))
+     {
+	 etk = scanToken();
+	 if (same(etk,t_else))  
+	    {
+		fls = parseStatement();
+	    return list4('if_else'~ob,cnd,tr,fls);
+		}
+	 unscanToken();
+	 }
+  return list3('if'~ob,cnd,tr);
+  }
+
+
+ob function parseFor()
+  {
+  var Token tk,ob finit,fcnd,fiter,fact;
+  tk = scanToken();
+  if (not(same(tk,t_lparen))) parse2error('Expected (init;condition;iter) after for');
+  finit = parseSimpleStatement(t_semi);
+  fcnd = parseExpression(t_semi);
+  fiter = parseSimpleStatement(t_rparen);
+  fact = parseStatement();
+  return list5('for'~ob,finit,fcnd,fiter,fact);
+  }
+
+
+
+
+ob function parseWhile()
+  {
+  var Token tk,ob wcnd,wact;
+  tk = scanToken();
+  if (not(same(tk,t_lparen))) parse2error('Expected (condition) after while');
+  wcnd = parseExpression(t_rparen);
+  wact = parseStatement();
+  return list3('while'~ob,wcnd,wact);
+  }
+
+
+ob function parseReturn()
+  {
+  var ob vl;
+  vl = parseExpression(t_semi,t_rcurly);
+  if (same(last_token,t_rcurly))
+     {
+	 unscanToken();
+	 term_token = t_rcurly;
+	 }
+  if (nul(vl)) return list1('freturn'~ob); else
+  return list2('freturn'~ob,vl);
+  }
+
+ob function parseId()
+  {
+  var Token tk,tk2,tk3;
+  tk = scanToken();
+  if (not(_isId(tk))) parse2error('expected id here');
+  tk2 = scanToken();
+  if (same(tk2,t_colon))
+      {
+      tk3  = scanToken();
+      if (not(_isId(tk3))) parse2error('expected id after :');
+      return list3(t_colon~ob,tk~ob,tk3~ob);
+	  }
+  unscanToken();
+  return tk ~ ob;
+  }
+
+/* used for var statement, and for parameter list in function (in which case ispl = true)*/
+/* In class definition form = 
+restrict geom:xc { maxCardinality 1;allValuesFrom int}
+var optional [type] variable;
+var required [type] variable;
+var unconstrained  [type] variable;
+*/
+
+ob function parseRestrictClause()
+{
+   var Token tk,etk,ob dt,rst,ex;
+   tk = scanToken();
+   if (same(tk,t_rcurly))  return nil;
+   dt = _datum(tk);
+   if (eq(dt,'maxCardinality') || eq(dt,'cardinality') || eq(dt,'allValuesFrom')
+       || eq(dt,'hasValue') || eq(dt,'defaultValue'))
+       {
+       ex = parseExpression(t_semi,t_rcurly);
+       rst = cons(tk~ob,cons(ex,rdf:nil));
+       return rst;
+       }
+   parse2error('Bad clause in restrict statement');
+}
+
+
+
+ob function parseRestrict()
+  {
+  var SeqOfOb rs,ob pr,prp,Token ctk,boolean done;
+  rs = emptysequence(ob);
+  prp = parseId();
+  ctk = scanToken();
+  if (!same(ctk,t_lcurly)) parse2error('Expected "{" in restrict statement');
+  done = false;   
+  rs = new(SeqOf(ob));
+  push(rs , 'restrict'~ob);
+  push(rs , prp);
+  while (!done)
+      {
+	  pr = parseRestrictClause();
+	  if (nnul(pr)) push(rs , pr);
+      done = same(last_token,t_rcurly);
+      }
+  return toList(rs);
+}
+
+
+
+SeqOfOb function parseVars(boolean ispl)
+  {
+  var SeqOfOb rs,ob srt,vr,rhs,Token tk,boolean cldn;
+  rs = emptysequence(ob);
+  if (ispl) 
+     {
+	 tk = scanToken();
+     if (same(tk,t_rparen)) return rs; //empty parameter list
+	 unscanToken();
+	 }
+  srt = parseAppOrId();
+  cldn = false;
+  if (not(ispl))
+     {
+	 tk = scanToken();
+	 if (same(tk,t_assign))
+	    {
+		rhs = parseExpression(t_comma,t_semi);
+		push(rs , list3(tk~ob,srt,rhs));
+		tk = last_token;
+		cldn = true;
+		}
+	  else unscanToken();
+	  }
+  if (not(cldn))
+     {
+     vr = parseId();
+     push(rs , cons('type'~ob,cons(srt~ob,cons(vr~ob,rdf:nil))));
+     tk = scanToken();
+	 }
+  while (same(tk,t_comma))
+     {
+     srt = parseAppOrId();
+     cldn = false;
+     if (not(ispl))
+        {
+	    tk = scanToken();
+	    if (same(tk,t_assign))
+	       {
+		   rhs = parseExpression(t_comma,t_semi);
+		   push(rs , list3(tk~ob,srt,rhs));
+		   tk = last_token;
+		   cldn = true;
+		   }
+	     else unscanToken();
+	    }
+	 if (not(cldn))
+	    {
+	    tk = scanToken();
+	    if (same(tk,t_comma)||same(tk,t_semi)||same(tk,t_rparen)) 
+		   push(rs , srt);
+	    else 
+	       {
+		   if (not(_isId(tk))) parse2error('Expected id');
+		   vr = tk~ob;
+	       push(rs , cons('type'~ob,cons(srt~ob,cons(vr~ob,rdf:nil))));
+		   tk = scanToken();
+		   }
+		}
+	 }
+  return rs;
+  }
+
+
+void function collectVars(SeqOfOb vrs,nvrs,ob x)
+  {
+  var ob cx,crx,cdx;
+  cx = x;
+  while (isList(cx))
+      {
+	  crx = car(cx);
+	  if (eq(car(crx),'var'))
+	     {
+		 cdx = cdr(crx);
+		 while (isList(cdx))
+		       {
+			   push(vrs , car(cdx));
+			   cdx = cdr(cdx);
+			   }
+		 }
+	  else push(nvrs , crx);
+	  cx = cdr(cx);
+	  }
+  }
+
+	     
+
+
+ob function parseFunction(ob rsrt)
+  {
+  var Token tk,ob nm,bd,vrs,blk,SeqOfOb lvrs,nvrs;
+  nm = parseId();
+//  if (not(_isId(nm)) && not(is_operator(nm))) parse2error('Expected id or operator as function name');
+  tk = scanToken();
+  if (not(same(tk,t_lparen))) parse2error('( expected');
+  vrs = toList(parseVars(true));
+  if (not(same(last_token,t_rparen))) parse2error('Expected )');
+  tk = scanToken();
+  if (not(same(tk,t_lcurly))) parse2error('Expected left curly bracket');
+  blk = parseBlock();
+  lvrs = sequence('var'~ob);
+  nvrs = emptysequence(ob);
+  collectVars(lvrs,nvrs,cdr(blk));
+  if (length(lvrs) > 1) 
+     bd = cons('block'~ob,list2(toList(lvrs),toList(nvrs)));
+  else
+     bd = cons('block'~ob,toList(nvrs));
+  return list3(nm~ob,vrs,bd);
+  }
+
+
+
+
+
+
+      
+ob function fablParseExp(string s)
+  {
+  scan_init(s);
+  return detokenify(parseExpression(t_semi));
+  }
+
+     
+ob function fablParseSt(string s)
+  {
+  scan_init(s);
+  return detokenify(parseStatement());
+  }
+
+ob function parseVarStatement()
+  {
+  var SeqOfOb vrs;
+  vrs = parseVars(false);
+  if (not(same(last_token,t_semi))) parse2error('Expected semicolon');
+  return mkApplication('var'~ob,vrs);
+  }
+
+
+
+ob function parseConstantStatement()
+  {
+  var SeqOfOb vrs;
+  vrs = parseVars(false);
+  if (not(same(last_token,t_semi))) parse2error('Expected semicolon');
+  return mkApplication('constant'~ob,vrs);
+  }
+
+
+var ob eof_parse;
+var parsing_rdf = false;
+parsing_rdf = false;//notneeded
+ob function parseToplevel()
+  {
+  var Token tk,ob prs,fprs;
+  tk = scanToken();
+
+  if (same(tk,eof_token)) return eof_parse;
+  if (_isKeyword(tk) || _isPrefix(tk) || same(tk,t_difference) || same(tk,t_lbracket))
+     {unscanToken();return parseStatement();}
+  if (same(tk,t_lcurly)) return parseBlock();
+  unscanToken();
+  prs = parseAtomAppOrId();
+  tk = scanToken();
+  if (same(tk,t_function))
+     {
+	 fprs = parseFunction(prs);
+	 return cons('function'~ob,cons(prs,fprs));
+	 }
+  unscanToken();
+  return parseStatement(sequence(prs~ob));
+  }
+
+ob function parse0(string s)
+{
+  scan_init(s);
+  return parseToplevel();
+}
+
+
+ob function parseStatement()
+  {
+  var Token tk,ob rs,SeqOfOb vrs;
+  tk = scanToken();
+  term_token = t_semi;
+  // this will be set term_token to t_rcurly by a subparse if this is terminated by a bracket
+  if (same(tk,t_lcurly)) rs =  parseBlock();
+  else
+  if (same(tk,t_rcurly)) 
+      {
+	  unscanToken();
+	  term_token = t_rcurly;
+	  }
+  else
+  if (same(tk,t_semi)) rs =  nil;
+   else
+  if (same(tk,t_var))
+     rs = parseVarStatement();
+  else
+  if (same(tk,t_constant))
+     rs = parseConstantStatement();
+  else
+  if (same(tk,t_if))
+      rs = parseIf();
+  else
+  if (same(tk,t_return))
+      rs = parseReturn();
+  else
+  if (same(tk,t_for))
+      rs = parseFor();
+  else
+   if (same(tk,t_while))
+      rs = parseWhile();
+  else
+   if (nnul(classBeingDefined) &&  same(tk,t_restrict))
+//   if (same(tk,t_restrict))
+      rs = parseRestrict();
+  else
+    {
+     unscanToken();
+	 rs = parseSimpleStatement(t_semi,t_rcurly);
+	 if (same(last_token,t_rcurly)) 
+	    {
+		term_token = t_rcurly;
+		unscanToken();
+		}
+	 }
+   if (parse_verbose) writeln('parseStatement = ',detokenify(rs));
+   return rs;
+  }
+
+// variant of parse statement which continues a parse where one expression is already
+// in the buffer s
+ob function parseStatement(SeqOfOb s)
+  {
+  var Token tk,ob rs,rhs,SeqOfOb vrs;
+  rs = parseExpression(s,t_semi,t_rcurly,t_assign);
+  if (same(last_token,t_assign))
+	    {
+		rhs = parseExpression(t_semi,t_rcurly);
+		rs = mkApplication(t_assign,rs,rhs);
+		}
+	
+   if (parse_verbose) writeln('parseStatement = ',detokenify(rs));
+   return rs;
+  }
+
+void function initParse()
+{
+  init_scan();
+  eof_parse = list1('_eof_'~ob);
+}
+
+
+ob function parse1(string s)
+{
+   return detokenify(parse0(s));
+}
+
+
+
+ob function parse(string s)
+{
+   var ob rs;
+   push(scanStack , extractScannerState()~ob);
+   scan_inbuf = mkStringBuf('');
+   rs =  detokenify(parse0(s));
+   restoreScannerState(pop(scanStack)~SeqOfOb);
+   return rs;
+}
+

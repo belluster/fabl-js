@@ -1,0 +1,354 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+class('home:RaptorStatement');
+var int subjectType;
+var id subject;
+var int predicateType;
+var id predicate;
+var int ordinal;  // for rdf:li
+var int objectType;
+var id object;
+var string literalObject;
+var id literalDatatype;
+endClass();
+
+constant RaptorStatement = home:RaptorStatement;
+
+// Raptor Identifier Types; see raptor.h
+
+var  ritUnknown = 0;
+var   ritResource = 1;           /* Resource URI (e.g. rdf:about) */
+var ritAnonymous = 2;            /* _:foo N-Triples, or generated */
+var  ritPredicate = 3;           /* Predicate URI */
+var  ritOrdinal = 4;             /* rdf:li, rdf:_<n> etc. */
+var  ritLiteral = 5;            /* regular literal */
+var  ritXmlLiteral = 6;          /* rdf:parseType="Literal" */
+
+
+var ob rdf_li;
+
+
+boolean function complete(RaptorStatement rs)
+{
+  return nnul(rs.subject) && (nnul(rs.predicate) || (rs.predicateType == ritOrdinal)) &&
+     (nnul(rs.object)||nnul(rs.literalObject));
+}
+
+
+
+void function raptorTriplePrintResource(string rs,id s,int tp)
+{
+
+   if ((tp == ritResource)||(tp == ritPredicate))
+       writeTo(rs,'<',s,'>');
+   else
+   if (tp == ritAnonymous)
+      writeTo(rs,'_:',s);
+   else
+      writeTo(rs,'<UNKNOWNTYPE>');
+
+
+}
+
+void function times(string bf,RaptorStatement rs)
+{
+   var string ol,id ov,dtp;
+   if (not(complete(rs))) {bf * '<incomplete>';return}
+   raptorTriplePrintResource(bf,rs.subject,rs.subjectType);
+   bf * ' ';
+ //  writeTo(bf,'<',rs.subject,'> ');
+   if (rs.predicateType == ritOrdinal)
+       writeTo(bf,'<http://www.w3.org/1999/02/22-rdf-syntax-ns#_',rs.ordinal,'>');
+//      writeTo(bf,'[',rs.ordinal,']');
+   else
+     raptorTriplePrintResource(bf,rs.predicate,rs.predicateType);
+//   writeTo(bf,'<',rs.predicate,'> ');
+   bf * ' ';
+   ol = rs.literalObject;
+   ov = rs.object;
+   if (nnul(ol) && (length(ol)>0))
+      {
+      writeTo(bf,' "',ol,'"');
+      dtp = rs.literalDatatype;
+      if (nnul(dtp))
+         writeTo(bf,':"',dtp,'"');
+     }
+else
+      raptorTriplePrintResource(bf,rs.object,rs.objectType);
+//      writeTo(bf,'<',ov,'> .');
+   writeTo(bf,' .',lf);
+
+}
+
+
+
+
+var ob raptorResources;
+var raptorSubjects = emptysequence(ob);
+var ob raptorSubjectDictionary;
+
+// kind = "subject" "predicate","object","type" (for datatype)
+// tp = one of the rit types above (eg ritAnonymous)
+// cl = Fabl class
+ob function insertRaptorResource(id s,int tp,id kind,Class cl)
+{
+   var Property r,ob rs,sb;
+   r = regarding(s);
+//   rs = get(mkObject(),r);
+   rs = get(raptorResources,r);
+//   writeln("insertRaptorResource ",s,' tp = ',tp,' kind = ',kind,' class = ',cl);
+   if (nul(rs))
+      {
+      if ((tp == ritResource)||(tp == ritPredicate))
+		 rs = uriAllocate(s,cl);
+     else
+     if (tp == ritAnonymous)
+	    {
+		rs = iNew(cl);
+//		writeln(rs,' allocated of type ',cl);
+//		ccl = cl;
+//		rrs = rs;
+		}
+      else
+	  writeln('could not insert ',s,' of type ',tp);
+      set(raptorResources,r,rs);
+	 }
+   if (kind == 'subject')
+      {
+	  sb = get(raptorSubjectDictionary,r);
+	  if (nul(sb))
+	     {
+		 set(raptorSubjectDictionary,r,rs);
+		 push(raptorSubjects,rs);
+		 }
+	  }
+   return rs;
+}
+
+ob function raptorAnon(id s)
+{
+   return insertRaptorResource(s,ritAnonymous,'object',ob);
+}
+
+
+ob function raptorUri(id s)
+{
+   return insertRaptorResource(s,ritResource,'object',ob);
+}
+
+
+
+void function assertSeqValue(ob x,int n,ob v)
+{
+   var int k,dk,Seq xs;
+   k = obkind(x);
+   if (!(k == seq_kind)) return;
+   // error("expected sequence");
+   dk = seqDataKind(x);
+   if (n < 1) error("unexpected ordinal: ",n);
+   if (dk == seqDataOb_kind)
+      {
+      seqobExpand(x,n);
+	  xs = x ~ Seq;
+	  xs[n-1] = v; // because rdf:_1 is at index 0 in our sequences
+	  }
+   else
+   error("Expected sequence of obs, not ints or doubles: a temporary limitation");
+}
+
+
+void function addSeqValue(ob x,ob v)
+{
+   var int k,dk,Seq xs;
+   k = obkind(x);
+   if (!(k == seq_kind)) return;
+   // error("expected sequence");
+   dk = seqDataKind(x);
+   if (dk == seqDataOb_kind)
+	  push(x~SeqOf(ob),v);
+   else
+   error("Expected sequence of obs, not ints or doubles: a temporary limitation");
+}
+
+
+
+
+
+void function assert(RaptorStatement rs)
+{
+   var id dtpid,sb,pr,ov,string ol,ob sbr,prr,ovr,
+   int sbt,prt,otp,id oknd,ob olv,dtp,boolean isord,Class cl;
+   sb = rs.subject;
+   sbt = rs.subjectType;
+   pr = rs.predicate;
+   prt = rs.predicateType;
+//   if (isId(pr~ob)) writeln('pr = ',pr);
+//   writeln(' prt = ',prt,' k= ',obkind(pr~ob));
+   otp = rs.objectType;
+   ov = rs.object;
+   ol = rs.literalObject;
+   isord = prt == ritOrdinal;
+   if (nul(sb)) return;
+   if (!isord && nul(pr)) return;
+   if (!isord)
+      {
+	  prr = insertRaptorResource(pr,prt,'predicate',Property);
+      if (nul(prr)) return;
+	  }
+
+   // non literal 
+
+   if (nnul(ov)&&(length(ov)>0))
+      {
+      if (eq(prr,rdf:type)) cl = Class; else cl = ob;
+      ovr = insertRaptorResource(ov,otp,'object',cl);
+      if (nul(ovr)) return;
+	  if (eq(prr,rdf:type))
+         sbr = insertRaptorResource(sb,sbt,'subject',ovr~Class);
+	  else
+         sbr = insertRaptorResource(sb,sbt,'subject',ob);
+      if (nul(sbr)) return;
+      if (isord) 
+	     assertSeqValue(sbr,rs.ordinal,ovr);
+	  else
+	  if (eq(prr,rdf_li)) addSeqValue(sbr,ovr);
+	  else
+         assert(sbr,prr~Property,ovr);
+      }
+   else
+
+   // literal
+
+   if (nnul(ol))
+      {
+	  dtpid = rs.literalDatatype;
+	  if (nnul(dtpid))
+	     dtp = insertRaptorResource(dtpid,ritResource,'type',Class);
+	  else
+	     dtp = Literal~ob;
+	  if (eq(dtp,int)) 
+	     {
+//		 writeln("FOUND AN INT");
+		 olv = toInt(ol~Literal)~ob;
+		 }
+	  else olv = ol ~ ob;
+      sbr = insertRaptorResource(sb,sbt,'subject',ob);
+      if (nul(sbr)) return;
+      if (isord) 
+	     assertSeqValue(sbr,rs.ordinal,olv);
+	  else
+	  if (eq(prr,rdf_li)) addSeqValue(sbr,ovr);
+	  else
+         assert(sbr,prr~Property,olv);
+	  }
+   else error("neither object nor literal assigned");
+}
+
+
+var raptorParseBuf = emptysequence(RaptorStatement);
+var raptorFilenameBuf = SB('');
+
+
+void function printRaptorStatements()
+{
+   var int ln,i;
+   ln = length(raptorParseBuf);
+   for (i=0;i<ln;i++) writeln(i,' ',raptorParseBuf[i]);
+}
+/* temporary synonym */
+
+void function prs(){printRaptorStatements();}
+
+
+void function raptorReset()
+{
+   reset(raptorParseBuf);
+   reset(raptorSubjects);
+   raptorResources = mkObject();
+   raptorSubjectDictionary = mkObject();
+}
+
+void function raptorLoadFile(string fln,id stx)
+{
+   var int ln,i;
+   reset(raptorFilenameBuf);
+   raptorFilenameBuf * 'file'; //just for paste weirdness on KDE
+   raptorFilenameBuf * '://';
+   raptorFilenameBuf * fln;
+   reset(raptorParseBuf);
+   raptorParseFile(raptorParseBuf~SeqOfOb,raptorFilenameBuf,stx);
+   ln = length(raptorParseBuf);
+   for (i=0;i<ln;i++) assert(raptorParseBuf[i]);
+}
+
+var raptorInitialized = false;
+var raptorInstalled = true;
+
+var wwwInitialized = false;
+
+
+void function initRaptor()
+{
+   if (nul(rdf_li)) rdf_li = resource("http://www.w3.org/1999/02/22-rdf-syntax-ns#li");
+   if (!raptorInstalled) error("Raptor is not available");
+   if (!raptorInitialized) 
+      {
+	  raptorInit();
+	  raptorInitialized = true;
+	  }
+}
+
+
+void function initWWW()
+{
+   initRaptor();
+   if (!wwwInitialized)
+      {
+	  init_www();
+	  wwwInitialized = true;
+	  }
+}
+
+// until raptor loading is made gc safe, turn off gc while loading
+
+ob function loadRaptor(string url,id stx)
+{
+   var int ln,i,boolean isfl,als;
+   isfl = startsWith(url,"file:");
+   als = allocStatically(true);
+   initRaptor();
+   if (!isfl) initWWW();
+   raptorReset();
+   reset(raptorParseBuf);
+   if (isfl) raptorParseFile(raptorParseBuf~SeqOfOb,url,stx);
+   else raptorParseUri(raptorParseBuf~SeqOfOb,url,stx);
+   ln = length(raptorParseBuf);
+   for (i=0;i<ln;i++) assert(raptorParseBuf[i]);
+   allocStatically(als);
+   return nil;
+}
+
+ob function loadRaptor(SeqOf(ob) subjects,string url,id stx)
+{
+  loadRaptor(url,stx);
+  subjects * raptorSubjects;
+  return nil;
+}
+
+
+
+
+
+
+
+

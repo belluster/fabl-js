@@ -1,0 +1,1108 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+// note: a id token can contain either a id (single quotes), or a stringbuf (double quotes)
+
+
+Token function mkToken(ob dt,int ps,int bl)
+  {
+  var Token tk;
+  tk = iNew(Token)~Token;
+ obset(tk~ob,Token_datum,dt);
+  intset(tk~ob,Token_position,ps);
+  intset(tk~ob,Token_booles,bl);
+
+//  tk = new(Token);
+
+//  tk . datum = dt;
+//  tk .position = ps;
+// tk . booles = bl; 
+return tk;
+  }
+
+//TEMPORARY
+
+int function _position(Token x)
+{
+  return intsel(x~ob,Token_position);
+}
+
+
+ob  function _datum(Token x)
+{
+ return obsel(x~ob,Token_datum);
+}
+
+int function _booles(Token x)
+{
+ return intsel(x~ob,Token_booles);
+}
+
+void function _set_booles(Token x,int b)
+{
+ intset(x~ob,Token_booles,b);
+}
+
+boolean function _isAtom(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isAtom) ~boolean;
+}
+
+
+void function _set_isAtom(Token x,boolean b)
+{
+ bitset(x~ob,Token_booles,Token_isAtom,b ~int);
+}
+
+
+boolean function _isId(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isId) ~boolean;
+}
+
+
+void function _set_isId(Token x,boolean b)
+{
+ bitset(x~ob,Token_booles,Token_isId,b ~int);
+}
+
+
+
+boolean function _isPrefix(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isPrefix) ~boolean;
+}
+
+
+
+
+boolean function _isKeyword(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isKeyword) ~boolean;
+}
+
+
+boolean function _isInfix(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isInfix) ~boolean;
+}
+
+
+
+boolean function _isPostfix(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isPostfix) ~boolean;
+}
+
+boolean function _isTerminator(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isTerminator) ~boolean;
+}
+
+
+boolean function _isString(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isString) ~boolean;
+}
+
+
+void function _set_isString(Token x,boolean b)
+{
+ bitset(x~ob,Token_booles,Token_isString,b ~int);
+}
+
+
+boolean function _isNumber(Token x)
+{
+ return bitsel(x~ob,Token_booles,Token_isNumber) ~boolean;
+}
+
+
+void function _set_isNumber(Token x,boolean b)
+{
+ bitset(x~ob,Token_booles,Token_isNumber,b ~int);
+}
+ob function _datum(Token x)
+{
+ return obsel(x~ob,Token_datum);
+}
+//END TEMPORARY
+int function left_bp(Token x)
+{
+   return byte2(_booles(x))~int;
+//   return byte2(x.booles)~int;
+}
+
+void function set_left_bp(Token x,int n)
+{
+   var int b;
+   b = _booles(x);
+  _set_booles(x, setByte2(b,n));
+//   b = x.booles;
+//   x . booles = set_byte2(b,n);
+}
+int function right_bp(Token x)
+{
+   return byte3(_booles(x))~int;
+//  return byte3(x.booles)~int;
+}
+
+void function set_right_bp(Token x,int n)
+{
+   var int b;
+  b = _booles(x);
+  _set_booles(x, setByte3(b,n));  
+ //  x . booles = set_byte3(b,n);
+}
+
+var ob token_table;
+var Token t_plus,t_times,t_semi,t_lparen,t_rparen,t_var,t_constant,t_function,
+          t_lcurly,t_rcurly,t_rbracket,t_lbracket,t_dot,t_dotdot,t_return,
+		  t_equal,t_not_equal,t_dequal,t_minus,t_comma,t_if,t_else,t_assign,
+		  t_twiddle,t_for,t_while,t_lessp,t_greaterp,t_leq,t_geq,
+		  t_plus_plus,t_minus_minus,t_difference,t_minus,
+		  t_and,t_or,t_nil,t_quotient,t_colon,t_backslash,t_not,t_by,t_restrict;
+
+var scan_linenumber = 0;
+
+
+
+Token function mkToken(id s,boolean put_in_table)
+{
+  var Token rs;
+  rs = mkToken(s~ob,0,0);
+  if (put_in_table) set(token_table,regarding(s~ob),rs~ob,ob);
+  return rs;
+}
+
+Token function mkToken(id s)
+{
+ return mkToken(s,false);
+ }
+
+Token function instantiate(Token x,int ps)
+{   
+	return mkToken(_datum(x),ps,_booles(x));
+//	return mkToken(x.datum,ps,x.booles);
+}
+
+Token function mkInfixToken(id nm,int lbp,int rbp)
+{
+  var Token rs;
+  rs = mkToken(nm);
+  set_left_bp(rs,lbp);
+  set_right_bp(rs,rbp);
+  bitset(rs~ob,Token_booles,Token_isInfix,1);
+  bitset(rs~ob,Token_booles,Token_isOperator,1);
+//  rs . is_infix = true;
+//  rs . is_operator = true;
+ return rs;
+}
+
+
+Token function mkPrefixToken(id nm,int rbp)
+{
+  var Token rs;
+  rs = mkToken(nm);
+  set_right_bp(rs,rbp);
+  bitset(rs~ob,Token_booles,Token_isPrefix,1);
+  bitset(rs~ob,Token_booles,Token_isOperator,1);
+//  rs . is_prefix = true;
+//  rs . is_operator = true;
+  return rs;
+}
+
+Token function mkPostfixToken(id nm,int lbp)
+{
+  var Token rs;
+  rs = mkToken(nm);
+  set_left_bp(rs,lbp);
+ bitset(rs~ob,Token_booles,Token_isPostfix,1);
+  bitset(rs~ob,Token_booles,Token_isOperator,1);
+//  rs . is_postfix = true;
+//  rs . is_operator = true;
+  return rs;
+}
+
+Token function mkKeywordToken(id nm)
+{
+  var Token rs;
+  rs = mkToken(nm,true);
+ bitset(rs~ob,Token_booles,Token_isKeyword,1);
+//  rs . is_keyword = true;
+  return rs;
+}
+
+
+Token function mkTerminatorToken(id nm)
+{
+  var Token rs;
+  rs = mkToken(nm,true);
+  bitset(rs~ob,Token_booles,Token_isTerminator,1);
+// rs . is_terminator = true;
+  return rs;
+}
+
+boolean function equal(boolean x,y)
+{
+  return (x~int) == (y~int);
+}
+
+boolean function same(Token x,y)
+{
+  if  (nnul(x) && nnul(y)) 
+    return  eq(_datum(x),_datum(y)) && (_isAtom(x) == _isAtom(y));
+  return false;
+//  return nnul(x) && nnul(y) && eq(x.datum,y.datum) && 
+//     ((x.is_atom) == (y.is_atom));
+}
+
+var no_new_token = nil ~ Token;
+var eof_token = nil ~ Token;
+
+//note all one character tokens are accessed via the one_character_tokens array
+// The datums of such tokens are set to what the analyzer expects, rather than
+// their form in the input stream
+
+
+//operator precedence for javascript according //www.webreference.com/js/tips/991119.html
+/* agrees with online msdn manual for  c++, except for :, which is given top binding power
+1 = += -= *= /= %= <<= >>= >>>= &= ^= |=
+2 ?
+3 ||
+4 &&
+5 |
+6 ^
+7 &
+8 == !=
+9 < <= > >=
+10 << >> >>>
+11 + -
+12 * / %
+13 ! ~ - ++ -- 
+14 [] () .
+15 :
+16 \
+
+note \ is an addition, which substitutes for . in rdf.
+
+
+*/
+
+
+void function buildTokenTable0()
+{
+  
+  token_table = mkObject();
+  t_equal = mkInfixToken('equal',1,1);
+  t_not_equal = mkInfixToken('not_equal',1,1);
+  t_lessp = mkInfixToken('lessp',9,9);
+  t_greaterp = mkInfixToken('greaterp',9,9);
+  t_leq = mkInfixToken('leq',9,9);
+  t_geq = mkInfixToken('geq',9,9);
+  t_twiddle = mkInfixToken('twiddle',13,13);
+  t_plus = mkInfixToken('plus',11,11);
+  t_difference = mkInfixToken('difference',11,11);
+   // t_differnce is replaced by t_minus when encountered in prefix posisition
+  t_minus = mkPrefixToken('unary_minus',13);
+  t_not = mkPrefixToken('not',13);
+  t_times = mkInfixToken('times',12,12);
+  t_quotient = mkInfixToken('quotient',12,12);
+  t_dot = mkInfixToken('_dot_',14,14);
+  t_dotdot = mkInfixToken('_dotdot_',14,14);
+  t_plus_plus = mkPostfixToken('plus_plus',13);
+  t_minus_minus = mkPostfixToken('minus_minus',13);
+  t_and = mkInfixToken('and',4,4);
+  t_or = mkInfixToken('or',3,3);
+  t_colon = mkInfixToken('_colon_',15,15);
+  t_backslash = mkInfixToken('_backslash_',16,16);
+
+  t_nil = mkToken(nil,0,0);
+  _set_isAtom(t_nil,true);
+ _set_isId(t_nil,true);
+
+// t_nil . is_atom = true;
+//  t_nil . is_id = true;
+
+}
+void function buildTokenTable()
+{
+  buildTokenTable0();
+  t_semi = mkTerminatorToken(';');
+  no_new_token = mkToken('_no_new_token_'~ob,0,0);
+  eof_token = mkToken('_eof_'~ob,0,0);
+
+  t_lparen = mkToken('(');
+  set_left_bp(t_lparen,14); // so that a.b(c)  parses to ((dot a b) c)
+  t_rparen = mkTerminatorToken(')');
+
+
+  t_lbracket = mkToken('[');
+  set_left_bp(t_lbracket,14); // so that a.b(c)  parses to ((dot a b) c)
+  t_rbracket = mkTerminatorToken(']');
+  t_assign = mkTerminatorToken('assign');
+
+  t_lcurly = mkTerminatorToken('{');
+  t_rcurly = mkTerminatorToken('}');
+
+  t_comma = mkTerminatorToken(',');
+
+  t_if = mkKeywordToken('if');
+  t_else = mkKeywordToken('else');
+  t_var = mkKeywordToken('var');
+  t_constant = mkKeywordToken('constant');
+  t_function = mkKeywordToken('function');
+  t_return = mkKeywordToken('return');
+  t_for = mkKeywordToken('for');
+  t_while = mkKeywordToken('while');
+  t_by = mkKeywordToken('by');
+  t_restrict = mkKeywordToken('restrict');
+
+}
+
+void function times(string s,Token x)
+  {
+  s*'[Token:';
+  s*_datum(x);
+
+  s * ']';
+  }
+
+//void function plus(string s,Token x){times(s,x)}//remove
+
+
+var SeqOfInt scanTable; 
+var SeqOfToken oneCharTokens;
+
+var white_space_id = 1;
+var delimiter_id = 2;
+var numeral_id = 3;
+var letter_id = 4;
+
+void function setupScanTable()
+{
+  var SeqOfInt h,int i;
+   scanTable = emptysequence(int);
+   seqintExpand(scanTable~ob,256);
+   oneCharTokens = emptysequence(Token);
+   seqobExpand(oneCharTokens~ob,130);
+  h = scanTable;
+  h[0] = white_space_id;
+  for (i = 1;i<=8;i++) h[i] = delimiter_id;
+  h[9] = white_space_id;
+  h[10] = white_space_id; // was delimiter
+  h[11] = delimiter_id; 
+  h[12] = white_space_id; 
+  h[13] = white_space_id; 
+  for (i = 14;i<=31;i++) h[i] = delimiter_id;
+  h[32] = white_space_id;
+  h[33] = delimiter_id;
+  h[34] = delimiter_id;
+  h[35] = delimiter_id;
+   for (i = 36;i<=38;i++) h[i] = letter_id;
+   for (i = 39;i<=47;i++) h[i] = delimiter_id;
+   for (i = 48;i<=57;i++) h[i] = numeral_id;
+   for (i = 58;i<=63;i++) h[i] = delimiter_id;
+   for (i = 64;i<=90;i++) h[i] = letter_id;
+   for (i = 91;i<=94;i++) h[i] = delimiter_id;
+  h[95] = letter_id;//_
+  h[96] = delimiter_id;
+   for (i = 97;i<=122;i++) h[i] = letter_id;
+   for (i = 123;i<=255;i++) h[i] = delimiter_id;
+   oneCharTokens[ascii_semicolon] = t_semi;
+   oneCharTokens[ascii_plus] = t_plus;
+   oneCharTokens[ascii_star] = t_times;
+   oneCharTokens[ascii_slash] = t_quotient;
+    oneCharTokens[ascii_rparen] = t_rparen;
+  oneCharTokens[ascii_lparen] = t_lparen;
+    oneCharTokens[ascii_rbracket] = t_rbracket;
+  oneCharTokens[ascii_lbracket] = t_lbracket;
+   oneCharTokens[ascii_dot] = t_dot;
+    oneCharTokens[ascii_rcurly] = t_rcurly;
+  oneCharTokens[ascii_lcurly] = t_lcurly;
+  oneCharTokens[ascii_equal] = t_assign;
+  oneCharTokens[ascii_twiddle] = t_twiddle;
+  oneCharTokens[ascii_lessp] = t_lessp;
+  oneCharTokens[ascii_greaterp] = t_greaterp;
+  oneCharTokens[ascii_comma] = t_comma;
+  oneCharTokens[ascii_minus] = t_difference;
+  oneCharTokens[ascii_colon] = t_colon;
+  oneCharTokens[ascii_backslash] = t_backslash;
+  oneCharTokens[ascii_bang] = t_not;
+
+  }
+
+
+var scanning_number_state = 1;
+var scanning_id_state = 2;
+var scanning_string_state = 3;
+var scanning_squote_string = false;  // true if now scanning a id delimited by single rather than double quotes
+scanning_squote_string = false; //notneeded
+var scanning_new_token_state = 4;
+var scanning_comment_state = 5;
+var scanning_line_comment_state = 6;  // the one line // kind 
+var scanning_string_state = 7;  // the one line // kind 
+var scanning_decimal_state = 8; //scanning past decimal point
+
+var c_token_buf = mkStringBuf();
+
+var  scan_inbuf = mkStringBuf();
+var  unscan_buf = mkStringBuf();
+var scan_inbuf_length = 0;
+var c_scan_p = 0;
+
+
+void function fill_unscan_buf(int ni)
+  {
+  var int n,i;
+  if (scan_inbuf_length < ni) n = length(scan_inbuf);else n = ni;
+  reset(unscan_buf);
+  unscan_buf*10;
+  for (i = 0;i<ni;i++) addChar(unscan_buf,scan_inbuf[scan_inbuf_length - i - 1]);
+  }
+
+     
+var num_sleep = 50;
+
+// function which is run in the background (when grabbing lines)
+
+var fablPrompt = 'fabl>';
+
+var poll_for_input = false;
+poll_for_input = false;//notneeded
+
+var Function(int) timeMsec;//FOR NOW later imported from C
+var Function(void) backgroundFun;
+var int backgroundInterval;
+var int lastBackgroundexec;
+var noerrDepth = 8;// should probably compute this rather than setting it to a constant
+
+void function grabNextLine()
+  {
+  var boolean dn,int pc0,int ctm,cnd;
+  dn = false;
+  fill_unscan_buf(3);
+  cnd = consoleStackDepth();
+  if (cnd > noerrDepth) write(cnd,' ');
+  write(fablPrompt);
+  while (not(dn))
+        {
+         if (not(poll_for_input)||(charAvail() > 0)) 
+		    {
+			readLine(scan_inbuf);
+			scan_inbuf_length = length(scan_inbuf);
+			c_scan_p = 0; 
+			dn = true;
+			}
+	     else  
+		    {
+			if (backgroundInterval > 0)
+			   {
+			   ctm = timeMsec();
+			   if ((ctm - lastBackgroundexec) > backgroundInterval)
+			      {
+				  backgroundFun();
+				  lastBackgroundexec = ctm;
+				  }
+			   }
+			sleepMsec(num_sleep);
+			}
+		 }
+   }
+
+
+var scanning_console = true;
+
+var scanNextChar_verbose = false;
+
+int function scanNextChar()
+{
+   var int rs,isc;
+   isc = c_scan_p;
+   if (c_scan_p < 0) 
+      {
+      c_scan_p = c_scan_p + 1;
+	  if (c_scan_p == 0) return 10; else
+	  rs = unscan_buf[-(c_scan_p+1)]~int;
+	  if (scanNextChar_verbose) writeln('1 c_scan_p = ',isc,' nc = ',rs);
+	  if (rs == 10) scan_linenumber++;
+	  return rs;
+	  }
+   if (c_scan_p >= scan_inbuf_length) 
+      {
+	  if (scanning_console) 
+	     {
+		 grabNextLine();
+		 if (scanNextChar_verbose) writeln('2 c_scan_p = ',isc,' nc = ',10);
+		 scan_linenumber++;
+		 return 10;
+		 }
+	  else 
+	     {
+		 c_scan_p = c_scan_p + 1; //so that unscan will work correctly
+	  if (scanNextChar_verbose) writeln('3 c_scan_p = ',isc,' nc = ',-1);
+		 return -1;
+		 }
+	  }
+   rs = land(scan_inbuf[c_scan_p]~int,255);
+	  if (scanNextChar_verbose) writeln('4 c_scan_p = ',isc,' nc = ',rs);
+   c_scan_p = c_scan_p + 1;
+	  if (rs == 10) scan_linenumber++;
+   return rs;
+ }
+
+
+
+void function unscanChar()
+{
+  c_scan_p = c_scan_p - 1;
+   if ((c_scan_p < 0) && ((-c_scan_p) > length(unscan_buf)))
+      error('no character to unscan');
+    if ((c_scan_p >= 0) && (c_scan_p < scan_inbuf_length))
+	{
+	   if  ((scan_inbuf[c_scan_p]~int)==10) scan_linenumber--;
+	}
+}
+
+// checks if what is ahead in the buffer is exactly s
+boolean function matches(string buf,int p,id s)
+{
+   var int cc,int i,ln;
+   i = 0;
+   ln = length(s);
+   if ((p+ln) > length(buf)) return false;
+   while (i < ln)
+	     {
+		 cc = buf[p+i];
+	     if (cc == s[i]) i++;
+		 else return false;
+		 }
+   return true;
+}
+
+
+var c_scan_state = scanning_new_token_state;
+
+Token function toToken(string s,int ps)
+{
+   var int ln,c,Token tk,rs,id nm;
+    ln = length(s);
+   if (ln == 1)
+      {
+	  c = s[0]~int;
+	  if (c < 130)
+	     {
+	     tk = oneCharTokens[c];
+		 if (nnul(tk)) {reset(s);return instantiate(tk,ps-ln);}
+		 }
+	  }
+   nm = toString(s);
+   reset(s);
+   if (nul(nm)) return instantiate(t_nil,ps - 3);
+   tk = get(token_table,regarding(nm~ob))~Token;
+   if (nnul(tk)) return instantiate(tk,ps-ln);
+   rs = mkToken(nm~ob,ps-ln,0);
+ _set_isAtom(rs,true);
+ _set_isId(rs,true); 
+//  rs . is_atom = true;
+//   rs . is_id = true;
+   return rs;
+}
+
+
+Token function toStringToken(string s,int ps,boolean isSquote)
+{
+   var int ln,Token rs,string sb;
+   ln = length(s);
+//   st = toString(s);
+   if (isSquote) 
+	  rs = mkToken(toString(s)~ob,ps-ln-1,0);
+   else 
+      {
+	  //LATER use copy when available
+	  sb = SB('');
+	  sb * s;
+	  rs = mkToken(sb~ob,ps-ln-1,0);
+	  }
+   reset(s);
+ _set_isAtom(rs,true);
+ _set_isString(rs,true); 
+//   rs . is_atom = true;
+//   rs . is_string = true;
+   return rs;
+}
+
+
+
+Token function intToToken(string s,int ps)
+{
+   var ob nm,Token rs;
+   nm = toInt(s) ~ ob; 
+   reset(s);
+   rs = mkToken(nm~ob,ps-length(s),0);
+ _set_isAtom(rs,true);
+ _set_isNumber(rs,true); 
+//   rs . is_atom = true;
+//   rs . is_number = true;
+   return rs;
+}
+
+Token function double_toToken(string s,int ps)
+{
+   var ob nm,Token rs;
+
+
+   nm = toDouble(s) ~ ob;
+   reset(s);
+   rs = mkToken(nm~ob,ps-length(s),0);
+   bitset(rs~ob,Token_booles,Token_isAtom,1);
+   bitset(rs~ob,Token_booles,Token_isNumber,1);
+//   rs . isAtom = true;
+//   rs . isNumber = true;
+   return rs;
+}
+
+
+
+boolean function scanBeginComment()
+  {
+    var int nc,c2;
+	nc = scanNextChar();
+   if (nc == ascii_slash) 
+      {
+	  c2 = scanNextChar();
+	  if (c2 == ascii_star) 
+	     {
+		 c_scan_state  = scanning_comment_state;
+		 return true;
+		 }
+	  else
+	  if (c2 == ascii_slash)
+	     {
+		 c_scan_state = scanning_line_comment_state;
+		 return true;
+		 }
+	  unscanChar();
+	  }
+   unscanChar();
+   return false;
+   }
+
+void function unscanTwoChars()
+  {
+  unscanChar();
+  unscanChar();
+  }
+// ==,<= >=, != ++ -- << >> 
+
+
+Token function scanBinaryToken(int ps)
+  {
+    var int sc0,sc1,boolean us2; //us2 = unscan 2
+	sc0 = scanNextChar();
+	us2 = false;
+    if (sc0 == ascii_equal) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_equal) 
+		  return instantiate(t_equal,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_bang) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_equal) 
+		  return instantiate(t_not_equal,ps);
+	  us2 = true;
+	  }
+	else    if (sc0 == ascii_plus) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_plus) 
+		  return instantiate(t_plus_plus,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_minus) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_minus) 
+		  return instantiate(t_minus_minus,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_ampersand) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_ampersand) 
+		  return instantiate(t_and,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_vbar) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_vbar) 
+		  return instantiate(t_or,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_lessp) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_equal) 
+		  return instantiate(t_leq,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_greaterp) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_equal) 
+		  return instantiate(t_geq,ps);
+	  us2 = true;
+	  }
+	else
+    if (sc0 == ascii_dot) 
+      {
+	  sc1 = scanNextChar();
+	  if (sc1 == ascii_dot) 
+		  return instantiate(t_dotdot,ps);
+	  us2 = true;
+	  }	
+	unscanChar();
+	if (us2) unscanChar();
+	return nil ~ Token;
+	}
+
+  
+var scanEscape = -1;  // no escape char in use
+//var scanEscape = ascii_backslash;
+var scanHexBuf = "";
+
+Token function scanTokenStep()
+{
+var int nc,nnc,k,Token rs;
+if (c_scan_state == scanning_new_token_state)
+    {
+	if (scanBeginComment()) return no_new_token;
+	rs = scanBinaryToken(c_scan_p);
+	if (nnul(rs)) return rs;
+ 	nc = scanNextChar();
+	if (nc == ascii_squote)
+	   {
+	    c_scan_state = scanning_string_state;
+        scanning_squote_string = true;
+		return no_new_token;
+		}
+	if (nc == ascii_dquote)
+	   {
+	    c_scan_state = scanning_string_state;
+        scanning_squote_string = false;
+		return no_new_token;
+		}
+	if (nc < 0) return eof_token;
+	k = scanTable[nc];
+	if (k == delimiter_id)  
+	   {
+	   addChar(c_token_buf,nc);
+	   return toToken(c_token_buf,c_scan_p);
+	   }
+	if (k == white_space_id)  return no_new_token;
+	if (k == letter_id)
+	   {
+	   addChar(c_token_buf,nc);
+	   c_scan_state = scanning_id_state;
+	   return no_new_token;
+	   }
+	if (k == numeral_id)
+	   {
+	   addChar(c_token_buf,nc);
+	   c_scan_state = scanning_number_state;
+	   return no_new_token;
+	   }
+	}
+if (c_scan_state == scanning_id_state)
+    {
+	nc = scanNextChar();
+	if (nc < 0) 
+	{
+	   c_scan_state = scanning_new_token_state;
+	   return toToken(c_token_buf,c_scan_p);
+	}
+	k = scanTable[nc];
+	if ((k == delimiter_id)||(k == white_space_id))
+	   {
+	   rs =  toToken(c_token_buf,c_scan_p);
+	   c_scan_state = scanning_new_token_state;
+	   unscanChar();
+	   return rs;
+	   }
+	if ((k == letter_id)||(k == numeral_id))
+	   {
+	   addChar(c_token_buf,nc);
+	   return no_new_token;
+	   }
+	}	
+if (c_scan_state == scanning_number_state)
+    {
+	nc = scanNextChar();
+	if (nc < 0) 
+	{
+	   c_scan_state = scanning_new_token_state;
+	   return intToToken(c_token_buf,c_scan_p);
+	}
+	if (nc == ascii_dot)
+	{
+	    c_scan_state = scanning_decimal_state;
+	    addChar(c_token_buf,nc);
+		return no_new_token;
+    }
+	k = scanTable[nc];
+	if ((k == delimiter_id)||(k == white_space_id)||(k == letter_id))
+	   {
+	   rs = intToToken(c_token_buf,c_scan_p);
+	   c_scan_state = scanning_new_token_state;
+	   unscanChar();
+	   return rs;
+	   }
+    if (k == numeral_id)
+	   {
+	   addChar(c_token_buf,nc);
+	   return no_new_token;
+	   }
+	}	
+if (c_scan_state == scanning_decimal_state)
+    {
+	nc = scanNextChar();
+	if (nc < 0) 
+	{
+	   c_scan_state = scanning_new_token_state;
+	   return double_toToken(c_token_buf,c_scan_p);
+	}
+	k = scanTable[nc];
+	if ((k == delimiter_id)||(k == white_space_id)||(k == letter_id))
+	   {
+	   rs = double_toToken(c_token_buf,c_scan_p);
+	   c_scan_state = scanning_new_token_state;
+	   unscanChar();
+	   return rs;
+	   }
+
+    if (k == numeral_id)
+	   {
+	   addChar(c_token_buf,nc);
+	   return no_new_token;
+	   }
+	}	
+  if (c_scan_state == scanning_comment_state)
+  {
+  nc = scanNextChar();
+  if (nc < 0) return eof_token;
+  if (nc == ascii_star)
+     {
+	 nc = scanNextChar();
+	 if (nc == ascii_slash)
+	    c_scan_state = scanning_new_token_state;
+     else
+	 if (nc == ascii_star) unscanChar();
+	 }
+  return no_new_token;
+  }
+if (c_scan_state == scanning_line_comment_state)
+  {
+  nc = scanNextChar();
+  if (nc < 0) return eof_token;
+  if (nc == ascii_lf) c_scan_state = scanning_new_token_state;
+  return no_new_token;
+  }
+// note: stringbuf constants use char code 1 as the interim escape character 
+// (between scanning and analyzeStringBufConst)  1 is used to escape {,} and 1 itself
+
+if (c_scan_state == scanning_string_state)
+  {
+  nc = scanNextChar();
+  if (nc < 0) error('String not terminated before eof');
+  if ((nc == ascii_backslash) && not(scanning_squote_string)) // special handling \n \r \t  \xXX \uXXX \t
+     {
+	 nnc = scanNextChar();
+	 if (nnc < 0)  error('String not terminated before eof');
+	 if (nnc == ascii_lcurly) 
+	    {
+		addChar(c_token_buf,1); // the interim escape
+        nc = nnc;
+		}
+	 else
+	 if (nnc == ascii_n) nc = 10; else
+	 if (nnc == ascii_r) nc = 13; else
+	 if (nnc == ascii_t) nc = 9; else
+	 if (nnc == ascii_x) 
+	    {
+		reset(scanHexBuf);
+		addChar(scanHexBuf,scanNextChar());
+		addChar(scanHexBuf,scanNextChar());
+		nc = hex(scanHexBuf);
+		}
+	 else
+	 if (nnc == ascii_u) error("Unicode escape sequence: not yet");
+	 // LATER deal with /t, /hex, etc
+	 else nc = nnc;
+	 }
+  else 
+  if (((nc == ascii_squote) && scanning_squote_string) ||
+      ((nc == ascii_dquote) && not(scanning_squote_string)))
+     {
+	 c_scan_state = scanning_new_token_state;
+	 return toStringToken(c_token_buf,c_scan_p,scanning_squote_string);
+	 }
+  addChar(c_token_buf,nc); 
+  if ((nc == 1) && not(scanning_squote_string)) addChar(c_token_buf,nc); // escape 1  
+  return no_new_token;
+  }
+
+}
+
+var unscanned_token = nil ~ Token;
+var last_token = nil ~ Token;
+
+void function scan_reset0()
+  {
+  scan_inbuf_length = length(scan_inbuf);
+  c_scan_p = 0;
+  c_scan_state = scanning_new_token_state;
+  reset(c_token_buf);
+  reset(unscan_buf);
+  unscanned_token = nil ~ Token;
+  last_token = nil ~ Token;
+  }
+
+var echoMode = false;
+var echoBegin = 0;
+
+void function scan_init(string s)
+{
+  reset(scan_inbuf);
+  times(scan_inbuf,s);
+  scan_reset0();
+  scanning_console = false;
+  scan_linenumber = 0;
+  echoBegin = 0;
+}
+
+void function scan_reset()
+{
+  reset(scan_inbuf);
+  scan_reset0();
+}
+
+
+void function init_scan()
+{
+    c_token_buf = mkStringBuf('');
+    scan_inbuf = mkStringBuf('');
+    unscan_buf = mkStringBuf('   ');
+
+	buildTokenTable();
+	setupScanTable();
+	scan_init(mkStringBuf(''));
+	fablPrompt = 'fabl>>';
+}
+
+var scan_verbose = false;
+scan_verbose = false; //notneeded
+
+void function unscanToken()
+  {
+  if (nul(last_token)) error('No token to unscan');
+  unscanned_token = last_token;
+  last_token = nil ~ Token;
+  }
+
+
+Token function scanToken()
+{
+   var Token rs;
+   
+   if (nnul(unscanned_token)) 
+      {
+	  last_token = unscanned_token;
+	  unscanned_token = nil ~ Token;
+	  rs =  last_token;
+	  return rs;
+	  }
+   rs = no_new_token;
+   while (eq(rs,no_new_token)) rs = scanTokenStep();
+   last_token = rs;
+  return rs;
+}
+
+boolean function isId(Token tk)
+   {
+   return _isAtom(tk) && not(_isNumber(tk));
+   }
+// this will always be called just after completion of scanning a command
+// Thus,  unscan_buf,c_token_buf,unscanned_token can safely be reset
+// when returning to the pushed state.
+
+void function resetForNewToken()
+{
+reset(unscan_buf);
+reset(c_token_buf);
+c_scan_state =  scanning_new_token_state;
+}
+
+
+SeqOfOb function extractScannerState()
+  {
+  var SeqOfOb rs;
+  rs = emptysequence(ob);
+  push(rs,scan_inbuf~ob);
+  push(rs,c_scan_p~ob);
+  push(rs,scan_linenumber~ob);
+  push(rs,last_token~ob);
+  push(rs,scanning_console~ob);
+  push(rs,echoBegin~ob);
+  return rs;
+  }
+
+void function restoreScannerState(SeqOfOb st)
+{
+  scan_inbuf = st[0]~string;
+  c_scan_p = st[1] ~ int;
+  scan_linenumber = st[2] ~ int;
+  last_token = st[3] ~ Token;
+  scanning_console = st[4]~boolean;
+  echoBegin = st[5]~int;
+  resetForNewToken();
+  scan_inbuf_length = length(scan_inbuf);
+}
+
+
+  
+
+
+
+var flushBuf = mkStringBuf('');
+
+void function flushConsole()
+{
+reset(flushBuf);
+
+  while (charAvail()>0) readLine(flushBuf);
+}
+
+
+
+
+
+  

@@ -1,0 +1,372 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+
+
+Xob function AssignToXselectProperty(XselectProperty x,Xob vl,boolean addValue)
+{
+  var Xob src,sl,Sort tp,int st,lwb,hgb,boolean isbit;
+  src = obsel(x~ob,XselectProperty_source)~Xob;
+  sl = meta(obsel(x~ob,XselectProperty_selector),Property);
+  isbit = bitsel(x~ob,XselectProperty_booles,XselectProperty_isBitField)~boolean;
+  if (isbit)
+     {
+	 lwb = lowbit(x);
+	 hgb = highbit(x);
+	 if (not(lwb == hgb)) error('NOT YET: multibit fields');
+     return metaApplyn(bitset_fun,sequence(metaCast1(src,ob),sl,meta(lwb),metaCast1(vl,int)));
+	 }
+  tp = type(x~Xob);
+  st = storage(tp);
+  if (st == storage_int)
+     {
+	 if (addValue) 
+	    return metaApplyn(homeFimpFun('intassert_fun'),metaCast1(src,ob),sl,vl);
+	 else
+        return metaApplyn(homeFimpFun('intset_fun'),metaCast1(src,ob),sl,vl);
+	 }
+  else
+  if (st == storage_double)
+     {
+	 if (addValue) 
+	    return metaApplyn(homeFimpFun('doubleassert_fun'),metaCast1(src,ob),sl,vl);
+	 else
+        return metaApplyn(homeFimpFun('doubleset_fun'),metaCast1(src,ob),sl,vl);
+	 }
+  else
+     {
+	 if (addValue) 
+	    return metaApplyn(homeFimpFun('obassert_fun'),metaCast1(src,ob),sl,vl);
+	 else
+        return metaApplyn(homeFimpFun('obset_fun'),metaCast1(src,ob),sl,vl);
+	 }
+}
+
+
+void function iflatten(SeqOfXob rs,Xassign x,Xob av)
+   {
+   var Xob tf,sbt,dst,ndst,src,srcx,sel,tm,int st,lwb,hgb,boolean addvalue,
+       TempStackMark tsm,XselectProperty xfs,XselectIndex xss,
+       Property sl,Sort srcs,int knd;
+   dst = obsel(x~ob,Xassign_dest)~Xob;
+   srcx = obsel(x~ob,Xassign_source)~Xob;
+//   dst = dest(x);
+//   srcx = source(x);
+   addvalue = x . addValue;
+   if (isPrimitive(dst)) 
+      {  
+      flatten(rs,srcx,primitive_applyTempMap(dst));
+	  return;
+	  }
+   else
+   if (hasType(dst~ob,XselectProperty))
+      {
+	  tf = AssignToXselectProperty(dst~XselectProperty,srcx,addvalue);
+	  flatten(rs,tf,av);
+	  return;
+	  }
+   if (hasType(dst~ob,XselectIndex))
+	  {
+	  xss = dst~XselectIndex;
+      src = obsel(xss~ob,XselectIndex_source)~Xob;
+      sel = obsel(xss~ob,XselectIndex_selector)~Xob;
+//	  src = source(xss);
+//	  sel = selector(xss);
+	  srcs = type(src);
+	  st = storage(type(srcx));
+	  if ((srcs == SeqOfByte) || (srcs == string) || (srcs == hexBinary))
+		    tf = metaApplyn(homeFimpFun('seqbyte_put_fun'),sequence(src,sel,srcx));
+	  else
+	  if (st == storage_int)
+		    tf = metaApplyn(homeFimpFun('seqint_put_fun'),sequence(src,sel,srcx));
+	  else
+	  if (st == storage_double)
+		    tf = metaApplyn(homeFimpFun('seqdouble_put_fun'),sequence(src,sel,srcx));
+	  else
+		    tf = metaApplyn(homeFimpFun('seqob_put_fun'),sequence(src,sel,srcx));
+	  flatten(rs,tf,av);
+	  return;
+	  }
+	error('internal');
+  }
+
+
+
+ob function iflatten(SeqOfXob rs,Xreturn x,Xob av)
+   {
+   var id elb,Xob evl;
+   if (bitsel(x~ob,Xreturn_booles,Xreturn_blockReturn)~boolean)
+//   if (block_return(x))
+      { 
+	  elb = pop(blockEndLabels~SeqOfOb)~id;
+	  evl = pop(blockValueVars~SeqOfOb)~Xob;
+      flatten(rs,obsel(x~ob,Xreturn_value)~Xob,evl);
+ //     flatten(rs,value(x),evl);
+      push(rs,mkXgo(elb));
+	  }
+   else
+      {
+       flatten(rs,obsel(x~ob,Xreturn_value)~Xob,functionValueVar);
+ //      flatten(rs,value(x),functionValueVar);
+     push(rs,mkXgo(functionEndLabel));
+	  }
+    }
+
+  
+ // pre-flattened Xapplies always have nul dest
+ // if av is non-nul, flattening sets dest to av in the new Xapply
+
+SeqOfXob function flattenArgs(SeqOfXob rs,args)
+   {
+   var TempStackMark tsm,SeqOfXob na,int ln,i,Xob tm,ca;
+   tsm = theTempStackMark();
+   ln = length(args);
+   na = emptysequence(Xob);
+   for (i=0;i<ln;i++)
+       {
+	   ca = stripCasts(args[i]);
+	   if (isPrimitive(ca)) push(na,primitive_applyTempMap(ca));
+	   else
+	     {
+		 tm = allocTemp(storage(type(ca)));
+		 flatten(rs,ca,tm);
+		 push(na,tm);
+		 }
+	   }
+	popTempStack(tsm);
+	return na;
+	}
+
+void function iflatten(SeqOfXob rs,Xapply x,Xob av)
+   {
+   var SeqOfXob args,SeqOfXob na,Xob xb,tm,nap,ra,
+       boolean isand,isor,Xob fni,fn,int svrsp;
+//   writeln('FLATTEN XAPPLY');
+   xb = x~Xob;
+   fni = obsel(x~ob,Xapply_functionOf)~Xob;
+//   fni = functionOf(x);
+   if (not(isPrimitive(fni))) error('Non-primitive functions in Xapply not yet supported');
+   fn = primitive_applyTempMap(fni);
+   args = obsel(x~ob,Xapply_arguments)~SeqOfXob;
+//   args = arguments(x);
+   isand = eq(fn,and_function);
+   isor = eq(fn,or_function);
+   if (isand || isor)
+      {
+	  ra = stripCasts(args[1]);
+	  if (not(isPrimitive(ra))) 
+	     {
+		 if (isor) flatten_or(rs,x,av); else
+		 if (isand) flatten_and(rs,x,av); 
+		 return;
+		 }
+	   }
+	svrsp = length(rs);
+    na = flattenArgs(rs,args);
+	nap = metaApplyn(av,type(xb),fn,na);
+    push(rs,nap);
+	copyLabels(rs[svrsp],xb);  // jump to x is now a jump to the 
+	                             // the first Xob generated by flattening x
+	}
+
+
+void function iflatten(SeqOfXob rs,Xsequence x,Xob av)
+   {
+   var SeqOfXob args,SeqOfXob na,Xob xb,tm,nap,ra,
+       boolean isand,isor,Xob fn;
+   xb = x~Xob;
+   args = obsel(x~ob,Xsequence_arguments)~SeqOfXob;
+//    args = arguments(x);
+   na = flattenArgs(rs,args);
+	nap = metaSequencen(av,obsel(x~ob,Xsequence_elementType)~Sort,na);
+//	nap = metaSequencen(av,element_sort(x),na);
+	copyLabels(nap,xb);
+    push(rs,nap);
+	}
+
+// DOES NOT INCLUDE THE CAST, since used for flattening only
+Xob function XselectPropertyToXapply(XselectProperty x)
+{
+  var Xob src,sl,Sort tp,int st,lwb,hgb,boolean isbit,fn,ob prp;
+  src = obsel(x~ob,XselectProperty_source)~Xob;
+  prp = obsel(x~ob,XselectProperty_selector);
+  fn =  bitsel(x~ob,XselectProperty_booles,XselectProperty_isFunctional)~boolean;
+  sl = meta(prp,Property);
+  isbit = bitsel(x~ob,XselectProperty_booles,XselectProperty_isBitField)~boolean;
+  if (isbit)
+     {
+	 lwb = lowbit(x);
+	 hgb = highbit(x);
+	 if (not(lwb == hgb)) error('NOT YET: multibit fields');
+     return metaApplyn(bitsel_fun,metaCast1(src,ob),sl,meta(lwb));
+	 }
+  tp = type(x~Xob);
+  st = storage(tp);
+  if (st == storage_int)
+     return metaApplyn(intsel_fun,metaCast1(src,ob),sl);
+  if (st == storage_double)
+     return metaApplyn(doublesel_fun,metaCast1(src,ob),sl);
+  if (fn) return metaApplyn(obsel_fun,metaCast1(src,ob),sl);
+  return metaApplyn(obmsel_fun,metaCast1(src,ob),sl);
+}
+
+//LATER double add double case
+//LATER direct flattening of XselectProperty would be a little more efficient
+void function iflatten(SeqOfXob rs,XselectProperty x,Xob av)
+   {
+//	 rrs = rs;xx = x;aav = av;
+     iflatten(rs, XselectPropertyToXapply(x)~Xapply,av);
+}
+
+
+void function iflatten(SeqOfXob rs,XselectIndex x,Xob av)
+   {
+     var Xob src,sl,tf,Sort srcs,int st;
+      src = stripCasts(obsel(x~ob,XselectIndex_source)~Xob);
+	  sl = obsel(x~ob,XselectIndex_selector)~Xob;
+//      src = source(x);
+//	  sl = selector(x);
+	  srcs = type(src);
+	  st = storage(type(x~Xob));
+	  if ((srcs == SeqOfByte) || (srcs == string) || (srcs == hexBinary))
+		 tf = metaApplyn(homeFimpFun('seqbyte_get_fun'),sequence(src,sl));
+	  else
+	  if (st == storage_int)
+		 tf = metaApplyn(homeFimpFun('seqint_get_fun'),sequence(src,sl));
+      else
+      if (st == storage_double)
+	     tf = metaApplyn(homeFimpFun('seqdouble_get_fun'),sequence(src,sl));
+     else
+		 tf = metaApplyn(homeFimpFun('seqob_get_fun'),sequence(src,sl));
+      flatten(rs,tf,av);
+	  }
+
+	 
+
+
+var Function(Xob,Xob) metaTouch;
+
+var metaTouchEnabled = false;
+
+
+void function flatten_if_nnul(SeqOfXob rs,Xob tch)
+{
+  if (nnul(tch)) flatten(rs,tch,nil~Xob);
+}
+
+void function flatten2(SeqOfXob rs,Xob x,Xob av)
+   {
+   var Xob tch,mpx,asn;
+   tch = nil ~ Xob;
+   if (metaTouchEnabled && nnul(av))
+		   {
+		   tch = metaTouch(av);
+//		   if (nnul(tch)) flatten(rs,tch,nil~Xob);
+		   }
+//   s = mysort(x~ob);
+   if (isConstant(x)) mpx = x;
+   else
+   if (isBinding(x~ob)) mpx = applyTempMap(x~Binding)~Xob;
+   else
+      {
+      if (hasType(x~ob,Xif)) {iflatten(rs,x~Xif,av);return}
+      if (hasType(x~ob,Xblock)) {iflatten(rs,x~Xblock,av);return}
+      if (hasType(x~ob,Xapply))
+		// tch treated in this clause because xap case does not generate a recursive call
+		// to flatten
+	     {iflatten(rs,x~Xapply,av); flatten_if_nnul(rs,tch);return} 
+       if (hasType(x~ob,Xassign)) {iflatten(rs,x~Xassign,av);return}
+       if (hasType(x~ob,Xreturn)) {iflatten(rs,x~Xreturn,av);return}
+       if (hasType(x~ob,Xfor)) {iflatten(rs,x~Xfor,av);return}
+       if (hasType(x~ob,XselectProperty)) {iflatten(rs,x~XselectProperty,av);return}
+       if (hasType(x~ob,XselectIndex)) {iflatten(rs,x~XselectIndex,av);return}
+       if (hasType(x~ob,Xsequence)) {iflatten(rs,x~Xsequence,av);return}
+       if (hasType(x~ob,Xwhile)) {iflatten(rs,x~Xwhile,av);return}
+       if (hasType(x~ob,Xcast)) {flatten(rs,obsel(x~ob,Xcast_castee)~Xob,av);return}
+ //      if (hasType(x~ob,Xcast)) {flatten(rs,castee(x~Xcast),av);return}
+	   error('internal:cannot flatten this kind of Xob');
+	   }
+	 if (nnul(av)) 
+	    {
+		asn = metaAssignn(av,mpx);
+		push(rs,asn);
+        flatten_if_nnul(rs,tch);
+		}
+   }
+
+void  function flatten(SeqOfXob rs,Xob x,Xob av)
+    {
+	flatten2(rs,x,av);
+	}
+
+/* 
+removes noops by moving their labels to the next non-noop statement.
+One noop may be left: a noop at the end 
+*/
+
+
+SeqOfXob function removeTheNoops(SeqOfXob s)
+   {
+   var SeqOfId clbs,SeqOfXob rs,ob lbs,int ln,i,Xob cv;
+   clbs = emptysequence(id);
+   // clbs are the labels from noops that should be transferred to the
+   // next non-noop statement
+   ln = length(s);
+   rs = emptysequence(Xob);
+   for (i = 0;i<ln;i++)
+       {
+	   cv = s[i] ~ Xob;
+
+	 if (Xobish(cv) && (bitsel(cv~ob,Xob1_booles,Xob1_isNoop)~boolean)) 
+//	   if (Xobish(cv) && isNoop(cv~Xob1)) 
+	      {
+	      lbs = labelsOf(cv);
+		  if (nnul(lbs))
+		     {
+		     if (obkind(lbs~ob)==string_kind) push(clbs,lbs~id);
+		     else clbs*(lbs~SeqOfId);
+			 }
+		  if (i == (ln-1)) push(rs,cv);
+		  }
+	   else 
+	      {
+		  addLabels(cv,clbs);
+		  reset(clbs);
+		  push(rs,cv);
+		  }
+	   }
+   return rs;
+    }
+		  
+
+var boolean removeNoops;
+
+removeNoops  = true;//notneeded
+// if funsort is non-nul, then x is the body of a function definition 
+// which returns 
+
+Xob function flatten_top(Xob x)
+    {
+	var Xblock xb,Sort rsrt;
+	resetFlat();
+	rsrt = type(x);
+	if (rsrt == void) functionValueVar = nil ~ Xob; else
+	functionValueVar = allocTemp(storage(rsrt));
+	flatten(flatten_buf,x,functionValueVar);
+	if (nul(functionValueVar)) push(flatten_buf,metaReturnVoid());
+	else push(flatten_buf,metaReturn(functionValueVar));
+	if (removeNoops) flatten_buf = removeTheNoops(flatten_buf);
+	return mkXblock(flatten_buf); //LATER TEMPORARY; TAKE OUT COPY AFTER DEBUGGING
+	}
+
+

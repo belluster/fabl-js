@@ -1,0 +1,17 @@
+
+
+
+stdNamespaces2();
+namespace('libgeom2d',"http://www.mapbureau.com/lib/libgeom2d-1.0");
+//namespace('rdfmapper',"http://www.mapbureau.com/lib/rdfmapper-2.0");
+namespace('locative',"http://locative.net/etcon2004/loc#");
+
+/* which does this:
+namespace('geom2d',"http://nurl.org/0/geom2d/1.0");
+namespace('dc',"http://purl.org/dc/elements/1.1");
+namespace('geo',"http://www.w3.org/2003/01/geo/wgs84_pos#");
+namespace('rss',"http://purl.org/rss/1.0/");
+*/
+
+//namespace('geom3d',"http://nurl.org/0/geom3d/1.0");
+//namespace('libgeo',"http://nurl.org/0/libgeo/1.0");

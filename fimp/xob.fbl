@@ -1,0 +1,428 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+// a Xob is an int,id,double, Binding,Funnction  or Xob1
+
+
+constant int_kind = 1;
+constant string_kind = 3;
+constant nstring_kind = 3; // narrow (1 byte)
+constant wstring_kind = 4; // wide (2 bytes)
+constant double_kind = 2;
+constant nil_kind = 4;
+constant ob_kind = 0;
+
+constant dblock_kind = 5;
+
+constant hashtable_kind = 16;
+constant compact_kind = 17;
+constant binding_kind = 18;
+constant smallob_kind = 19;
+constant pm_stack_kind = 23;
+constant seq_kind = 24;
+constant values_kind = 25;
+
+//returned by seqDataKind when applied to a sequence
+
+constant seqDataOb_kind = 8;
+constant seqDataByte_kind = 9;
+constant seqDataShort_kind = 10;
+constant seqDataInt_kind = 11;
+constant seqDataDouble_kind = 12;
+
+
+constant ob = Any;
+
+
+boolean function isObject(ob x)
+{
+   return obkind(x) > 15;
+}
+
+
+constant typeP = selectUri(rdfNS,'type')~Property;
+
+constant typesInt = sequence(int);
+constant typesDouble = sequence(double);
+constant typesBinding = sequence(Binding);
+constant typesNone = emptysequence(Sort);
+constant typesString = sequence(id);
+
+
+Sort function SeqOf(Sort s)
+{
+  return mkParamType('SeqOf',s);
+}
+
+Sort function BagOf(Sort s)
+{
+  return mkParamType('BagOf',s);
+}
+
+Sort function AltOf(Sort s)
+{
+  return mkParamType('AltOf',s);
+}
+
+var Bag = rdf:Bag;
+var Alt = rdf:Alt;
+
+var BagOfOb = BagOf(ob);
+var AltOfOb = AltOf(ob);
+var BagOfInt = BagOf(int);
+var AltOfInt = AltOf(int);
+var BagOfDouble = BagOf(double);
+var AltOfDouble = AltOf(double);
+
+
+boolean function isBinding(ob x)
+{
+  return obkind(x) == binding_kind;
+}
+
+
+
+Sort function type(Binding b) 
+   {
+   var Sort rs;
+   rs = obsel(b~ob,Binding_type)~Sort;
+   if (nul(rs)) rs = ob;
+   return rs;
+}
+
+
+
+ob function value(Binding b) {return obsel(b~ob,Binding_value);}
+
+
+boolean function Xobish(ob x)
+  {
+  if (isObject(x)) return not(isBinding(x) || isFunction(x));
+  return false;
+  }
+
+
+boolean function Xobish(Xob x)
+  {
+  var ob xo;
+  xo = x~ob;
+  if (isObject(xo)) return not(isBinding(xo) || isFunction(xo));
+  return false;
+  }
+
+boolean function equal(Sort x,y)
+  {
+  return eq(x,y);
+  }
+
+  
+
+Xob function mkXob(Sort tp)
+  {
+  var Xob1 rs;
+//  rs = new(Xob1);
+  rs = iNew(Xob1)~Xob1;
+  rs . Xob1:type = tp;
+//  obset(rs~ob,Xob1_type,tp~ob);
+  return rs~Xob;
+  }
+
+Xob function mkNoopXob()
+  {
+  var Xob1 rs;
+  rs = mkXob(void)~Xob1;
+  bitset(rs~ob,Xob1_booles,Xob1_isNoop,1);
+//  rs . Xob1:isNoop = true;
+//  bitset(rs~ob,Xob1_booles,Xob1_isNoop,1);
+  return rs~Xob;
+  }
+
+var storage_int = 1;
+var storage_ob = 0;
+var storage_double = 2;
+
+int function storage(Sort tp)
+{
+  if ((tp == int) || (tp == boolean) || (tp == byte)) return storage_int;
+  if ((tp == double)) return  storage_double;
+  return storage_ob;
+}
+
+
+
+ob function nulValue(Sort x)
+  {
+  var int s;
+  s = storage(x);
+  if (s == storage_ob) return nil;
+  if (s == storage_int) return 0 ~ ob;
+  return toDoubleOb(0);
+  }
+
+
+Binding function assertDefaultValue(ob bn,Property nm,Sort s)
+  {
+  return set(bn,nm,nulValue(s),s);
+  }
+
+
+
+Binding function bindLocal(ob bn,id nm,ob vl,Sort s)
+  {
+  var Binding rs;
+  rs =  set(bn,regarding(nm~ob),vl,s);
+  setInDblock(rs,true);
+// rs . inDblock = true;
+  return rs;
+  }
+
+
+
+Binding function bindLocal(ob bn,id nm,Sort s)
+  {
+  var Binding rs;
+  rs =  set(bn,regarding(nm~ob),nulValue(s),s);
+  setInDblock(rs,true);
+//  rs . inDblock = true;
+  return rs;
+  }
+
+
+Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
+{
+  var Property gpr;
+  gpr = regarding(nm~ob);
+  return set(x,gpr,vl,s);
+}
+
+
+boolean function hasValueAndType(Binding b,ob vl,Sort s)
+{
+   var ob bvl,int st;
+   if (not(type(b)==s)) return false;
+   bvl = value(b);
+   st = storage(s);
+   if (st == storage_ob) return eq(bvl,vl);
+   if (st == storage_int) return ((bvl~int)==(vl~int));
+   return ((bvl~double)==(vl~double));
+}
+
+
+Binding function bindConstant(ob x,id nm,ob vl,Sort s)
+{
+  var Property gpr,Binding b,cb,Sort ctp;
+  gpr = regarding(nm~ob);
+  cb = selectBinding(x,gpr);//LATER deal with the case where a compactob has a nm binding
+  if (nnul(cb))
+     {
+	 if (isConstant(cb))
+	    {
+		if (hasValueAndType(cb,vl,s)) return cb;
+	    error('Cannot modify a constant: ',nm);
+		}
+	  else 
+	    {
+		ctp = type(cb);
+		if (nul(ctp) || (ctp == ob))
+		   {
+		   if (not(eq(s,ctp)))
+             obset(cb~ob,Binding_type,s~ob);
+		   set(x,gpr,vl);
+		   set_isConstant(cb,true);
+		   }
+	    else  error('Cannot modify type of ',nm);
+		}
+	  return cb;
+	  }
+  b = set(x,gpr,vl,s);
+  if (nnul(b)) set_isConstant(b,true); else error('Cannot bind as constant ',nm);
+}
+
+
+
+Binding function bindGlobal(ob x,id nm,Sort s)
+{
+  return bindGlobal(x,nm,nulValue(s),s);
+}
+
+
+Binding function selectBinding(ob x,id nm)
+{
+  var Property gpr;
+  gpr = regarding(nm~ob);
+  return selectBinding(x,gpr);
+}
+// old nomenclature
+Binding function selectGlobalBinding(ob x,id nm)
+{
+  return selectBinding(x,nm);
+}
+
+
+Binding function selectBinding(SeqOfOb x,id nm)
+{
+  var Property gpr,int ln,i,Binding b;
+  ln = length(x);
+  gpr = regarding(nm~ob);
+  for (i=ln-1;i>=0;i--)
+      {
+	  b = selectBinding(x[i],gpr);
+	  if (nnul(b)) return b;
+	  }
+  return nil~Binding;
+}
+
+ob function get(ob x,id nm)
+{
+  return get(x,regarding(nm~ob));
+}
+
+
+// so selection of the home environment is a little faster
+
+
+
+ob function globalValue(ob cn,id nm)
+{
+  var Binding b;
+  b = selectBinding(cn,nm);
+  if (nul(b)) return nil;
+  return bindingValue(b);
+}
+
+// for the path
+
+var regardingPath = regarding('path'~ob);
+
+SeqOfOb function homePath()
+{
+  var Binding b;
+  b = selectBinding(home,regardingPath);
+  if (nul(b)) return nil~SeqOfOb;
+  return bindingValue(b)~SeqOfOb;
+}
+
+var buildingFimp = false;
+var analyzingFunction = false;
+
+
+
+ // the home fabl implementation (always == fimp except when building fimp itself as bfimp)
+ob function homeFimp()
+{
+   if (buildingFimp) return home;
+   else return fimp;
+}
+
+// Functions applied by macros in fimp need to be taken from the home fimp (the fimp being built)
+// rather than the running fimp
+
+
+
+var missingFimpFuns = emptysequence(id);
+
+Xob function homeFimpFun(id nm)
+{
+   var ob rs,Property rnm;
+   rnm = regarding(nm~ob);
+   if (buildingFimp && analyzingFunction) 
+      {
+	  rs =  get(home,rnm);
+      if (nul(rs)) 
+	    {
+	     writeln('Warning: homeFimpFun missing function:',nm);
+		 push(missingFimpFuns,nm);
+		 rs = get(fimp,rnm);
+	     }
+	  }
+   else rs =  get(fimp,rnm);
+   return rs~Xob;
+}
+
+
+
+
+  
+
+
+
+Sort function type(Xob x)
+{
+  var int k;
+  k = obkind(x~ob);
+  if (k == int_kind) return int;
+  if (k == string_kind) return id;
+  if (k == double_kind) return double;
+  if (isBinding(x~ob)) return type(x~Binding);
+  if (isFunction(x~ob)) return obsel(x~ob,Function_type)~Sort;
+//  if (isBinding(x~ob)) return sort(x~Binding);
+//  return obsel(x~ob,Xob1_type)~Sort;
+  return obsel(x~ob,Xob1_type)~Sort;
+}
+
+void function setParent(Xob x,y)
+{
+  if (Xobish(x)) 
+  obset(x~ob,Xob1_parent,y~ob);
+  //set_parent(x~Xob1,y);
+}
+
+/* later import from C*/
+
+Property function regarding(id nm)
+{
+   return regarding(nm~ob);
+}
+
+boolean function isId(ob x)
+{
+  var int k;
+  k = obkind(x);
+  return (k == nstring_kind)||(k == wstring_kind);
+}
+
+
+boolean function isString(ob x)
+{
+  var int k,dk;
+  k = obkind(x);
+  if (k == seq_kind)
+     {
+     dk = seqDataKind(x);
+	 return dk  == seqDataByte_kind;
+	 }
+  return false;
+}
+
+
+// A utility for setting up properties 
+
+Property function assertUriChildAsProperty(ob x,id y)
+{
+   var ob rs;
+   rs = selectUri(x,y);
+   setType(rs,Property);
+   return rs ~Property;
+}
+
+
+
+
+
+Property function assertUriChildAsFunctionalProperty(ob x,id y)
+{
+   var ob rs;
+   rs = selectUri(x,y);
+   setType(rs,FunctionalProperty);
+   return rs ~Property;
+}

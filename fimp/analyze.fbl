@@ -1,0 +1,579 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+var analyzeVerbose = false;
+
+var analysisTempCount = 0; // temps generated for analysis (rather than flattening)
+
+
+
+
+var analyzerActive = true;
+
+var Function(void,string,Class) gAppend;
+
+
+var macroInputs = sequence(id,SeqOfXob);
+var constructorInputs = sequence(Any);
+
+// globals which are set when a new type is being defined
+var Sort classBeingDefined;
+var boolean inClassContext;
+var Xob thisXob;
+
+
+
+
+
+
+// add the function named fnm with inputs itps to the list of functions
+// associated with nm under bnm (used for xmacros and constructors)
+void function associateFunction(ob fr,Property bnm,id nm,fnm,SeqOfType inputs)
+  {
+  var Function fn,ob vrs,SeqOfFunction vrsq;
+  fn = getVariant(fr,fnm,inputs);
+  if (nul(fn)) error('No function of the right type named ',fnm);
+  vrs = get(fr,bnm);
+  if (nul(vrs))
+	 {
+	 vrs = mkObject();
+	 set(fr,bnm,vrs~ob,Any);
+	 }
+  vrsq = get(vrs,regarding(nm~ob))~SeqOfFunction;
+  if (nul(vrsq))
+	 {
+	 vrsq = sequence(fn);
+	 set(vrs,regarding(nm~ob),vrsq~ob,SeqOfFunction);
+	 }
+   else
+   push(vrsq,fn);
+   }
+
+
+var macrosP = selectUri(fabl,'macros')~Property;
+
+
+void function macro(ob fr,id nm,fnm)
+  {
+  associateFunction(fr,macrosP,nm,fnm,macroInputs);
+  }
+
+
+var constructorsP = selectUri(fabl,'constructors')~Property;
+
+void function constructor(ob fr,id nm,fnm)
+  {
+  associateFunction(fr,constructorsP,nm,fnm,constructorInputs);
+  }
+
+
+Binding function lookupBinding(SeqOfOb env,id nm) 
+  {
+  var int ln,i,ob cf,Binding bn;
+  ln = length(env);
+  for (i=ln-1;i>=0;i--)
+      {
+	  cf = env[i];
+	  bn = selectGlobalBinding(cf,nm);
+	  if (nnul(bn)) return bn;
+	  }
+  return nil~Binding;
+  }
+
+
+ob function lookup(SeqOfOb env,id nm) 
+  {
+  var Binding b;
+  b = lookupBinding(env,nm);
+  if (nul(b)) return nil~ob;
+//  return value(b)~ob;
+  return obsel(b~ob,Binding_value);
+  }
+
+// for looking up xmacros and constructors
+// returns the first sequence of associated functions it finds
+// looks in the analyzer first.
+
+// NOTE this means that an existing macro or constructor in the base CANNOT BE
+// OVERRIDDEN by Home macros or constructors
+
+
+SeqOfFunction function lkupAssociatedFunctions(SeqOfOb env,Property bnm,id nm)
+  {
+  var int ln,i,ob cf,ob sbn,bn;
+  ln = length(env);
+  for (i=ln-1;i>=0;i--)
+      {
+	  cf = env[i];
+	  bn = get(cf,bnm);
+	  if (nnul(bn)) 
+	     {
+		 sbn = get(bn,regarding(nm~ob));
+		 if (nnul(sbn)) return sbn~SeqOfFunction;
+		 }
+	  }
+  return nil ~ SeqOfFunction;
+  }
+
+SeqOfFunction function lkupConstructors(id nm)
+  {
+  return lkupAssociatedFunctions(homePath(),constructorsP,nm);
+  }
+
+
+
+
+SeqOfFunction function lkupMacros(id nm)
+  {
+  return lkupAssociatedFunctions(homePath(),macrosP,nm);
+  }
+
+
+// home is treated as a special case; it must always resolve to the
+// same Fabl global
+
+Xob function analyze(id nm)
+  {
+  var Binding b,Xob rs;
+  if (nul(nm)) return nulXob;
+  if (nm == 'home') return selectGlobalBinding(fabl,'home')~Xob;
+  if (nm == 'nil') return nulXob;
+
+
+
+  b = lookupBinding(cPath,nm);
+  if (nul(b)) error('Unknown symbol: ',nm,' in a PATH of length ',length(cPath));
+  return b~Xob;
+  }
+
+
+
+
+
+var Function(Xob,ob) analyze;
+
+
+SeqOfXob function analyzeList(ob x)
+  {
+  var SeqOfXob dt,ob cx;
+  dt = emptysequence(Xob);
+  cx = x;
+  while (isList(cx))
+      {
+	  push(dt,analyze(car(cx)));
+	  cx = cdr(cx);
+	  }
+   return dt;
+   }
+
+
+
+
+
+
+boolean function coercesTo(Sort src,dest)
+  {
+  if (eq(src,dest)) return true;
+  if (dest == ob) return coerceToOb;
+  if (coerceToLiteral && (dest == Literal))
+     return (src == int)||(src == double)||(src==boolean)||(src==string);      
+  if (coerceToSuperClasses && isSubClassOf(src,dest)) return true;
+  return (eq(src,int)&&eq(dest,double))|| 
+         (eq(src,id)&&eq(dest,string));
+  }
+
+// inputs match returns the number of coercions required; -1 if can't be done
+int function matchInputs(Sort fntp,SeqOfType inputs)//sequence_of_Sort inputs
+  {
+  var SeqOfType dtf,int ln,i,rs;
+  rs = 0;
+  dtf = inputTypes(fntp);
+  ln = length(inputs);
+  if (not(length(dtf)==ln)) return -1;
+  for (i=0;i<ln;i++)
+      {
+	  if (not(eq(inputs[i],dtf[i]))) 
+	     {
+		 if (coercesTo(inputs[i],dtf[i])) rs++;
+		 else return -1;
+		 }
+	  }
+  return rs;
+  }
+
+
+
+var inputTypesBuf  = emptysequence(Sort);
+
+
+
+
+Function function findVariant0(SeqOfFunction vrs,id nm,SeqOfType inputs)
+   {
+   var SeqOfFunction dt,int ln,i,cost,mincost,Function cf,rs,Sort fsrt; 
+   ln = length(vrs);
+   rs = nil ~ Function;
+   for (i=0;i<ln;i++)
+       {
+	   cf = vrs[i];
+	   fsrt = obsel(cf~ob,Function_type)~Sort;
+//	   fsrt = type(cf);
+	   cost = matchInputs(fsrt,inputs);//coercion cost of this match
+	   if (cost >= 0)
+	      {
+		  if (nul(rs)||(cost<mincost)) 
+		     {
+			 rs = cf;
+			 mincost = cost;
+			 }
+		  }
+	   }
+	return rs;
+	}
+
+
+
+Function function findVariant(ob fr,id nm,SeqOfType inputs)
+   {
+   var SeqOfFunction vrs,Function vr;
+   vr = getVariant(fr,nm,inputs);
+   if (nnul(vr)) return vr; // no coercion required
+   vrs = variants(fr,nm);
+   if (analyzeVerbose) 
+      {
+	  if (nul(vrs)) writeln('Nul vrs'); else writeln('NNul vrs');
+	  }
+   if (nul(vrs)) return nil ~ Function;
+   else  return findVariant0(vrs,nm,inputs);
+}
+
+
+Function function findVariant(SeqOfOb env,id nm,SeqOfType inputs)
+   {
+   var int ln,i,Function rs;
+   ln = length(env);
+   for (i=ln-1;i>=0;i--)
+       {
+	   rs = findVariant(env[i],nm,inputs);
+	   if (nnul(rs)) return rs;
+	   }
+   }
+
+
+
+Function function getVariant(SeqOfOb env,id nm,SeqOfType inputs)
+   {
+   var int ln,i,Function rs;
+   ln = length(env);
+   for (i=ln-1;i>=0;i--)
+       {
+	   rs = getVariant(env[i],nm,inputs);
+	   if (nnul(rs)) return rs;
+	   }
+   }
+
+	       
+
+
+
+SeqOfXob function metaCoerce(SeqOfXob x,SeqOfType s)
+  {
+  var SeqOfXob rsq,dtx,int ln,i,Xob mt;
+  rsq = emptysequence(Xob);
+  ln = length(s);
+  for (i = 0;i<ln;i++)
+      {
+	  mt = metaCoerce(x[i],s[i]);
+	  if (nul(mt)) return nil ~ SeqOfXob;
+	  push(rsq,mt);
+	  }
+  return rsq;
+  }
+
+
+
+
+
+//LATER implement this in C
+var select_buffer = mkStringBuf(0);
+
+id function selectString(string s,int lb,ub)
+{
+  reset(select_buffer);
+  select(select_buffer,s,lb,ub);
+  return toString(select_buffer);
+}
+
+
+
+id function stripSet(id s)
+  {
+  var int ln;
+  // check if x starts with set_
+  ln = length(s);
+  if (ln<5) return nil~id;
+  if ((select(s,0)==115)&&(select(s,1)==101)&&(select(s,2)==116)&&(select(s,3)==95))
+  return(selectString(mkStringBuf(s),4,ln-1));
+  }
+
+
+var Function(Xob,ob) analyzeMethodApplication;
+
+
+var methodArgsBuf = emptysequence(Xob);
+
+
+//var Function(Xob,Xob,id,Xob,boolean) metaAssignn;
+
+// Redefined in xobprint
+
+void function times(string s,Xob x)
+{
+  s * 'Xob';
+}
+
+
+void function times(string s,ob x)
+{
+  s *  'ob';
+}
+//void function plus(string s,ob x){times(s,x)}//remove
+
+//overwritten by import
+
+int function consoleStackDepth()
+{
+ return 0;
+}
+
+Xob function analyzeVerboseReturn(Xob x)
+{
+   if (analyzeVerbose) 
+      writeln(consoleStackDepth()-1,' Analysis returned ',x); 
+   return x;
+}
+
+var Function(Sort,ob) analyzeType;
+
+
+
+
+
+var Function(ob,ob) evalQname;
+var Function(Property,ob) toProperty;
+var Function(Property,id) toProperty;
+
+
+// generate a value returning block
+Xob function metaApplynNonPrim(Xob fn,SeqOfXob xbs)
+{
+   var Class brt,ftp,rstp,SeqOfXob sq,ob e,Xob rsx;
+   ftp = type(fn);
+   e = mkObject();
+   rsx = bindLocal(e,'_nonPrimFun_',ftp)~Xob;
+   sq = emptysequence(Xob);
+   push(sq,metaAssignn(rsx,fn));
+   brt = blockReturnType;
+   rstp = resultType(ftp);
+   blockReturnType = rstp;
+   push(sq,metaBlockReturn(metaApplyn(rsx,xbs),nil~id));
+   blockReturnType = brt;
+   return mkValueReturningXblock(rstp,e~ob,sq); 
+}
+
+var Function(boolean,ob) isQname;
+
+var Function(ob,id) namespace;
+var Function(Xob,string) analyzeStringBufConst;
+
+Xob function analyzen(ob x,boolean try_strip_set)
+  {
+  var id op,setop,SeqOfFunction cns,xmacs,SeqOfXob args,SeqOfType itps,
+     int ln,i,k,Function fn,ccn,xmac,Binding fnb,Property prp,ob ns,qv,splitop,ob env,cdx,
+      Xob rs,a0,crxa,Sort fntp,rng,s0,ob crx,boolean opisqn,opiss,isp,Property qop,
+	  Binding gb,ob e1,e2;
+
+
+  k = obkind(x);
+  if (analyzeVerbose) writeln(consoleStackDepth(),' Analyzing ',x,' of obkind ',k);
+  
+  if (nul(x)) return nulXob; else
+  if (k == int_kind) return meta(x~int);
+  if (k == double_kind) return meta(x~double); 
+//  if (k == seq_kind) return meta(x~string);
+  if (k == string_kind) return analyzeVerboseReturn(analyze(x ~ id));
+  if (isList(x))
+     {
+	 crx = car(x);
+
+
+	 if (eq(crx,'_colon_'))
+	    {
+		// same as  qv = evalQnameN(x);
+		e1 = cadr(x);
+		e2 = caddr(x);
+        if ((!isId(e1))||(!isId(e2))) error("Bad form for qualified name: ",x);
+		ns = namespace(e1~id);
+		if (nul(ns)) error("No such namespace: ",ns);
+        qv = selectUri(ns,e2~id);
+		if (nnul(qv))
+		   {
+           if (hasType(qv,Sort)) return meta(qv,Sort);
+		   if (hasType(qv,Property)) return meta(qv,Property);
+		   return meta(qv,ob);
+		   }
+		gb = selectBinding(ns,e2~id);
+		if (nul(gb)) error(e1~id,":",e2~id," undefined");
+		return gb ~ Xob;
+
+
+
+		}
+	 isp = isList(crx);
+	 op = crx~id;
+	 opiss = not(isp); // op is simple id
+
+	 // order: constructors,locally bound functions, setters and getters,global functions, and finally xmacros
+	 if (opiss && eq(op, '_quote_')) 
+	    {
+		cdx = cadr(x);
+		if (obkind(cdx) == seq_kind) rs = analyzeStringBufConst(cdx~string);
+		else rs =  cdx ~ Xob;
+		return analyzeVerboseReturn(rs);
+		}
+
+     cns = lkupConstructors(op);
+	 if (nnul(cns))
+	    {
+		ln = length(cns);
+		for (i=0;i<ln;i++)
+		    {
+			ccn = cns[i];
+			rs = applynOb(ccn,x~ob)~Xob;
+			if (nnul(rs)) return analyzeVerboseReturn(rs);
+			}
+	    }
+     args = analyzeList(cdr(x));
+	 ln = length(args);
+	 reset(inputTypesBuf);
+	 for (i = 0;i<ln;i++) push(inputTypesBuf,type(args[i]));
+     if (opiss) 
+	    fnb = lookupBinding(cPath,op);
+	 else
+	    fnb = nil ~ Binding;
+	 //locally bound function
+
+	 if (nnul(fnb)) 
+	    {
+		fntp = type(fnb);
+		if (eq(obsel(fntp~ob,Sort_constructor),'Function') //a locally bound function
+		     && (matchInputs(fntp,inputTypesBuf)>=0)) 
+		   return analyzeVerboseReturn(metaApplyn(fnb~Xob,metaCoerce(args,inputTypes(fntp))));
+		}
+
+    // global functions
+	 if (opiss) 
+	    {
+        fn = findVariant(homePath(),op,inputTypesBuf);
+		if (analyzeVerbose) 
+		  {
+		  if (nnul(fn)) writeln('Found fn'); else writeln('Did not find fn');
+		  }
+		}
+	 else
+	   {
+	   if (isQname(crx)) //handles ns:f(a,b,c);
+	      {
+		  ns = namespace(cadr(crx)~id);
+		  fn = findVariant(ns,caddr(crx)~id,inputTypesBuf);
+		  }
+		else 
+		  {
+		  itps = copy(inputTypesBuf); //global gets reused by the analyze call
+		  crxa = analyze(crx);
+		  fntp = type(crxa);
+//		  writeln('fntp = ',fntp, 'input_types ',itps);
+		  if (not(eq(obsel(fntp~ob,Sort_constructor),'Function'))) 
+		    error('Non functional expression in applicatation: ',x);
+		  if (matchInputs(fntp,itps)>=0)
+		    return analyzeVerboseReturn(metaApplynNonPrim(crxa,metaCoerce(args,inputTypes(fntp))));
+          error("Type mismatch in application of ",crx);
+		  }
+       }
+     if (nnul(fn)) 
+        {
+	    fntp = obsel(fn~ob,Function_type)~Sort;
+        return analyzeVerboseReturn(
+		       metaApplyn(fn~Xob,metaCoerce(args,inputTypes(fntp))));
+	    }
+
+
+	 if (opiss) xmacs = lkupMacros(op);
+	 else xmacs = nil ~ SeqOfFunction;
+	 if (nnul(xmacs))
+	    {
+		ln = length(xmacs);
+		for (i=0;i<ln;i++)
+		    {
+			xmac = xmacs[i];
+			rs = applynOb(xmac,op~ob,args~ob)~Xob;
+			if (nnul(rs)) return analyzeVerboseReturn(rs);
+			}
+	    }
+	 return analyzeVerboseReturn(nil~Xob);
+	 }
+   else error('internal2');
+   }
+
+
+Xob function analyzen(ob x)
+{
+   return analyzen(x,true);
+}
+
+Xob function analyze(ob x)
+  {
+  var Xob rs,ob msg;
+  rs = analyzen(x);
+  if (nul(rs)) 
+     {
+	 if (isList(x)) msg = car(x); else msg = x;
+     error('Failure to analyze application:',msg,' in ',x);
+	 }
+  return rs;
+  }
+
+
+void function copyInto(SeqOfOb dst,src)
+  {
+  var int ln,i;
+  reset(dst);
+  ln = length(src);
+  for (i=0;i<ln;i++)
+      push(dst,src[i]);
+  }
+
+Xob function analyzeToplevel(ob x)
+{
+  copyInto(cPath,homePath());
+  return analyze(x);
+}
+     
+
+
+
+
+
+
+
+   

@@ -1,0 +1,509 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+var toSerialize = emptysequence(ob);
+var unSerialized = emptysequence(ob);
+var serializedBindings = emptysequence(ob);
+
+var Function(void,ob,int) serializeCollect0;
+
+var bindingObKind = 0;
+var bindingIntKind = 1;
+var bindingDoubleKind = 2;
+var bindingUriKind = 3;
+var bindingMultiKind = 4;
+
+var serializeCollectInC = false;
+
+
+boolean function amongFirstN(SeqOfOb s,int n,ob v)
+{
+  var int i;
+  for (i = 0;i<n;i++) 
+     {
+	 if (eq(v,s[i])) return true;
+	 }
+  return false;
+}
+
+// the obs at the beginning of the serialization are the preambleObs
+var int preambleObCount;
+var ob forDebug;
+var SeqOfOb serializeStack;
+var SeqOfOb serializeDebugStack;
+var SeqOfOb debugStacks;
+
+
+void function serializeCollect0(ob x,int pg)
+{
+  var int k,bk,ln,dk,i,xp,nmo,SeqOfBinding bns,Binding cb,Sort btp,ob cv,ext,tp,bky,pr,
+  boolean onpage,SeqOfOb prps,sq,Dblock db,ob dbv,boolean itrn,isprototypefield,istp,int sdp;
+  if (serializeCollectInC) error("Unexpected: should be collecting in C");
+  if (nul(x)) return;
+  if (eq(x,toSerialize)) return;//dont serialize the serialize array
+  if (tempbit(x)) return;
+  k = obkind(x);
+  sdp = length(serializeStack);
+  push(serializeStack , x);
+  if (eq(x,forDebug)) 
+     {
+	 writeln("Found forDebug at ",length(toSerialize));
+	 serializeDebugStack=copy(serializeStack);
+	 push(debugStacks,serializeDebugStack~ob);
+	 }
+  if (k == hashtable_kind)
+     {
+	 if (isHashSeq(x)) {writeln('Omitting a  HashSeq');pop(serializeStack);return;}
+	 xp = page(x);
+	 onpage = (xp == pg) || (xp < 0); // < 0 means multipage object
+     set_tempbit(x,true);
+	 // if one of the first three, recurse, but don't add
+	 if (not(amongFirstN(toSerialize,preambleObCount,x))) 
+     push(toSerialize,x);
+	 itrn = interned(x);
+     pr = parent(x);
+	 if (nnul(pr)) 
+	    {
+		push(serializeStack,'_parent_'~ob);
+		serializeCollect0(pr,pg);
+		pop(serializeStack);
+		push(serializeStack,'_name_'~ob);
+		serializeCollect0(name(x)~ob,pg); // this key won't be collected if parent is on a different page
+        pop(serializeStack);
+		}
+	 tp = iType(x);
+//	 if (eq(tp,Restriction)) writeln("Restriction at ",length(toSerialize));
+	 if (nnul(tp)) {push(serializeStack,'_type_'~ob);serializeCollect0(tp,pg);pop(serializeStack)};
+	 if (not(onpage) && not(itrn)) {set_length(serializeStack,sdp);return;}
+	 bns = bindings(x);
+	 ln = length(bns);
+	 // need to serialize the keys of uri bindings in the uri tree 
+	 for (i=0;i<ln;i++)
+	     {
+		 cb = bns[i];
+
+		 if (itrn || (page(cb~ob) == pg))
+		    {
+			push(serializedBindings,cb~ob);
+            push(serializeStack,'_binding_'~ob);
+            push(serializeStack,cb~ob);
+		    bky = obsel(cb~ob,Binding_key);
+		    bk = kind(cb);
+		    btp = obsel(cb~ob,Binding_type)~Sort;
+            push(serializeStack,'_binding_type_'~ob);
+		    serializeCollect0(btp~ob,pg);
+			pop(serializeStack);
+		    if (obkind(bky) == string_kind) 
+			  {if (eq(bky , 'lowbit')) writeln(bky~id);}//remove
+            push(serializeStack,'_binding_key_'~ob);
+		    serializeCollect0(bky,pg);
+			pop(serializeStack);
+		    if (not((bk == bindingIntKind)||(bk == bindingDoubleKind))) 
+               {
+			   push(serializeStack,'_binding_value_'~ob);
+		       serializeCollect0(bindingValue(cb),pg);
+			   pop(serializeStack);
+			   }
+			pop(serializeStack);
+			pop(serializeStack);
+			}
+		 }
+	 set_length(serializeStack,sdp);
+	 return;
+	 }
+  if (k == compact_kind) error("OBSOLETE: compactob");
+ 
+
+  if (k == smallob_kind)
+     {
+	 xp = page(x);
+	 itrn = interned(x);
+	 onpage = xp == pg;
+     set_tempbit(x,true);
+	 // for now assume all fields of an internable fellow are key properties
+	 if (not(amongFirstN(toSerialize,preambleObCount,x))) 
+     push(toSerialize,x);
+     pr = parent(x);
+	 if (nnul(pr)) 
+	    {
+		push(serializeStack,'_parent_'~ob);
+		serializeCollect0(pr,pg);
+		pop(serializeStack);
+		push(serializeStack,'_name_'~ob);
+		serializeCollect0(name(x)~ob,pg); // this key won't be collected if parent is on a different page
+		pop(serializeStack);
+		}
+	 tp = iType(x);
+//	 if (eq(tp,Restriction)) writeln("Restriction at ",length(toSerialize));
+	 if (eq(tp,BitField)) writeln("BitField at ",length(toSerialize));
+	 istp = eq(tp,Sort);
+	 if (nnul(tp)) 
+	    {
+        push(serializeStack,'_type_'~ob);
+		serializeCollect0(tp,pg);
+		pop(serializeStack);
+		}
+	 if (not(onpage) && not(itrn)) {set_length(serializeStack,sdp);return;}; // write out kep properties of interned fellow
+	 ln = compactobNumFields(x);
+    // PROTOTYPES (FIELD 6) are not serialized for types (built on demand at other end
+	// This avoids a circularity- in the form of an 
+	// attempt to deserializae the prototype before the type
+	// is ready)
+	 for (i=0;i<ln;i++)
+	     {
+		 cv = selectNthOb(x,i);
+		 isprototypefield = istp && (i==6);
+		 if (nnul(cv) && not(isprototypefield)) 
+			serializeCollect0(cv,pg);
+		 }
+	 prps = compactobProperties(x);
+	 if (nul(prps)) writeln('MISSING PROPERTIES');
+	 ln = length(prps);
+	 for (i = 0;i< ln;i++) serializeCollect0(prps[i],pg);
+//	 ext = compactobExtension(x);
+//	 if (nnul(ext)) serializeCollect0(ext,pg);
+	 set_length(serializeStack,sdp);
+	 return;
+	 }
+
+
+
+
+
+	if (k == string_kind)
+    {
+     set_tempbit(x,true);
+	 if (not(amongFirstN(toSerialize,preambleObCount,x))) 
+     push(toSerialize,x);
+	 set_length(serializeStack,sdp);
+	 return;
+	}
+	if ((k == seq_kind)||(k == values_kind))
+	{
+	 itrn = interned(x);
+	 xp = page(x);
+	 onpage = (xp == pg) || (xp < 0); // < 0 means multipage object
+     set_tempbit(x,true);
+	 // if in the preamble, recurse, but don't add
+	 if (not(amongFirstN(toSerialize,preambleObCount,x))) 
+     push(toSerialize,x);
+     pr = parent(x);
+	 if (nnul(pr)) serializeCollect0(pr,pg);
+	 tp = iType(x);
+//	 if (eq(tp,Restriction)) writeln("Restriction at ",length(toSerialize));
+	 if (nnul(tp)) serializeCollect0(tp,pg);
+	 if ((k == seq_kind) && not(onpage)  && not(itrn)) {	 set_length(serializeStack,sdp);return;}
+	 dk = seqDataKind(x);
+	 if (dk == seqDataOb_kind)
+	   {
+	   sq = x ~ SeqOfOb;
+	   ln = length(sq);
+	   for (i = 0;i<ln;i++) 
+	      {
+		  push(serializeStack,'_element_'~ob);
+		  push(serializeStack,i~ob);
+		   serializeCollect0(sq[i],pg);
+		   pop(serializeStack);
+		   pop(serializeStack);
+		   }
+	   }
+	 set_length(serializeStack,sdp);
+	 return;
+
+	 }
+	if (k == dblock_kind)
+	{
+       push(toSerialize,x);
+	   set_tempbit(x,true);
+	   db = x~ Dblock;
+	   nmo = numobs(db);
+	   for (i = 0;i<nmo;i++)
+	       {
+		   dbv = selectOb(db,i);
+		   if (nnul(dbv)) 
+		      {
+			  serializeCollect0(dbv,pg);
+			  }
+		   }
+	 set_length(serializeStack,sdp);
+	 return;
+	}
+// bindings, for serialization, are references to triples, not the triples themselves
+// only the parent and key are serialized
+	if (k == binding_kind)
+	{
+       push(toSerialize,x);
+	   set_tempbit(x,true);
+	   serializeCollect0(parent(x),pg);
+	   serializeCollect0(bindingKey(x),pg);
+	 set_length(serializeStack,sdp);
+	   return;
+	}
+
+    error('Not yet serializing: ',k);
+
+}
+
+
+
+void function setPageOfGlobals(ob cn,SeqOfId names,int pg)
+{
+   var int ln,i,Binding gl;
+   ln = length(names);
+   for (i=0;i<ln;i++)
+       {
+	   gl = selectGlobalBinding(cn,names[i]);
+	   if (nnul(gl)) set_page(gl~ob,pg);
+	   }
+}
+
+
+var fimpExiles = sequence('path','fimp');//not serialized in the fimp
+
+var restoreTheTempBits = true;//on except for debugging situations
+
+void function restoreTempBits()
+{
+   var int i,ln,ob cs;
+ //  writeln('restoring temp bits');
+   if (restoreTheTempBits)
+   {
+    ln = length(toSerialize);
+   for (i=0;i<ln;i++) 
+       {
+	   cs = toSerialize[i];
+	   set_tempbit(cs,false);
+	   }   
+    ln = length(serializedBindings);
+   for (i=0;i<ln;i++) 
+       {
+	   cs = serializedBindings[i];
+	   set_tempbit2(cs~Binding,false);
+	   }   
+  }
+//  tb();
+}
+
+void function addSerializeOb(ob x)
+{
+   if (serializeCollectInC) addObToSerialize(x);
+   else push(toSerialize,x);
+}
+
+
+void function serializeCollectOb(ob x,int pg)
+{
+   if (serializeCollectInC) cserializeCollect0(x,pg);
+   else serializeCollect0(x,pg);
+}
+
+// special case:page 0
+// first three things serialized are root, typeP, and Type
+// y is the value of the serialization (the value returned by loading the result)
+void function serializeCollect(SeqOfOb xs,ob y,int pg,boolean forFimp)
+{
+   var int ln,i,lno,lnxs,ob cs,uro,rgp,SeqOfOb urObs,ob cb,x,Binding tb;
+   serializeStack = emptysequence(ob);
+   debugStacks = emptysequence(ob);
+   // these fellows should not be serialized
+   if (forFimp) 
+     {
+	  x = xs[0];
+      set(x,regarding('fimp'~ob),nil);
+	  set(x,regarding('path'~ob),nil);
+	  }
+   if (serializeCollectInC) resetToSerialize();
+   else reset(toSerialize);
+   urObs = sequence(root,typeP~ob,Sort~ob,Regarding~ob,
+	                   Function~ob,Pcode~ob,Restriction~ob,BitField~ob);
+   lno = length(urObs);
+   for (i=0;i<lno;i++) 
+	   addSerializeOb(urObs[i]);
+   if (nnul(y)) addSerializeOb(y);//8
+   if (serializeCollectInC) setPreambleObCount(); else
+   preambleObCount = length(toSerialize);
+   lnxs = length(xs);
+   tb = nil~Binding;
+   if (!forFimp && nnul(fget(thisFileR,topicP)))
+      {	  
+	  tb = selectBinding(thisFileR,topicP);
+	  set_page(tb,pg);
+	  set_page(thisFileR,pg);
+	  }
+
+   for (i=0;i<lnxs;i++) serializeCollectOb(xs[i],pg);
+   if (nnul(tb)) serializeCollectOb(thisFileR,pg);
+   for (i=0;i<lno;i++) 
+      {
+	  uro = urObs[i];
+	  if (not(tempbit(uro))) serializeCollectOb(uro,pg);
+	  }
+   if (serializeCollectInC) setSerializedBindingBits();
+   else
+   {
+   ln = length(serializedBindings);
+// these bindings have been traversed (though not added to toSerialize)
+// the serializer omits bindings that don't have the tempbit2 set
+   for (i=0;i<ln;i++)
+       {
+	   cb = serializedBindings[i];
+	   set_tempbit2(cb~Binding,true);
+	   }
+   }
+
+}
+
+void function serializeCollect(SeqOfOb xs,ob y,int pg)
+{
+  serializeCollect(xs,y,pg,false);
+}
+
+void function serializeCollect(ob x,y,int pg,boolean forFimp)
+{
+  serializeCollect(sequence(x),y,pg,forFimp);
+}
+
+
+void function serializeCollect(ob x,y,int pg)
+{
+  serializeCollect(x,y,pg,false);
+}
+
+
+
+void function serializeCollect(ob x,int pg)
+{
+   serializeCollect(x,x,pg,false);
+}
+
+
+
+
+
+void function fimpCollect(ob x,int pg)
+{
+   serializeCollect(x,nil,pg,true);
+}
+
+
+
+id function bindingName(Binding b)
+{
+  var ob k,int kk;
+  k = obsel(b~ob,Binding_key);
+  kk = obkind(k);
+  if (kk == string_kind) return k~id;
+  return nil~id;
+}
+
+var Function(void,ob,int) traverse;
+
+void function traverse(ob x,int dp)
+{
+  var int k,Binding cb,int ln,i,j,SeqOfBinding b,id cbn;
+  k = obkind(x);
+  if (k == hashtable_kind)
+     {
+	 b = bindings(x);
+	 ln = length(b);
+	 for (i = 0;i<ln;i++)
+	     {
+		 cb = b[i];
+		 cbn = bindingName(cb);
+		 if (nnul(cbn))
+		    {
+			for (j=0;j<dp;j++) write('  ');
+			writeln(cbn);
+			traverse(bindingValue(cb),dp+1);
+			}
+		 }
+	 }
+}
+//verbose writers
+void function vwrite(ob x)
+{
+  var int k;
+  k = obkind(x);
+  if (k == 3) {write(x~id);return}
+  if (k == 1) {write(x~int);return}
+  if (isFunction(x)) {write(x~Function);return}
+  if (isBinding(x)) {write(x~Binding);return}
+  if (hasType(x,Sort)) {write(x~Sort);return}
+  write('[Any]');
+}
+
+void function vwrite(SeqOfOb s)
+{
+  var int i,ln;
+  ln = length(s);
+  for (i=0;i<ln;i++) {write(i,' ');vwrite(s[i]);write(lf)}
+}
+
+void function restoreTheTempBits()
+{
+   if (serializeCollectInC) crestoreTempBits();
+   else restoreTempBits();
+}
+
+void function serializeToFile(string fln,ob v,int pg)
+{
+  serializeCollect(v,pg);
+  serializeReset();
+  if (serializeCollectInC)  
+	 serializeToFile(fln,nil~SeqOf(ob),pg);
+  else 
+	 serializeToFile(fln,toSerialize,pg);
+  restoreTheTempBits();
+}
+
+// the triple set version
+void function serializeSeqToFile(string fln,SeqOfOb v,int pg)
+{
+  serializeCollect(v,nil,pg);
+  serializeReset();
+  if (serializeCollectInC)  
+	 serializeToFile(fln,nil~SeqOf(ob),pg);
+  else 
+	 serializeToFile(fln,toSerialize,pg);
+  restoreTheTempBits();
+}
+
+
+
+void function serializeToBuffer(string bf,ob v,int pg)
+{
+  serializeCollect(v,pg);
+  serializeReset();
+  if (serializeCollectInC)  
+     serializeToBuffer(bf,nil~SeqOf(ob),pg);
+  else
+     serializeToBuffer(bf,toSerialize,pg);
+  restoreTheTempBits();
+}
+
+// utility
+void function printUris(SeqOf(ob) s)
+{
+   var int ln,i,string u;
+   ln = length(s);
+   for (i=0;i<ln;i++) 
+     {
+	 if (nnul(parent(s[i])))
+	    {
+	    u = uri(s[i]);
+	    if (nnul(u)) writeln(i,' ',u);
+		}
+	 }
+}
+
+
+

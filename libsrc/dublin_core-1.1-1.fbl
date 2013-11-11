@@ -1,0 +1,39 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+/*
+compile("file://../lib/dublin_core-1.1.fb","file://../libsrc/dublin_core-1.1-1.fbl");
+*/
+
+
+namespace('dc',"http://purl.org/dc/elements/1.1");
+
+
+setTopic(namespace('dc'));
+startCollectingTriples();
+
+allocate('dc:title',Property);
+allocate('dc:creator',Property);
+allocate('dc:subject',Property);
+allocate('dc:description',Property);
+allocate('dc:publisher',Property);
+allocate('dc:contributor',Property);
+allocate('dc:date',Property);
+allocate('dc:type',Property);
+allocate('dc:format',Property);
+allocate('dc:identifier',Property);
+allocate('dc:source',Property);
+allocate('dc:language',Property);
+allocate('dc:relation',Property);
+allocate('dc:coverage',Property);
+allocate('dc:rights',Property);
+
+
+
+

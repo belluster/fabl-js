@@ -1,0 +1,30 @@
+
+stdNamespaces();
+stdEquivalents();
+
+//optional
+load("{stdlibPrefix}discovery-1.1.fb");
+discovery:namespaces_0();
+discovery:discovery_0();
+
+//load("patch.fbl");
+//load("namespaces.fbl");
+//load("discovery.fbl");
+// INSERT THE URL OF YOUR SERVER'S TEMP DIRECTORY HERE 
+var tempDirUrl = "http://www.mapbureau.com/temp/";
+maxMemory(memoryAllocated() + 20000); // in kbytes
+maxTempFileSize(500000); // in bytes
+maxPmSteps(pmSteps() + 10000000);
+
+
+cgiMode = true;
+
+var safeFiles = 
+['/home/websites/mapbureau/rdfmapper/2.1/m.fsp',
+'/home/websites/mapbureau/tests/test_ttl.fsp'];
+
+//local
+//loadCgiFile(false);
+//remote
+loadCgiFile();
+quit(); //shouldn't get this far

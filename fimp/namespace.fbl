@@ -1,0 +1,407 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+//Treatment of equivalence
+
+
+
+
+// homes have namespaces as well as paths. 
+// inverseNamespaces is a global auto generated for homes with namespaces;
+// maps resources to the namespaces that name them
+void function namespace(id nm,string uri)
+{
+  var ob nms,nmv,inv;
+ nmv = uriToResource(uri);
+ 
+  bindConstant(home,nm,nmv,ob);
+  inv = globalValue(home,'inverseNamespaces');
+  if (nul(inv))
+     {
+	 inv = mkResource();
+	 bindGlobal(home,'inverseNamespaces',inv,ob);
+	 }
+  set(inv,regarding(nmv),nm,ob);
+  
+}
+
+id function namespacePrefix(ob x)
+{
+  var ob inv;
+  inv = globalValue(home,'inverseNamespaces');
+  if (nul(inv)) return nil~id;
+  return get(inv,regarding(x))~id;
+}
+
+   
+void function namespace(string nm,string uri)
+{
+  namespace(toId(nm),uri);
+}
+
+void function aboutNamespace(id nm)
+{
+   var ob ns,SeqOf(ob) dfb,int ln,i;
+   ns = namespace(nm);
+   if (nul(ns)) {writeln("Namespace {nm} is undefined");return}
+   dfb = mget(ns,isDefinedByP);
+   writeln("Namespace {nm} : {uri(ns)}");
+   if (nul(dfb)) {terpri();return}
+   ln = length(dfb);
+   write("  isDefinedBy: ");
+   for (i=0;i<ln;i++) write(uri(dfb[i])," ");
+   terpri();
+}
+
+   
+
+
+boolean function qualifiedName(string rs,ob x)
+{
+   var ob pr,id pfx;
+   pr = parent(x);
+   if (nul(pr)) return false;
+   pfx = namespacePrefix(pr);
+   if (nul(pfx)) return false;
+   rs * pfx;
+   rs * ':';
+   rs * name(x);
+   return true;
+}
+
+var  qualifiedNameBuf = "";
+
+string function qualifiedName(ob x)
+{  
+   reset(qualifiedNameBuf);
+   if (qualifiedName(qualifiedNameBuf,x)) 
+      return copy(qualifiedNameBuf);
+   return nil~string;
+}
+
+      
+
+
+
+var rdfns = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+var rdfsns = 'http://www.w3.org/2000/01/rdf-schema#';
+var xsdns  = 'http://www.w3.org/2000/10/XMLSchema#';
+var owlns =  'http://www.w3.org/2002/07/owl#';
+//var correct_owlns = 'http://www.w3.org/2002/07/owl#';
+var fablns =  'http://nurl.org/0/fabl/';
+var fimpns =  'http://nurl.org/0/fimp/';
+//var propns =  'http://fabl.net/vocabularies/properties';
+
+
+
+
+
+rangeProperty = uriToResource(rdfsns+'range')~Property;
+// temporary anomoly
+// until rangeProperty itself is endowed with a rangeProperty:
+
+Sort function range(Property p)
+{
+   var ob r;
+   r = get(p~ob,rangeProperty);
+   if (obkind(r) == values_kind)  return mostSpecific(r ~ SeqOf(Class));
+   return r ~ Class;
+
+}
+
+
+
+
+ob function namespace(id pr)
+{
+   var Binding b,ob vl,int vlk;
+   if (pr == 'home') return home;
+   b = selectBinding(homePath(),pr);
+   if (nul(b)) error('No such namespace: ',pr);
+   if (not(isConstant(b))) error('Not a namespace: ',pr);
+   vl = bindingValue(b);
+   vlk  = obkind(vl);
+   if (not((vlk == hashtable_kind)||(vlk == smallob_kind))) error('Not a namespace: ',pr);
+   return vl;
+}
+
+ob function namespace(string pr)
+{
+  return namespace(toId(pr));
+}
+
+  
+
+
+ob function evalQname(id pr,id lc)
+{
+   var ob ns,rs;
+   ns = namespace(pr);
+   rs = selectUri(ns,lc);
+   if (nul(rs)) error(lc,' not found in namespace ',ns);
+   return getEquivalent(rs);
+}
+// internal: assumes car(x) = "_colon_", cadr = prefix,caddr = local part
+ob function evalQname(ob x)
+{
+   var ob e1,e2;
+   e1 = cadr(x);
+   e2 = caddr(x);
+   if ((!isId(e1))||(!isId(e2))) error("Bad form for qualified name: ",x);
+   return evalQname(e1~id,e2~id);
+}
+
+// more tolerant variants; namespace must be defined, but not localpart
+
+//N = no error 
+
+ob function evalQnameN(id pr,id lc)
+{
+   var ob ns,rs,Binding cb,int k;
+   ns = namespace(pr);
+   rs = selectUri(ns,lc);
+   if (nul(rs)) return nil;
+   return getEquivalent(rs);
+}
+// internal: assumes car(x) = "_colon_", cadr = prefix,caddr = local part
+ob function evalQnameN(ob x)
+{
+   var ob e1,e2;
+   e1 = cadr(x);
+   e2 = caddr(x);
+   if ((!isId(e1))||(!isId(e2))) error("Bad form for qualified name: ",x);
+   return evalQnameN(e1~id,e2~id);
+}
+
+
+Property function toProperty(id pr)
+{
+    var Binding cb;
+//	writeln('toProperty---');
+    cb = selectBinding(homePath(),pr);
+    if (nul(cb)) return nil~Property;
+    if (not(isConstant(cb))) return nil~Property;
+	if (not(eq(obsel(cb~ob,Binding_type),Property))) return nil~Property;
+    return bindingValue(cb)~Property;
+}
+
+
+
+boolean function isQname(ob x)
+{
+  var ob lc,pr;
+  if (not(isList(x))) return false;
+  if  (eq(car(x),'_colon_'))
+     {
+	 pr = cadr(x);
+	 lc = caddr(x);
+	 return isId(pr) && isId(lc);
+	 }
+   return false;
+}
+
+
+// for now; LATER require that the fellow be a property
+
+
+Property function toProperty(ob x)
+{
+  return evalQname(x)~Property;
+}
+
+
+//LATER check idhood of the parts
+ob function parseQname(string s)
+{
+   var int clp;
+   clp = find(s,ascii_colon);
+   if (clp < 0)  error(s,' does not have the right form (prefix:localpart) for a qualified name');
+   // for now, to catch the most common error (using a url where a qname is expected)
+   if (find(s,ascii_slash)>0) error(s,' does not have the right form (prefix:localpart) for a qualified name');
+   return cons('_colon_'~ob,
+          cons(toString(substring(s,0,clp))~ob,
+		  cons(toString(substring(s,clp+1,length(s)))~ob,nil)));
+}
+
+string function toUri(string s)
+{
+  var ob prs,id pr,lc,ob nm,string u,int ln,lstc;
+  prs = parseQname(s);
+  pr = cadr(prs)~id;
+  lc = caddr(prs)~id;
+  nm = namespace(pr);
+  u = uri(nm);
+  ln = length(u);
+  lstc = u[ln-1];
+  if (lstc == ascii_sharp) return SB(u,lc);
+  else return SB(u,'/',lc);
+}
+
+
+
+
+
+
+
+
+
+
+// resource('foo:') is the namespace foo
+ob function newResource(string s)
+{
+   var ob q,ns,rs,id pr,lc;
+   q = parseQname(s);
+   pr = cadr(q)~id;
+   ns = namespace(pr);
+   lc = caddr(q)~id;
+   if (length(lc) == 0) return ns;
+   rs = selectUri(ns,lc);
+   if (nnul(rs)) return getEquivalent(rs);
+   rs = mkResource();
+   bindUri(ns,lc,rs);
+   return rs;
+}
+
+ob function allocate(string s,Sort tp)
+{
+   var ob q,ns,rs,id pr,lc,ob cv;
+   q = parseQname(s);
+   pr = cadr(q)~id;
+   ns = namespace(pr);
+   lc = caddr(q)~id;
+   if (length(lc) == 0) return ns;
+   cv = selectUri(ns,lc);
+   if (nul(cv))
+      {
+	  rs = iNew(tp);
+	  bindUri(ns,lc,rs);
+	  return rs;
+	  }
+   else
+     {
+	 cv = getEquivalent(cv);
+	 if (not(hasType(cv,tp)))
+	   {
+	   if (untyped(cv))
+	      {
+	      //hack until subclasses handled properly:
+	      if (tp == FunctionalProperty) setType(cv,sequence(Property,FunctionalProperty));
+		  else setType(cv,tp);
+		  }
+	   else
+	   error('Attempt to allocate a resource where one of a different type already exists: ',s);
+	   }
+	 return cv;
+	 }
+}
+
+ob function allocate(string s)
+{
+  return allocate(s,ob);
+}
+
+
+
+Property function allocateProperty(string s)
+{
+  return allocate(s,Property)~Property;
+}
+
+
+ob function getChild(ob x,id s)
+{
+  return selectUri(x,s);
+}
+
+
+
+ob function uriAllocate(string s,Sort tp)
+{
+  return uriToResource(root,s,true,tp);
+}
+ob function uriAllocate(string s)
+{
+  return uriAllocate(s,ob);
+}
+
+
+
+/*
+Convention:
+Allocate a uri http://example.org/x to denote a concept (perhaps a fabl code context)
+http://example.org/x, then, is not intended as a url.  Convention:
+use http://example.org/x-0.fb to define http://example.org/x
+In isDefinedBy, if u has no ":", treat it as an extension
+
+*/
+
+
+void function isDefinedBy(string u0,u1)
+{
+  resource(u0).rdfs:isDefinedBy = resource(u1);
+
+}
+
+void function namespaceDefinedBy(string ns,u0)
+{
+  namespace(u0).rdfs:isDefinedBy = resource(u0);
+
+}
+// and some standard discovery
+var stdlibPrefix = "http://fabl.net/lib/";
+
+
+
+void function stdNamespaces()
+{
+var ob rp;
+namespace('rdf','http://www.w3.org/1999/02/22-rdf-syntax-ns#');
+namespace('rdfs','http://www.w3.org/2000/01/rdf-schema#');
+namespace('xsd','http://www.w3.org/2000/10/XMLSchema#');
+namespace('owl','http://www.w3.org/2002/07/owl#');
+namespace('fabl','http://nurl.org/0/fabl/');
+namespace('fimp','http://nurl.org/0/fimp/');
+namespace("discovery","http://fabl.net/vocabularies/discovery");
+
+}
+
+// more standard namespaces
+
+
+// Until rebuild of page0, include this fix in init:
+void function fixPage0()
+{
+rangeProperty = uriAllocate('http://www.w3.org/2000/01/rdf-schema#subClassOf',Property)~Property;
+subClassOf = uriAllocate('http://www.w3.org/2000/01/rdf-schema#subClassOf',Property)~Property;
+FunctionalProperty = uriAllocate("{owlns}FunctionalProperty",Class)~Class;
+assertUriChildAsProperty(Xob1~ob,'isNoop');
+assertUriChildAsProperty(Xob1~ob,'isConstant');
+assertUriChildAsProperty(XselectProperty~ob,'isBitField');
+assertUriChildAsProperty(Xreturn~ob,'blockReturn');
+assertUriChildAsProperty(Xreturn~ob,'loopBreak');
+assertUriChildAsProperty(Xreturn~ob,'loopContinue');
+assertUriChildAsProperty(Xgo~ob,'goIfFalse');
+assertUriChildAsProperty(Xblock~ob,'isFunctionBody');
+
+assertUriChildAsProperty(Token~ob,'isInfix');
+assertUriChildAsProperty(Token~ob,'isPrefix');
+assertUriChildAsProperty(Token~ob,'isPostfix');
+assertUriChildAsProperty(Token~ob,'isTerminator');
+assertUriChildAsProperty(Token~ob,'isOperator');
+assertUriChildAsProperty(Token~ob,'isAtom');
+assertUriChildAsProperty(Token~ob,'isKeyword');
+assertUriChildAsProperty(Token~ob,'isNumber');
+assertUriChildAsProperty(Token~ob,'isString');
+assertUriChildAsProperty(Token~ob,'isId');
+rangeProperty = uriAllocate('http://www.w3.org/2000/01/rdf-schema#range',Property)~Property;
+}
+

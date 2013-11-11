@@ -1,0 +1,71 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+int function abs(int x)
+{
+   if (x<0) return -x;
+   return x;
+}
+
+
+int function max(int x,y)
+{
+   if (x<y) return y;
+   return x;
+}
+
+
+int function min(int x,y)
+{
+   if (x<y) return x;
+   return y;
+}
+
+
+double function abs(double x)
+{
+   if (x<0) return -x;
+   return x;
+}
+
+
+
+
+double function max(double x,y)
+{
+   if (x<y) return y;
+   return x;
+}
+
+
+double function min(double x,y)
+{
+   if (x<y) return x;
+   return y;
+}
+/*
+some digits of pi
+3.141592653589793238462643383279502884197169399375105820974944
+592307816406286208998628034825342117067982148086513282306647
+093844609550582231725359408128481117450284102701938521105559
+644622948954930381964428810975665933446128475648233786783165
+
+*/
+
+var pi = 3.14159265;
+
+var degreesToRadians = pi/180.0;
+var radiansToDegrees = 180.0/pi;
+
+
+

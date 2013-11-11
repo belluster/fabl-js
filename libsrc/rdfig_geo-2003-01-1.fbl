@@ -1,0 +1,43 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+/*
+compile("file://../lib/rdfig_geo-2003-01.fb","file://../libsrc/rdfig_geo-2003-01-1.fbl");
+*/
+
+
+namespace('geo',"http://www.w3.org/2003/01/geo/wgs84_pos#");
+setTopic(namespace('geo'));
+
+startCollectingTriples();
+
+allocate('geo:lat',FunctionalProperty);
+allocate('geo:long',FunctionalProperty);
+allocate('geo:alt',FunctionalProperty);
+
+geo:lat . rdfs:range = double;
+geo:long . rdfs:range = double;
+geo:alt . rdfs:range = double;
+
+
+
+class('geo:SpatialThing');
+endClass();
+
+class('geo:Point');
+endClass();
+
+geo:Point..rdfs:subClassOf = geo:SpatialThing;
+
+
+
+

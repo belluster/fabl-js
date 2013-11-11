@@ -1,0 +1,219 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+//quick sort
+
+
+
+void function swap(SeqOf(int) a,int i,j)
+   {
+   var int temp;
+   temp = a[i];
+   a[i] = a[j];
+   a[j] = temp
+   }
+
+var Function(void,SeqOf(int),int,int,SeqOf(double)) quickSort;
+
+// here lb <=i <= ub is the range of which we wish to partition
+// about partition value pv.  The task is to modify a[lb] ... a[ub]
+// in such a way that there is a md0 such that v[a[lb]] ... v[a[md0-1]] < pv
+// v[a[md0]]..v[a[md1]] = pv, and 
+// and v[a[md1+1]] .. v[a[ub]] > pv
+// just collect a[lb] .. a[ub] into lowbuf samebuf highbuf  and then copy
+// back in
+
+
+var lowbuf = emptysequence(int);
+var samebuf = emptysequence(int);
+var highbuf = emptysequence(int);
+
+void function quickSort(SeqOf(int) a,int lb, ub,SeqOf(double) v)
+{
+  var int mi,i,ci,lnl,lns,lnh,cp,np,double cv,pv;
+
+/*
+ var lb = db_ints[0];var ub = db_ints[1];
+*/
+/* later choose a random element (no random function right now) */
+   if (ub == lb) return;
+   if (ub == (lb + 1)) //little optimization
+      {
+	  if (v[a[lb]] > v[a[ub]]) swap(a,lb,ub);
+	  return;
+	  }
+   mi = (lb + ub)/2;
+   pv = v[a[mi]];
+
+
+  reset(lowbuf);
+  reset(highbuf);
+  reset(samebuf);
+  for (i=lb;i<=ub;i++)
+      {
+	  ci = a[i];
+	  cv = v[ci];
+	  if (cv < pv) push(lowbuf,ci); else
+	  if (cv == pv) push(samebuf,ci);
+	  else push(highbuf,ci);
+	  }
+// writeln('mi= ',mi,' lb = ',lb,' ub = ',ub,' ',lowbuf,samebuf,highbuf);
+  lnl= length(lowbuf);
+  for (i = 0;i<lnl;i++) a[lb+i] = lowbuf[i];
+  lns = length(samebuf);
+  cp = lb + lnl;
+  for (i = 0;i<lns;i++) a[cp+i] = samebuf[i];
+  np = cp + lns;
+  lnh = length(highbuf);
+  for (i = 0;i<lnh;i++) a[np+i] = highbuf[i];
+  cp = cp-1;
+  if (cp > lb) quickSort(a,lb,cp,v);
+  if (ub > np) quickSort(a,np,ub,v);
+  return;
+}
+
+
+/*
+var a = identityPermutation(8);
+var v = sequence(-34.,-40.,-39.,-38.,-37.,-36.,-35.,-31.);
+quickSort(a,0,7,v);
+*/
+
+
+void function quickSort(SeqOf(int) a,SeqOf(double) v)
+{
+  var int ln;
+  ln = length(v);
+  quickSort(a,0,ln-1,v);
+}
+
+SeqOf(int) function identityPermutation(int ln)
+{
+  var int i,SeqOf(int) rs;
+  rs = emptysequence(int);
+  for (i=0;i<ln;i++) push(rs,i);
+  return rs;
+}
+
+allocate("prop:permutation",Property);
+allocate("prop:values",Property);
+
+class('fimp:PermutedDoubles');
+restrict prop:permutation {cardinality 1;allValuesFrom SeqOf(int)}
+restrict prop:values {cardinality 1;allValuesFrom SeqOf(double)}
+endClass();
+
+double function array_ref(fimp:PermutedDoubles pd,int i)
+{
+  var SeqOf(int) pr,SeqOf(double) vls;
+  pr = pd.prop:permutation;
+  vls = pd.prop:values;
+  return vls[pr[i]];
+}
+
+void function quickSort(fimp:PermutedDoubles vls)
+{
+  quickSort(vls.prop:permutation,vls.prop:values);
+}
+
+fimp:PermutedDoubles function mkPermutedDoubles(SeqOf(double) vls)
+{
+   var fimp:PermutedDoubles rs;
+   rs = new(fimp:PermutedDoubles);
+   rs . prop:permutation = identityPermutation(length(vls));
+   rs . prop:values = vls;
+   return rs;
+}
+
+void function times(string bf,fimp:PermutedDoubles pd)
+{
+  var SeqOf(int) pr,SeqOf(double) vls,int ln,i;
+  pr = pd.prop:permutation;
+  vls = pd.prop:values;
+  ln = length(pr);
+  bf * '[';
+  for (i = 0;i<ln;i++) 
+      {
+	  bf * vls[pr[i]];
+	  if (i < ln-1) bf * ',';
+	  }
+  bf * ']';
+}
+
+// returns an index i such that select(dbs,i) <= x and select(dbs,i+1) > x
+// and -1 if x is less than any element
+
+int function find(fimp:PermutedDoubles dbs,double x)
+{
+   var SeqOf(double) vls,SeqOf(int) pr,int lb,ub,mi,
+       double lbv,ubv,mv;
+/*
+   var dbs = db_obs[0]~fimp:PermutedDoubles;var x = db_doubles[0];
+*/
+
+   vls = dbs.prop:values;
+   pr = dbs.prop:permutation;
+   ub = length(pr)-1;
+   lb = 0;
+   while (true)
+         {
+		 lbv = vls[pr[lb]];
+		 if (x < lbv) return -1;
+		 ubv = vls[pr[ub]];
+		 if (x >= ubv) return ub;
+		 if (ub == lb + 1) return lb;
+		 mi = (lb + ub)/2;
+		 mv = vls[pr[mi]];
+		 if (x < mv) ub = mi;
+		 else lb = mi;
+		 }
+}
+
+/*
+void function removeFromPermutation(fimp:PermutedDoubles dbs,int i)
+{
+  var int idx,SeqOf(int) p;
+
+  p = dbs.prop:permutation;
+  idx = find(p,i);
+  remove_at_index(p,idx);
+}
+
+*/
+  
+
+   
+
+/* test
+
+
+
+var v = sequence(6.0,2.0,3.0,0.0,-20.0);
+var pd = mkPermutedDoubles(v);
+pd;
+quickSort(pd);
+pd;
+find(pd,0);
+find(pd,2);
+
+var v = sequence(6.0,2.0,2.0,2.0,3.0,0.0,-20.0);
+var pd = mkPermutedDoubles(v);
+pd;
+quickSort(pd);
+pd;
+
+var v = sequence(2.0,2.0,2.0);
+var pd = mkPermutedDoubles(v);
+pd;
+quickSort(pd);
+pd;
+
+*/

@@ -1,0 +1,210 @@
+
+
+geom2d:Point function times(geom2d:Matrix m,geom2d:Point p)
+{
+   var double a,b,c,d,e,f,x,y,rsx,rsy,geom2d:Point rs;
+   a = m . geom2d:a;
+   b = m . geom2d:b;
+   c = m . geom2d:c;
+   d = m . geom2d:d;
+   e = m . geom2d:e;
+   f = m . geom2d:f;
+   x = p . geom:x;
+   y = p . geom:y;
+   rsx = a * x + c * y + e;
+   rsy = b * x + d * y + f;
+   rs = new(geom2d:Point);
+   rs . geom:x = rsx;
+   rs . geom:y = rsy;
+   return rs;
+}
+
+SeqOf(geom2d:Point) function times(geom2d:Matrix m,SeqOf(geom2d:Point) pnts)
+{
+   var SeqOf(geom2d:Point) rs,int ln,i;
+   rs = new(SeqOf(geom2d:Point));
+   ln = length(pnts);
+   for (i=0;i<ln;i++) push(rs,times(m,pnts[i]));
+   return rs;
+}
+
+
+SeqOf(SeqOf(geom2d:Point)) function times(geom2d:Matrix m,SeqOf(SeqOf(geom2d:Point)) pnts)
+{
+   var SeqOf(SeqOf(geom2d:Point)) rs,int ln,i;
+   rs = new(SeqOf(SeqOf(geom2d:Point)));
+   ln = length(pnts);
+   for (i=0;i<ln;i++) push(rs,times(m,pnts[i]));
+   return rs;
+}
+
+
+
+
+geom2d:Matrix function mkMatrix(double a,b,c,d,e,f)
+{
+   var geom2d:Matrix rs;
+   rs = new(geom2d:Matrix);
+   rs . geom2d:a = a;
+   rs . geom2d:b = b;
+   rs . geom2d:c = c;
+   rs . geom2d:d = d;
+   rs . geom2d:e = e;
+   rs . geom2d:f = f;
+   return rs;
+}
+
+var nullMatrix = mkMatrix(1,0,0,1,0,0);
+
+
+
+geom2d:Matrix function times(geom2d:Matrix x,geom2d:Matrix y)
+{
+   var double xa,xb,xc,xd,xe,xf,ya,yb,yc,yd,ye,yf,geom2d:Matrix rs;
+   xa = x . geom2d:a;
+   xb = x . geom2d:b;
+   xc = x . geom2d:c;
+   xd = x . geom2d:d;
+   xe = x . geom2d:e;
+   xf = x . geom2d:f;
+   ya = y . geom2d:a;
+   yb = y . geom2d:b;
+   yc = y . geom2d:c;
+   yd = y . geom2d:d;
+   ye = y . geom2d:e;
+   yf = y . geom2d:f;
+   rs = new(geom2d:Matrix);
+   rs . geom2d:a = xa * ya + xc * yb;
+   rs . geom2d:b = xb * ya + xd * yb;
+   rs . geom2d:c = xa * yc + xc * yd;
+   rs . geom2d:d = xb * yc + xd * yd;
+   rs . geom2d:e = xa * ye + xc * yf + xe;
+   rs . geom2d:f = xb * ye + xd * yf + xf;
+   return rs;
+}
+
+
+geom2d:Matrix function mkTranslation(double tx,ty)
+{
+   var geom2d:Matrix rs;
+   rs = new(geom2d:Matrix);
+   rs . geom2d:a = 1.0;
+   rs . geom2d:b = 0.0;
+   rs . geom2d:c = 0.0;
+   rs . geom2d:d = 1.0;
+   rs . geom2d:e = tx;
+   rs . geom2d:f = ty;
+   return rs;
+}
+
+geom2d:Matrix function mkTranslation(geom2d:Point p)
+{
+  return mkTranslation(p.geom:x,p.geom:y);
+}
+
+
+
+
+
+geom2d:Matrix function mkScale(double sx,sy)
+{
+   var geom2d:Matrix rs;
+   rs = new(geom2d:Matrix);
+   rs . geom2d:a = sx;
+   rs . geom2d:b = 0.0;
+   rs . geom2d:c = 0.0;
+   rs . geom2d:d = sy;
+   rs . geom2d:e = 0.0;
+   rs . geom2d:f = 0.0;
+   return rs;
+}
+
+
+geom2d:Matrix function mkScale(double sc)
+{
+  return mkScale(sc,sc);
+}
+
+var dtor = pi/180.0;
+var rtod = 180.0/pi;
+
+// radians
+geom2d:Matrix function mkRotation(double a)
+{
+   return mkMatrix(cos(a),sin(a),-sin(a),cos(a),0,0);
+}
+
+
+geom2d:Matrix function copy(geom2d:Matrix m)
+{
+   var geom2d:Matrix rs;
+   rs = new(geom2d:Matrix);
+   rs . geom2d:a = m . geom2d:a;
+   rs . geom2d:b = m . geom2d:b;
+   rs . geom2d:c = m . geom2d:c;
+   rs . geom2d:d = m . geom2d:d;
+   rs . geom2d:e = m . geom2d:e;
+   rs . geom2d:f = m . geom2d:f;
+   return rs;
+}
+
+
+
+
+geom2d:Box function times(geom2d:Matrix m,geom2d:Box bx)
+{
+   var double a,b,c,d,e,f,x,y,xmin,ymin,xmax,ymax,geom2d:Box rs;
+   a = m . geom2d:a;
+   b = m . geom2d:b;
+   c = m . geom2d:c;
+   d = m . geom2d:d;
+   e = m . geom2d:e;
+   f = m . geom2d:f;
+   xmin = bx.geom:xmin;
+   ymin = bx.geom:ymin;
+   xmax = bx.geom:xmax;
+   ymax = bx.geom:ymax;
+   rs = new(geom2d:Box);
+   rs . geom:xmin = a * xmin + c * ymin + e;
+   rs . geom:ymin = b * xmin + d * ymin + f;
+   rs . geom:xmax = a * xmax + c * ymax + e;
+   rs . geom:ymax = b * xmax + d * ymax + f;
+   return rs;
+}
+
+
+geom2d:Matrix function mapTo(geom2d:Box a,b)
+{
+  var double awd,bwd,aht,bht,scx,scy,geom2d:Point acnt,bcnt,
+      geom2d:Matrix tr0,tr1,sc;
+  awd = width(a);
+  bwd = width(b);
+  aht = height(a);
+  bht = height(b);
+  acnt = center(a);
+  bcnt = center(b);
+  tr0 = mkTranslation(- acnt);
+  tr1 = mkTranslation(bcnt);
+  scx = bwd/awd;
+  scy = bht/aht;
+  sc = mkScale(scx,scy);
+  return tr1 * sc * tr0;
+}
+// this version scales x and y equally
+
+
+geom2d:Matrix function mapToConformal(geom2d:Box a,b)
+{
+  var double awd,bwd,aht,bht,scx,scy,geom2d:Point acnt,bcnt,
+      geom2d:Matrix tr0,tr1,sc;
+  awd = width(a);
+  bwd = width(b);
+  aht = height(a);
+  bht = height(b);
+  acnt = center(a);
+  bcnt = center(b);
+  tr0 = mkTranslation(- acnt);
+  tr1 = mkTranslation(bcnt);
+  sc = mkScale(min(bwd/awd,bht/aht));
+  return tr1 * sc * tr0;
+}

@@ -1,0 +1,65 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+int function byte_to_hex(byte cn)
+  {
+  var int rs,n;
+  n = cn ~int;
+  if (n < 48) return  -1;
+  if (n <= 57) return n - 48;
+  if (n < 65) return -1;
+  if (n <= 70) return 10 + n - 65;
+  if (n<97) return -1;
+  if (n <= 102) return 10 + n - 97 ;
+  return -1;
+  }
+
+
+int function hex(id x)
+  {
+  var int n,i,rs,cv,ln;
+  ln = length(x);
+  n = 0;
+  rs = 0;
+  for (i = 0;i<ln;i++)
+      {
+//	  cv = byte_to_hex(x[i]);
+	  cv = byte_to_hex(select(x,i)~byte);
+	  if (cv < 0) error('not a lower-case hex number: ',x);
+	  rs = rs * 16 + cv;
+	  }
+  return  rs;
+  }
+
+
+int function hex(string x)
+  {
+  var int n,i,rs,cv,ln;
+  ln = length(x);
+  n = 0;
+  rs = 0;
+  for (i = 0;i<ln;i++)
+      {
+	  cv = byte_to_hex(select(x,i)~byte);
+	  if (cv < 0) error('not a lower-case hex number: ',x);
+	  rs = rs * 16 + cv;
+	  }
+  return  rs;
+  }
+
+id function int2str(int x)
+{
+   var string sb;
+   sb = mkStringBuf(1);
+   sb * x;
+   return toString(sb);
+}

@@ -1,0 +1,32 @@
+
+/*
+compile("file://../lib/discovery-1.1.fb","file://../libsrc/discovery-1.1.fbl");
+*/
+
+setHomeAndTopic(resource("http://fabl.net/vocabularies/discovery"));
+startCollectingTriples();
+
+void function namespaces_0()
+{
+namespace('dc',"http://purl.org/dc/elements/1.1");
+namespace('rss',"http://purl.org/rss/1.0/");
+namespace('geo',"http://www.w3.org/2003/01/geo/wgs84_pos#");
+namespace('foaf',"http://xmlns.com/foaf/0.1/");
+namespace('geom',"http://fabl.net/vocabularies/geometry/1.1/");
+namespace('geom2d',"http://fabl.net/vocabularies/geometry2d/1.1/");
+namespace('libgeom2d',"http://fabl.net/vocabularies/libgeom2d/1.1/");
+}
+
+void function discovery_0()
+{
+isDefinedBy("http://purl.org/dc/elements/1.1","{stdlibPrefix}dublin_core-1.1.fb");
+isDefinedBy("http://purl.org/rss/1.0/","{stdlibPrefix}rss-1.0.fb");
+isDefinedBy("http://www.w3.org/2003/01/geo/wgs84_pos#","{stdlibPrefix}rdfig_geo-2003-01.fb");
+isDefinedBy("http://xmlns.com/foaf/0.1","{stdlibPrefix}foaf-0.1-1.fb");
+isDefinedBy("http://fabl.net/vocabularies/geometry/1.1/","{stdlibPrefix}geom-1.1-1.fb");
+isDefinedBy("http://fabl.net/vocabularies/geometry2d/1.1/","{stdlibPrefix}geom2d-1.1-1.fb");
+isDefinedBy("http://fabl.net/vocabularies/libgeom2d/1.1/","{stdlibPrefix}libgeom2d-1.1-1.fb");
+}
+
+
+

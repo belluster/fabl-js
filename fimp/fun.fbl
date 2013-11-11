@@ -1,0 +1,330 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+/* the low half word of the the booles is the storage signature of the function:
+
+ nibble0 is the number of ob inputs, nibble1 is the number of
+int inputs, and nibble2 is the number of double inputs */
+
+/* order of inputs: obs,ints,doubles */
+
+/*
+int function funsig_storage(int x)
+  {
+  return land(x,15);
+  }
+*/
+
+int function funsig_numobs(int x)
+  {
+  return land(x,15);
+  }
+
+int function funsig_numints(int x)
+  {
+  return lshift(land(x,240),-4);
+  }
+
+
+int function funsig_numdoubles(int x)
+  {
+  return lshift(land(x,3840),-8);
+  }
+
+
+
+void function setsig(Function fn,int rts,numobs,numints,numdoubles)
+  {
+  var int b;
+  b = intsel(fn~ob,Function_booles);
+  intset(fn~ob,Function_booles,
+  setLowHalf(b,lor(numobs,
+                  lor(lshift(numints,4),lshift(numdoubles,8)))));
+  }
+
+int function getsig(Function fn)
+{
+   return low_half(intsel(fn~ob,Function_booles));
+}
+
+
+
+
+
+
+
+
+SeqOfType function inputTypes(Sort srt)
+  {
+  var id cns;
+  cns = get(srt~ob,Sort_constructor)~id;
+  if (not(cns == 'Function')) return nil~SeqOfType;
+  //error('Expected Function type: ',srt);
+  return obsel(srt~ob,Sort_params)~SeqOfType;
+}
+
+Sort function resultType(Sort srt)
+{
+   var id cns;
+   cns = get(srt~ob,Sort_constructor)~id;
+   if (nul(cns)) error('Expected Function type');
+   if (not(cns == 'Function')) error('Expected Function type: encountered ',cns);
+   return obsel(srt~ob,Sort_param)~Sort;
+}
+
+Function function mkFunction(ob df,id nm,Sort tp,ob impl) 
+  {
+  var Sort ci,rtp,int sti,ln,i,numo,numi,numr,Function rs,SeqOfType isrts;
+  isrts = inputTypes(tp);
+  rtp = resultType(tp);
+  if (nul(isrts)) error('Sort of function is non-functional: ',nm);
+  ln = seqLength(isrts~ob);
+  numi =0;
+  numo =0;
+  numr = 0;
+  for (i = 0;i<ln;i++)//1 because first arg is at 1 (0 is return type) NOT ANY MORE
+      {
+	  ci = isrts[i];
+	  sti = storage(ci);
+	  if (sti == storage_ob) numo++; else
+	  if (sti == storage_int) numi++; else
+	  numr++;
+	  }      
+  rs = mkFunctionOb(nm,df,tp);
+  obset(rs~ob,Function_implementation,impl);
+  // rs . implementation = impl;
+//  rs . cimp = 0;
+//  rs . booles = 0;
+  setsig(rs,storage(rtp),numo,numi,numr);
+  return rs;
+  }
+
+
+Function function mkFunction(ob df,id nm,Sort resulttype,SeqOfType  isrts,ob impl) 
+  {
+  var Sort tp;
+  tp = mkFunctionType(resulttype,isrts);
+  return mkFunction(df,nm,tp,impl);
+}
+
+Function function mkFunction(ob df,id nm,Sort resulttype,SeqOfType  isrts) 
+{
+  return mkFunction(df,nm,resulttype,isrts,nil);
+}
+
+
+
+
+
+  
+Function function mkFunction(ob df,id nm,Sort srt) 
+  {
+  return mkFunction(df,nm,srt,nil);
+  }
+
+
+
+
+var variantsP = selectUri(fabl,'functionVariants')~Property;//f2x
+
+
+SeqOfFunction function variants(ob cn,id nm)
+   {
+   var ob vrs;
+   vrs =  get(cn,variantsP);
+   if (nul(vrs)) return nil ~ SeqOfFunction;
+   return get(vrs,regarding(nm~ob)) ~ SeqOfFunction;
+   }
+
+
+ob function allocateVariantsObject(ob cn)
+   {
+   var ob vrs;
+   vrs =  get(cn,variantsP);
+   if (nul(vrs)) 
+      {
+	  vrs = mkResource()~ob;
+	  set(cn,variantsP,vrs,ob);
+	  }
+  return vrs~ob;
+   }
+
+
+
+boolean function sameInputTypes(Sort x,y,int st)
+  {
+  var SeqOfType ix,iy,int lnx,lny,i;
+  ix = inputTypes(x);
+  iy = inputTypes(y);
+  if (eq(ix,iy)) return true;
+  if (nul(ix) || nul(iy)) return false;
+  lnx = length(ix);
+  lny = length(iy);
+  if (not(lnx == lny)) return false;
+  for (i = st;i<lnx;i++)
+      {
+	  if (not(eq(ix[i],iy[i]))) return false;
+	  }
+  return true;
+  }
+
+// interns it, and also adds it to the list of variants
+
+Function function internFunction(ob cn,id nm,Sort fns,ob pcd)
+{
+  var Function fn,fni,ob vrs,SeqOfFunction vrsq,Property rnm;
+     fn = mkFunction(cn,nm,fns,pcd);
+	 fni = identifyFunction(fn); // see if its already around
+	 if (nnul(fni)) 
+	    {
+		 obset(fni~ob,Function_implementation,pcd);
+		 return fni;
+		}
+	 fni = internFunction(fn);
+	 vrs = allocateVariantsObject(cn)~ob;
+	 rnm = regarding(nm~ob);
+	 vrsq = get(vrs,rnm) ~ SeqOfFunction;
+     if (nul(vrsq))
+	    {
+		vrsq = sequence(fni);
+	    set(vrs,rnm,vrsq~ob,ob);
+		}
+	 else
+	    push(vrsq,fni);
+	 return fni;
+}
+
+Function function internFunction(ob cn,id nm,Sort fns)
+{
+  return internFunction(cn,nm,fns,nil);
+}
+
+
+Function function internFunction(ob cn,id nm,Sort fns)
+{
+  return internFunction(cn,nm,fns,nil);
+}
+
+
+Function function internFunction(ob cn,id nm,Sort rtp,SeqOfType itps)
+{
+  return internFunction(cn,nm,mkFunctionType(rtp,itps));
+}
+
+
+
+
+// for building a new fimp; grabs current cimp from fimp;
+Function function internCFunction(ob cn,id nm,Sort rtp,SeqOfType itps)
+{
+  var Function rs,int ccimp,ob fv;
+  rs =  internFunction(cn,nm,mkFunctionType(rtp,itps));
+  fv = getVariant(fimp,nm,itps)~ob;
+  if (nnul(fv)) //fv will be nul on the first build where this is added
+     {
+     ccimp = intsel(fv,Function_cimp);
+ //    writeln('cimp= ',ccimp);
+     intset(rs~ob,Function_cimp,ccimp);
+	 }
+  return rs;
+}
+
+
+
+var Function(void,string,Property) times;
+var Function(void,string,ob) times;
+
+void function times(string s,Restriction r)
+{
+   var Property prp,Class avf,int crd,ob hsv;
+   prp = fget(r~ob,owl:onProperty)~Property;
+   avf = fget(r~ob,owl:allValuesFrom)~Class;
+   if (nnul(avf))
+   {
+       writeTo(s,"[Restriction on ",prp,": allValuesFrom ",avf,"]");
+       return;
+   }
+   crd = intsel(r~ob,owl:cardinality);
+   if (crd > 0)
+   {
+       writeTo(s,"[Restriction on ",prp,": cardinality ",crd,"]");
+       return;
+   }
+   crd = intsel(r~ob,owl:maxCardinality);
+   if (crd > 0)
+   {
+       writeTo(s,"[Restriction on ",prp,": maxCardinality ",crd,"]");
+       return;
+   }
+   hsv = fget(r~ob,owl:hasValue);
+   if (nnul(hsv))
+   {
+       writeTo(s,"[Restriction on ",prp,": hasValue ",hsv,"]");
+       return;
+   }
+
+}
+
+
+var printQualifiedClassNames = true; 
+
+void function times(string s,Sort tp)
+{
+  var id nm,cns,cm,Sort rtp,sbt,SeqOfType itps,int ln,i;
+  if (eq(type0(tp~ob),Restriction)) 
+     {
+	 times(s,tp~Restriction);
+	 return;
+	 }
+  nm = name(tp ~ ob);
+  if (nul(nm)) 
+     {
+	 cns =  obsel(tp~ob,Sort_constructor)~id;
+	 if (nul(cns))
+	    {
+		s * "unprintable Class";
+		return;
+		}
+	 if (cns == 'Function')
+	    {
+		rtp = resultType(tp);
+		itps = inputTypes(tp);
+		s * 'Function(';
+		s * rtp;
+		ln = length(itps);
+		for (i = 0;i<ln;i++) 
+		    {
+			s * ',';
+			s * itps[i];
+			}
+		s * ')';
+		}
+	  else
+	    {
+		sbt =  obsel(tp~ob,Sort_param)~Sort;
+		s * cns;
+		s * '(';
+		s * sbt;
+		s * ')';
+		}
+	  }
+  else 
+    {
+	if (printQualifiedClassNames) 
+	   {
+	   if (!qualifiedName(s,tp~ob)) s * nm;
+	   }
+	else s*nm;
+	}
+}
+

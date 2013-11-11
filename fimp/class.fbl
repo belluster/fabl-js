@@ -1,0 +1,569 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+/*
+a class is given both a uri and a binding.
+var aa = new(Restriction);
+
+*/
+
+//allocate("fabl:bitFields",FunctionalProperty);
+//constant bitFields = fabl:bitFields~Property;
+
+var Function(int,Class) subClassDepth;
+
+// Resource has a depth of -1 
+int function subClassDepth(Class c)
+{
+  var SeqOf(Class) sbs,int cd,ln,i,mxd,Class csb;
+  if (c == Resource) return -1;
+  sbs = c.rdfs:subClassOf ~ SeqOf(Class);
+  if (length(sbs) == 0) return 0;
+  ln  = length(sbs);
+  mxd = 0;
+  for (i=0;i<ln;i++)
+    {
+	csb = sbs[i];
+	if (not(type0(csb~ob) == Restriction)) 
+	   {
+	   cd = subClassDepth(sbs[i]);
+	   if (cd > mxd) mxd = cd;
+	   }
+	}
+  return mxd + 1;
+}
+
+
+var classSpecificityBuf = emptysequence(Class);
+
+Class function mostSpecific(SeqOf(Class) cls)
+{
+   var int ln,i,c,cd,mxd,Sort cc,mxdc;
+   ln = length(cls);
+   if (ln == 0) return ob;
+   if (ln == 1) return cls[0];
+   mxdc = cls[0];
+   mxd = subClassDepth(mxdc);
+   for (i=1;i<ln;i++)
+       {
+	   // for now
+	   
+	   cc = cls[i];
+	   cd = subClassDepth(cc);
+	   if (cd > mxd)
+	      {
+		  mxd = cd;
+		  mxdc = cc;
+		  }
+	   }
+   return mxdc;
+}
+
+
+// divies the restrictions up according to property
+ob function partitionRestrictions(SeqOf(Restriction) rst)
+{
+  var ob rs,int ln,i,Restriction crs,ob prp,Property rprp,
+      SeqOf(Restriction) cv;
+  rs = mkResource();
+  ln = length(rst);
+  for (i=0;i<ln;i++)
+      {
+	  crs = rst[i];
+	  prp = obsel(crs~ob,owlOnProperty);
+	  rprp = regarding(prp~ob);
+	  cv = fget(rs,rprp) ~ SeqOf(Restriction);
+	  if (nul(cv))
+	     {
+		 cv = sequence(crs);
+		 assert(rs,rprp,cv~ob);
+		 }
+	  else
+	     push(cv,crs);
+	  }
+  return rs;
+}
+
+// all of rst are restrictions on the same property.  Find the most specific
+// cardinality and value information available
+
+void function consolidateRestrictions(Property p,SeqOf(Restriction) rst)
+{
+   var SeqOf(Class) alvf,int ln,crd,mxc,cmxc,i,ccrd,
+       Restriction crdr,hsvr,mxr,Class alv,ms,
+       Restriction cr,ob hsv;
+   alvf = emptysequence(Class);
+   ln = length(rst);
+   crd = -1;
+   mxc = -1;
+   ln = length(rst);
+   for (i=0;i<ln;i++)
+       {
+	   cr = rst[i];
+	   alv = obsel(cr~ob,owlAllValuesFrom)~Class;
+	   if (nul(hsv)) 
+	      {
+		  hsv = obsel(cr~ob,owl:hasValue);
+		  hsvr = cr;
+		  }
+	   ccrd = intsel(cr~ob,owlCardinality);
+	   cmxc = intsel(cr~ob,owl:maxCardinality);
+	   if (ccrd == 1) {crd = 1;crdr = cr}
+	   if (cmxc == 1) {mxc = 1;mxr = cr}
+	   if (nnul(alv)) push(alvf,alv);
+	   }
+   reset(rst);
+   if (nnul(hsv))
+	  push(rst,hsvr);
+   if (nnul(alvf)) 
+      {
+	  ms = mostSpecific(alvf);
+	  push(rst,mkAllValuesFromRestriction(p,ms));
+	  }
+   if (crd == 1) push(rst,crdr);
+   else
+   if (mxc == 1) push(rst,mxr);
+   }
+
+
+
+
+var  Function(void,SeqOf(Restriction),Class) collectRestrictions;
+  
+
+void function collectRestrictions(SeqOf(Restriction) rs,Class cl)
+{
+   var SeqOf(Class) sbc,int ln,i,Class csb;
+   sbc = mget(cl~ob,rdfs:subClassOf)~SeqOf(Class);
+   if (nnul(sbc))
+      {
+	  ln = length(sbc);
+	  for (i=0;i<ln;i++)
+	      {
+		  csb = sbc[i];
+		  if (type0(csb~ob) == Restriction)
+		     push(rs ,(csb~Restriction));
+		  else
+		     collectRestrictions(rs,csb);
+		  }
+	  }
+}
+
+
+	  
+void function initialize(Class s)
+{
+   var SeqOf(Class) sbc,int ln,i,SeqOf(Restriction) rst,r,ob rtable,
+       SeqOf(Binding) bnd,ob ky,Property p,Binding cb;
+   sbc = mget(s~ob,rdfs:subClassOf)~SeqOf(Class);
+   if (nul(sbc)) return;
+   ln = length(sbc);
+   rst = emptysequence(Restriction);
+   collectRestrictions(rst,s);
+   rtable = partitionRestrictions(rst);
+   bnd = bindings(rtable);
+   ln = length(bnd);
+   for (i=0;i<ln;i++)
+       {
+	   cb = bnd[i];
+	   ky = obsel(cb~ob,Binding_key);
+	   p = obsel(ky,Regarding_value)~Property;
+	   r = obsel(cb~ob,Binding_value)~SeqOf(Restriction);
+	   consolidateRestrictions(p,r);
+	   }
+  set(s~ob,fablRestrictions,rtable);
+}
+
+
+SeqOf(Restriction) function restrictionsOn(Class s,Property p)
+{
+   var ob rtable;
+   rtable = get(s~ob,fablRestrictions);
+   if (nul(rtable)) return nil~SeqOf(Restriction);
+   return get(rtable,regarding(p~ob)) ~ SeqOf(Restriction);
+}
+
+var Function(ob,string) parseQname;
+var Function(ob,id)  namespace;
+
+Class function class1(string s)
+{
+   var ob q,ns,id pr,lc,ob cv,Class rs,SeqOf(ob) sbc;
+   q = parseQname(s);
+   pr = cadr(q)~id;
+   ns = namespace(pr);
+   lc = caddr(q)~id;
+   cv = selectUri(ns,lc);
+   if (nul(cv))
+      {
+	  rs = iNew(Sort)~Class;
+	  //hack until subclasses handled properly:
+      classBeingDefined = rs;
+	  bindUri(ns,lc,rs~ob);
+	  return rs;
+	  }
+   else
+     {
+	 if (not(type0(cv) == Class))  error('Attempt to redefine ',s,' as a Class');
+	 // LATER check that this is not a datatype
+	 rs = cv ~ Class;
+	 sbc = mget(rs,rdfs:subClassOf);
+	 if (nnul(sbc)) reset(sbc);
+      classBeingDefined = rs;
+	 return rs;
+	 }
+}
+
+void function class(string s)
+{
+  class1(s);
+}
+
+
+void function class(string s,SeqOf(Class) subclasses)
+{
+   var int ln,i,Class rs;
+   rs = class1(s);
+   ln = length(subclasses);
+   for (i =0;i<ln;i++)
+       {
+	   assert(rs~ob,rdfs:subClassOf,subclasses[i]~ob);
+	   }
+}
+
+   
+  
+void function addPropertyRestriction(Sort tp,Property prp,Sort valueType,ob value,int crd,int maxc)
+{
+   var Restriction crst;
+   if (nnul(value))
+      {
+	  crst = mkHasValueRestriction(prp,value);
+	  assert(tp~ob,rdfs:subClassOf,crst~ob);
+	  }
+   if (nnul(valueType))
+      {
+      crst = mkAllValuesFromRestriction(prp,valueType);
+      assert(tp~ob,rdfs:subClassOf,crst~ob);
+	  }
+   if (crd == 1) 
+   {
+      crst = mkCardinalityRestriction(prp,1);
+      assert(tp~ob,rdfs:subClassOf,crst~ob);
+	}
+   if (maxc == 1) 
+   {
+      crst = mkMaxCardinalityRestriction(prp,1);
+      assert(tp~ob,rdfs:subClassOf,crst~ob);
+	}
+}
+
+
+void function addPropertyRestriction(Sort tp,Property prp,Sort valueType)
+{
+    addPropertyRestriction(tp,prp,valueType,nil,0,1);
+}
+
+void function addPropertyRestriction(Property prp,Sort valueType,ob value,int crd,int maxc)
+{
+   if (nul(classBeingDefined)) error('No class being defined');
+   addPropertyRestriction(classBeingDefined,prp,valueType,value,crd,maxc);
+}
+
+
+void function addPropertyRestriction(Property prp,Sort valueType)
+{
+   addPropertyRestriction(prp,valueType,nil,0,1);
+}
+
+
+
+void function addField(Sort tp,id nm,Sort vtp)
+{
+  var Property prp,ob cv;
+  cv = selectUri(tp~ob,nm);
+  if (nnul(cv)) 
+     {
+	 if (not(hasType(cv,Property))) error("Cannot redefine ",nm," as a field");
+	 prp = cv ~ Property;
+	 }
+  else
+     {
+     prp = iNew(Property)~Property;
+     bindUri(tp~ob,nm,prp~ob);
+	 }
+  addPropertyRestriction(tp,prp,vtp,nil,1,0);
+}
+
+
+
+void function endClass()
+{
+  initialize(classBeingDefined);
+  classBeingDefined = nil~Sort;
+}
+// computes the type of the x.p if x is of type tp
+var Function(Sort,Property) range;
+// returns a pair, whose first element is the type of the property, and whose second
+// is one of the ids 'functional' (at most one value) or
+// 'unconstrained'
+
+/*
+BitField function getBitField(Class tp,Property p)
+{
+   var ob btfs;
+   btfs = get(tp~ob,bitFields);
+   if (nnul(btfs))
+ 	  return get(btfs,regarding(p))~BitField;
+   return nil~BitField;
+}
+*/
+
+
+ob function propertyValueConstraints(Class tp,Property p)
+{
+
+   var ob btfs,prst,avf,rsts,rst,SeqOf(Restriction) rstsq,Restriction crst,vrst,Class ct,pt,vt,
+       boolean cf,pf,id vf,int ln,i,Property rp;
+  rp = regarding(p);
+  btfs = get(tp~ob,bitFields);
+   if (nnul(btfs))
+      {
+ 	  if (nnul(get(btfs,rp)))
+                   return cons(boolean~ob,'functional');
+     }
+   prst = get(tp~ob,fablRestrictions);
+   if (nnul(prst))
+      {
+	  rsts = get(prst,rp);
+	  if (nnul(rsts))
+	     {
+		 if (not(obkind(rsts) == seq_kind)) error('internal');
+		 // the value restriction is first, and then the cardinality restriction 
+		 // (as set by consolidate restrictions)
+		 rstsq = rsts~SeqOf(Restriction);
+		 cf = false; // class indicates functional
+		 ln = length(rstsq);
+		 for (i=0;i<ln;i++)
+		     {
+			 crst = rstsq[i];
+			 avf = obsel(crst~ob,owl:allValuesFrom);
+			 if (nnul(avf)) ct = avf~Class; 
+			 if ((intsel(crst~ob,owl:cardinality) == 1) || 
+			    (intsel(crst~ob,owl:maxCardinality)==1) ) cf = true;			 
+             }
+		}
+
+	  }
+
+     
+      
+  pt = range(p);
+  if (nul(pt))
+     {
+	 if (nul(ct)) vt = ob; else vt = ct;
+	 }
+  else 
+     {
+	 if (nul(ct)) vt = pt; else 
+	 vt = mostSpecific(sequence(pt,ct));
+	 }
+  pf = false;
+  if (hasType(p~ob,FunctionalProperty)) pf = true;
+  if (pf || cf) vf = 'functional'; else vf = 'unconstrained';
+  return cons(vt~ob,vf~ob);
+}
+
+// just a little wasteful
+
+Class function propertyValueType(Class tp,Property p)
+{
+  var ob vc;
+  vc = propertyValueConstraints(tp,p);
+  return car(vc)~Class;
+}
+
+
+BitField function  propertyBitField(Sort tp,Property p)
+{
+  var BitField rs,ob btfs;
+  btfs = fget(tp~ob,bitFields);
+  if (nnul(btfs))
+      rs = get(btfs,regarding(p)) ~BitField;
+   if (nul(rs)) rs = fget(p~ob,bitField)~BitField;
+  return rs;
+   
+}
+
+
+void function assert(Class x,Property p,Restriction y)
+{
+   assert(x ~ob,p,y~ob);
+}
+
+//void function addPropertyRestriction(Sort tp,Property prp,Sort valueType,ob value,int crd,int maxc)
+
+string function nameOrQnamePrint(ob x)
+{
+   var string rs;
+   if (isId(x)) return toString(x~id);
+   if (isList(x))
+      {
+      if (eq(car(x),'_colon_'))
+         {
+         rs = "";
+         writeTo(rs,cadr(x),':',caddr(x));
+         return rs;
+         }
+      }
+   error("Expected name or qualified name: ",x);
+}
+
+boolean function isOne(ob x)
+{
+   return (obkind(x) == int_kind) && ((x~int)==1);
+}
+
+var Function(Xob,ob) analyze;
+var Function(Class,ob) analyzeTypen;
+var Function(ob,Xob) evaluate;
+var Function(ob,ob) evalQnameN;
+
+var lastRestrict = nil;
+Xob function analyzeRestrict(ob x)
+  {
+  var ob cx,ccx,cl,clv, prpx,Xob aclv,Property prp,Class avfr,
+      ob hasval,int crd,mxc,id clk;
+//  writeln("RESTRICT");
+  cx = cdr(x);
+  ccx = car(cx);
+  prpx = evalQnameN(car(cx));
+  // auto-allocate a property 
+  if (nul(prpx)) 
+     {
+	  prp = new(Property);
+	  bindUri(namespace(cadr(ccx)~id),caddr(ccx)~id,prp);
+     }
+  else
+     {
+	 if (!(hasType(prpx,Property))) error("Expected a property: ",nameOrQnamePrint(car(cx)));
+     prp = prpx~Property;
+	 }
+  cx = cdr(cx);
+  crd = 0;
+  mxc = 0;
+  hasval = nil;
+  avfr = nil~Class;
+  while (isList(cx))
+     {
+     cl = car(cx);
+     clk = car(cl)~id;
+     if (clk == 'maxCardinality') 
+        {
+        clv = cadr(cl);
+        if (not(isOne(clv))) error('maxCardinality must have value 1');
+        mxc = 1;
+        }
+    else
+     if (clk == 'cardinality') 
+        {
+        clv = cadr(cl);
+        if (not(isOne(clv))) error('cardinality must have value 1');
+        crd = 1;
+        }
+    else
+    if (clk == 'allValuesFrom')
+       {
+       clv = cadr(cl); 
+       avfr = analyzeTypen(clv);
+    
+       if (nul(avfr)) error('allValuesFrom must be a Class');
+       }
+    else
+    if (clk == 'hasValue')
+       {
+       clv = cadr(cl);
+       aclv = analyze(clv);
+       hasval = evaluate(aclv);
+       }
+    else
+       error('internal: unexpected clause: ',clk);
+    cx = cdr(cx);
+    }
+  
+// writeln("Restrict prp ",prp," mxc ",mxc," crd ",crd," avfr ",avfr," hasval ",hasval);
+addPropertyRestriction(classBeingDefined,prp,avfr,hasval,crd,mxc);
+  return 1~ob~Xob;
+}
+
+
+
+// the new way: bitfield is listed under  the bitFields  of the class
+// rather than the bitField of the property itself (so that the property can be reused)
+
+void function defineBitField(Class cls,Property btp,Property prp,int bt)
+{
+	var BitField btf,ob bfs;
+	btf =new(BitField);
+	obset(btf,BitField_ofProperty,prp);
+	intset(btf,BitField_lowbit,bt);
+	intset(btf,BitField_highbit,bt);
+	bfs = fget(cls,bitFields);
+	if (nul(bfs))
+	   {
+	   bfs = new(Resource);
+	   set(cls,bitFields,bfs);
+	   }
+	set(bfs,regarding(btp),btf);
+}
+
+/*
+var prp = rdfs:subClassOf;
+var hasvall = nil;
+var mxc = 0;
+ writeln(" hasval ",hasvall);
+ writeln("Restrict prp ",prp," mxc ",mxc," hasval ",hasval);
+*/
+
+
+Xob function restrict_tf(ob x)
+  {
+  lastRestrict = x;
+  analyzeRestrict(x);
+  return 'restrict'~ob~Xob;
+}
+
+/*
+
+/*
+  var ob cx;//IQname iqn;
+  if (listLength(x) == 2)
+     {
+	 cx = cadr(x);
+	 if (obkind(cx)==string_kind)
+       return metaApplyn(help1_fun~Xob,meta(cx~id));
+//	 iqn = toIQname(cx);
+//	 if (nul(iqn)) error('The argument to help should be a id or qualified name');
+//	   return metaApplyn(help2_fun,meta(iqn~ob,ob));
+	 }
+  else
+  error('Format: help(name)')
+  }
+*/
+     
+
+		 
+
+
+
+
+   

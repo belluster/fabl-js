@@ -1,0 +1,22 @@
+// Fabl initialization file; loaded at startup
+writeln('Version ',fablVersion);
+allocStatically(false);// enable gc
+//load("patch.fbl"); // no patches yet
+
+var tempDirUrl = "http://www.mapbureau.com/temp/";
+stdlibPrefix = "file://../lib/";
+
+stdNamespaces();
+stdEquivalents();
+
+// optional 
+load("{stdlibPrefix}discovery-1.1.fb");
+discovery:namespaces_0();
+discovery:discovery_0();
+
+printResult = true;
+
+var startupFile = startupFile();
+if (length(startupFile)>0) load(startupFile);
+
+

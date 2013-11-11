@@ -1,0 +1,82 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+/*
+load('../fimp/build.fbl');
+*/
+var buildStartTime = timeMsec();
+//silent(true);
+setCurrentPage(2);var bfimp = mkObject();
+var zz =	bindUri(parent(fimp),'bfimp',bfimp);
+initHome(bfimp);
+set(bfimp,regarding('root'~ob),root,ob);
+buildingFimp = true;
+home = bfimp;
+
+
+load('../fimp/globals.fbl');
+load('../fimp/props.fbl');
+load('../fimp/imports.fbl');
+load('../fimp/fglobals.fbl');
+load('../fimp/pcode.fbl');
+load('../fimp/primops.fbl');
+
+
+load('../fimp/xob.fbl');
+
+load('../fimp/utils.fbl');
+
+
+load('../fimp/arith.fbl');
+
+load('../fimp/hex.fbl');
+load('../fimp/fun.fbl');
+load('../fimp/literal.fbl');
+load('../fimp/meta.fbl');
+load('../fimp/strutils.fbl');
+load('../fimp/date.fbl');
+load('../fimp/hexbinary.fbl');
+
+load('../fimp/cgi.fbl');
+load('../fimp/label.fbl');
+load('../fimp/class.fbl');
+load('../fimp/analyze.fbl');
+load('../fimp/macros.fbl');
+//load('../fimp/plussup.fbl');
+load('../fimp/asm.fbl');
+load('../fimp/disasm.fbl');
+load('../fimp/flat.fbl');
+load('../fimp/flat2.fbl');
+load('../fimp/scan.fbl');
+load('../fimp/parse.fbl');
+load('../fimp/stringbufconst.fbl');
+load('../fimp/functionals.fbl');
+load('../fimp/toplevel.fbl');
+load('../fimp/debug.fbl');
+load('../fimp/printers.fbl');
+load('../fimp/xobprint.fbl');
+load('../fimp/home.fbl');
+load('../fimp/uri.fbl');
+load('../fimp/namespace.fbl');
+load('../fimp/serialize.fbl');
+load('../fimp/writerdfxml.fbl');
+
+load('../fimp/raptor.fbl');
+load('../fimp/load.fbl');
+
+home = fimp;
+var forDebug = fimp;
+fimpCollect(bfimp,2);
+writeln('serializing ',length(toSerialize),' nodes');
+serializeReset();
+serializeToFile(mkStringBuf('new/fimp.fb'),toSerialize,2);
+writeln('build in ',timeMsec()-buildStartTime);

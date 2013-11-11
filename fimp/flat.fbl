@@ -1,0 +1,570 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+
+ob function pop(SeqOfOb s)
+{
+   var int ln,ob rs;
+   ln = length(s);
+   if (ln == 0) error('Attempt to pop empty stack');
+   rs = s[ln-1];
+   //later; s . length = ln -1;
+   seqSetLength(s~ob,ln-1);
+//   setLength(s,ln - 1);
+   return rs;
+}
+
+
+void function pop(SeqOfOb s,int n)
+{
+   var int nln;
+   nln = length(s) - n;
+   if (nln < 0) error('Attempt to pop empty stack');
+   seqSetLength(s~ob,nln);
+ // s . length = nln;
+}
+
+var id loopBreakLabel;
+var id loopContinueLabel;
+var SeqOfId blockEndLabels;
+var Xob functionValueVar;
+var SeqOfXob  blockValueVars;
+
+var xflatten_verbose = false; 
+
+Xob function stripCasts(Xob x)
+   {
+   var Xob cv,Xcast cst;
+   cv = x;
+   while (true)
+         {
+		 if (hasType(cv~ob,Xcast))
+		    {
+			cst = cv~Xcast;
+			cv = obsel(cst~ob,Xcast_castee)~Xob;
+//			cv = castee(cst);
+			}
+	     return cv;
+		 }
+    }
+
+
+
+boolean function isAtomic(Xob x)
+    {
+    return (not(Xobish(x)) || isConstant(x));
+	}
+
+
+
+
+boolean function isPrimitive(Xob x)
+  {
+  return isAtomic(x);
+
+  }
+
+
+
+
+var SeqOfBinding obTemps;
+var SeqOfBinding intTemps;
+var SeqOfBinding doubleTemps;
+var int obTempIndex;
+var int intTempIndex;
+var int doubleTempIndex;
+var ob allTemps;
+var ob toTemps;
+var int flatLabelIndex;
+
+var genName_buf = mkStringBuf();
+id function genName(id seed,int count)
+  {
+  reset(genName_buf);
+  genName_buf * seed;
+  genName_buf * count;
+  return toString(genName_buf);
+  }
+
+id function genFlatLabel()
+  {
+  flatLabelIndex++;
+  return genName('_f_',flatLabelIndex);
+  }
+
+var Function or_function,and_function;
+var flatten_buf = emptysequence(Xob);
+
+void function init_flat()
+  {
+  or_function = getVariant(home,'or',sequence(boolean,boolean));
+  and_function = getVariant(home,'and',sequence(boolean,boolean));
+  obTemps = emptysequence(Binding);
+  intTemps = emptysequence(Binding);
+  doubleTemps = emptysequence(Binding);
+  allTemps = mkResource();
+  toTemps = mkResource();
+  flatten_buf = emptysequence(Xob);
+  blockEndLabels = emptysequence(id);
+  blockValueVars = emptysequence(Xob);
+  }
+
+void function resetFlat()
+  {
+  allTemps = mkResource();
+  removeProperties(toTemps);
+  reset(obTemps);
+  reset(intTemps);
+  reset(doubleTemps);
+  reset(blockValueVars);
+  obTempIndex = 0;
+  doubleTempIndex = 0;
+  intTempIndex = 0;
+  flatLabelIndex = 0;
+  reset(flatten_buf);
+  reset(blockEndLabels);
+  reset(blockValueVars);
+  }
+
+
+Xob function allocTemp(int str)
+  {
+  var int ln,Binding rs;
+  if (str == storage_ob)
+     {
+	 ln = length(obTemps);
+	 if (obTempIndex < ln) 
+		rs = obTemps[obTempIndex]~Binding;
+     else 	    
+		{
+		rs = bindLocal(allTemps,genName('anytemp_',obTempIndex),nil~ob,ob);
+		setInDblock(rs,true);
+		push(obTemps,rs);
+		}
+     obTempIndex++;
+	 return rs~Xob;
+	 }
+   if (str == storage_int)
+     {
+	 ln = length(intTemps);
+	 if (intTempIndex < ln) 
+		rs = intTemps[intTempIndex]~Binding;
+     else 	    
+		{
+		rs = set(allTemps,regarding(genName('inttemp_',intTempIndex)~ob),0~ob,int);
+		setInDblock(rs,true);
+		push(intTemps,rs);
+		}
+     intTempIndex++;
+	 return rs~Xob;
+	 }
+   ln = length(doubleTemps);
+   if (doubleTempIndex < ln) 
+		rs = doubleTemps[doubleTempIndex]~Binding;
+     else 	    
+		{
+		rs = set(allTemps,regarding(genName('doubletemp_',doubleTempIndex)~ob),toDoubleOb(0),double);
+		setInDblock(rs,true);
+		push(doubleTemps,rs);
+		}
+   doubleTempIndex++;
+   return rs~Xob;
+  }
+
+
+TempStackMark function theTempStackMark()
+  {
+  var TempStackMark rs;
+  rs = iNew(TempStackMark)~TempStackMark;
+  intset(rs~ob,TempStackMark_obIndex,obTempIndex);
+  intset(rs~ob,TempStackMark_intIndex,intTempIndex);
+  intset(rs~ob,TempStackMark_doubleIndex,doubleTempIndex);
+//  rs = new(TempStackMark);
+//  rs . any_index = obTempIndex;
+//  rs . int_index = intTempIndex;
+//  rs . double_index = doubleTempIndex;
+  return rs;
+  }
+
+
+/* maps bindings to their temp_indices */
+
+
+void function popTempStack(TempStackMark n)
+   {
+   obTempIndex = intsel(n~ob,TempStackMark_obIndex);
+   intTempIndex = intsel(n~ob,TempStackMark_intIndex);
+   doubleTempIndex = intsel(n~ob,TempStackMark_doubleIndex);
+//   obTempIndex = n . any_index;
+//   intTempIndex = n . int_index;
+//   doubleTempIndex = n . double_index;
+   }
+
+
+
+Xob function addToTempMap(Binding x)
+  {
+  var Xob tm;
+  tm = allocTemp(storage(obsel(x~ob,Binding_type)~Sort));
+//  tm = allocTemp(storage(sort(x)));
+  set(toTemps,regarding(x~ob),tm~ob,ob);
+  return tm;
+  }
+
+
+void function addToTempMap(ob cn)
+  {
+  var SeqOfBinding gds,int ln,i,Binding cb;
+  gds = bindings(cn);
+  ln = length(gds);
+  for (i=0;i<ln;i++) 
+      {
+	  cb = gds[i];
+	  if (nnul(cb)) addToTempMap(cb);
+	  }
+  }
+
+Xob function toTemp(Binding x)
+  {
+  var Binding tm;
+  tm = get(toTemps,regarding(x~ob))~Binding;
+  if (nnul(tm)) return tm~Xob;
+  return addToTempMap(x);
+  }
+
+Binding function applyTempMap(Binding x)
+   {
+  var Binding tm;
+  tm = get(toTemps,regarding(x~ob))~Binding;
+  if (nul(tm)) return x; 
+  return tm;
+  }
+
+// works for atomic, but not primitive
+
+Xob function applyTempMap(Xob x)
+   {
+   if (isBinding(x~ob)) 
+      return applyTempMap(x~Binding)~Xob;
+   return x;
+   }
+
+Xob function applyTempMap(XselectProperty x)
+  {
+  var Xob src,nsrc,Property sl;
+  src = obsel(x~ob,XselectProperty_source)~Xob;
+//  src = source(x);
+  sl = obsel(x~ob,XselectProperty_selector)~Property;
+
+  nsrc = applyTempMap(stripCasts(src));
+ 
+  if (not(eq(src,nsrc))) 
+     return metaSelectProperty(nsrc,sl,type(x~Xob));
+//     return metaSelectProperty(nsrc,selector(x),type(x~Xob));
+  return x~Xob;
+  }
+
+Xob function applyTempMap(XselectIndex x)
+  {
+  var Xob src,nsrc,sl;
+//  src = source(x);
+  src = obsel(x~ob,XselectIndex_source)~Xob;
+  sl = obsel(x~ob,XselectIndex_selector)~Xob;
+  nsrc = applyTempMap(src);
+ 
+  if (not(eq(src,nsrc))) 
+     return metaSelectIndex(nsrc,sl,type(x~Xob));
+//     return metaSelectIndex(nsrc,selector(x),type(x~Xob));
+  return x~Xob;
+  }
+
+
+Xob function primitive_applyTempMap(Xob x)
+  {
+  if (isBinding(x~ob)) return applyTempMap(x~Binding)~Xob;
+  if (isFunction(x~ob)) return x;
+  if (hasType(x~ob,XselectProperty))
+	 return applyTempMap(x~XselectProperty);
+  else
+  if (hasType(x~ob,XselectIndex))
+	 return applyTempMap(x~XselectIndex);
+  return x;
+  }
+    
+/* uses label already there, if ob, otherwise makes one */
+ 
+id function gen_a_label(Xob x)
+  {var id lb;
+  lb = aLabelOf(x);
+  if (nul(lb)) 
+     {
+     lb = genFlatLabel();
+     addLabel(x,lb);
+     }
+  return lb;
+  }
+ 
+/* this labels the first statement in the fxob, if its not already labeled */
+
+
+
+var Function(void,SeqOfXob,Xob,Xob) flatten;
+
+
+void function iflatten(SeqOfXob rs,Xif x,Xob av)
+  {
+  var Xob iff,xb,TempStackMark tsm,Xob cn,cnarg,bail,
+  id elb,flb,Xob fst,est,boolean hslb;
+  xb = x~Xob;
+  hslb = hasLabel(xb);  // need to transfer labels to the result
+  cn = stripCasts(obsel(x~ob,Xif_condition)~Xob);
+//  cn = stripCasts(condition(x));
+  tsm = theTempStackMark();
+  iff = obsel(x~ob,Xif_ifFalse)~Xob;
+//  iff = if_false(x);
+  if (isPrimitive(cn)) 
+     {
+     if (hslb) 
+	    {
+		fst = mkNoopXob();
+		copyLabels(fst,xb);
+		push(rs,fst);
+		}
+	 cnarg = primitive_applyTempMap(cn);
+	 }
+  else
+     {
+     cnarg = allocTemp(storage_int);
+     flatten(rs,cn,cnarg);
+     }
+  est = mkNoopXob();
+  elb = gen_a_label(est);
+  if (nul(iff))  bail = mkXgoIfFalse(cnarg,elb);
+  else 
+     {
+	 fst = mkNoopXob();
+	 flb = gen_a_label(fst);
+	 bail = mkXgoIfFalse(cnarg,flb);
+	 }
+  push(rs,bail);
+  flatten(rs,obsel(x~ob,Xif_ifTrue)~Xob,nil~Xob);
+//  flatten(rs,if_true(x),nil~Xob);
+  if (nnul(iff)) 
+     {
+	 push(rs,mkXgo(elb));
+	 push(rs,fst);
+     flatten(rs,iff,nil~Xob);
+	 }
+  push(rs,est);
+  popTempStack(tsm);
+  }
+
+/* x:=  A or B =>  x := A;if (x) go est ;x := B;est:noop*/ 
+// flatten_or,flatten_and  will be called only if ra is non-atomic 
+
+
+
+void function flatten_or(SeqOfXob rs,Xapply x,Xob av)
+  {
+  var SeqOfXob a,Xob xb,gs,la,ra,est,id elb,boolean needcopylb;
+  xb = x~Xob;
+  needcopylb = hasLabel(xb);
+  a = obsel(x~ob,Xapply_arguments)~SeqOfXob;
+//  a = arguments(x);
+  la = a[0];
+  ra = a[1];	 
+  if (needcopylb)
+     {
+	 if (Xobish(la)) {copyLabels(la,xb);needcopylb = false}	
+	 }
+  if (nul(av)) error('unexpected lack of return variable in flatten_or');
+  flatten(rs,la,av);  
+  est = mkNoopXob();
+  elb = gen_a_label(est);
+  gs = mkXgo(av,elb);
+  if (needcopylb) copyLabels(gs,xb);
+  push(rs,gs);
+  flatten(rs,ra,av);  
+  push(rs,est);
+  }
+
+/* x:=  A and B =>  x := A;if (not x) go est ;x := B;est:noop*/ 
+
+void function flatten_and(SeqOfXob rs,Xapply x,Xob av)
+  {
+  var SeqOfXob a,Xob xb,bst,la,ra,est,gs,id elb,boolean needcopylb;
+  xb = x~Xob;
+  needcopylb = hasLabel(xb);
+  a = obsel(x~ob,Xapply_arguments)~SeqOfXob;
+//  a = arguments(x);
+  la = a[0];
+  ra = a[1];
+  if (needcopylb)
+     {
+	 if (Xobish(la)) copyLabels(la,xb);
+	 else
+	    {
+		bst = mkNoopXob();
+		copyLabels(bst,xb);
+		push(rs,bst);
+		}	 
+	 }
+  if (nul(av)) error('unexpected lack of return variable in flatten_and');
+  flatten(rs,la,av);  
+  est = mkNoopXob();
+  elb = gen_a_label(est);
+  gs = mkXgoIfFalse(av,elb); 
+//  if (needcopylb) copyLabels(gs,xb);
+  push(rs,gs);
+  flatten(rs,ra,av);  
+  push(rs,est);
+  }
+
+
+
+var functionEndLabel = '_function_end_';
+
+/* all variables are percolated to the top (added to flat vars). */
+
+void function iflatten(SeqOfXob rs,Xblock x,Xob av)
+   {
+   var Xob xb,fst,SeqOfXob st,ob lv,TempStackMark tsm,int ln,i,
+      Xob lst,mrv,id elb,boolean hslb;
+   xb = x~Xob;
+   hslb = hasLabel(xb);
+ //  st = statements(x);
+   st = obsel(x~ob,Xblock_statements)~SeqOfXob;
+//  if (nnul(return_sort(x))) mrv = av;
+  if (nnul(obsel(x~ob,Xblock_returnType))) mrv = av;
+   else mrv = nil ~ Xob;
+//   lv = locals(x)~Object; // cast may be removed in final F2
+   lv = obsel(x~ob,Xblock_locals);// // cast may be removed in final F2
+   if (nnul(lv)) 
+      {
+      tsm = theTempStackMark();
+	  addToTempMap(lv);
+	  }
+   ln = length(st);
+   lst = mkNoopXob();
+   elb = gen_a_label(lst);
+   if (hslb) 
+      {
+	  fst = mkNoopXob();
+	  copyLabels(fst,xb);
+	  push(rs,fst);
+	  }
+//   if (is_function_body(x)) 
+   if (bitsel(x~ob,Xblock_booles,Xblock_isFunctionBody)~boolean)
+      {
+	  if (xflatten_verbose) writeln('Adding function end label');
+	  addLabel(lst,functionEndLabel);
+	  functionValueVar = mrv;
+      for (i = 0;i<ln;i++)
+         flatten(rs,st[i],nil~Xob);
+	  }
+  else
+      {
+	  push(blockEndLabels,gen_a_label(lst));
+	  push(blockValueVars,av);
+      for (i = 0;i<ln;i++)
+         flatten(rs,st[i],nil~Xob);
+	  }
+
+  push(rs,lst);
+  if (nnul(lv)) popTempStack(tsm);
+  }
+
+
+void function iflatten(SeqOfXob rs,Xfor x,Xob av)
+  {
+  var Xob xb,fst,cn,est,cnarg,TempStackMark tsm,
+  id elb,cnlb;
+  xb = x~Xob;
+  if (hasLabel(xb))
+      {
+	  fst = mkNoopXob();
+	  copyLabels(fst,xb);
+	  push(rs,fst);
+	  }
+  est = mkNoopXob();
+  elb = gen_a_label(est);
+  loopBreakLabel = elb;
+  flatten(rs,obsel(x~ob,Xfor_init)~Xob,nil~Xob);
+//  flatten(rs,init(x),nil~Xob);
+  tsm = theTempStackMark();
+  cn = stripCasts(obsel(x~ob,Xfor_test)~Xob);
+//  cn = stripCasts(test(x));
+  if (isPrimitive(cn)) 
+     {
+	 cnarg = applyTempMap(cn);
+	 cn = mkNoopXob();
+	 cnlb = gen_a_label(cn);
+	 push(rs,cn);
+	 }
+  else
+     {
+     cnarg = allocTemp(storage_int);
+	 cnlb = gen_a_label(cn);
+     flatten(rs,cn,cnarg);
+     }
+  loopContinueLabel = cnlb;
+  push(rs,mkXgoIfFalse(cnarg,elb)); //if not(test) goto end
+  flatten(rs,obsel(x~ob,Xfor_body)~Xob,nil~Xob);
+  flatten(rs,obsel(x~ob,Xfor_incr)~Xob,nil~Xob);
+//  flatten(rs,body(x),nil~Xob);
+//  flatten(rs,incr(x),nil~Xob);
+  push(rs,mkXgo(cnlb));//goto test
+  push(rs,est);
+  popTempStack(tsm);
+  }
+
+
+
+void function iflatten(SeqOfXob rs,Xwhile x,Xob av)
+  {
+  var Xob xb,fst,cn,est,cnarg,TempStackMark tsm,
+  id elb,cnlb;
+  xb = x~Xob;
+  if (hasLabel(xb))
+      {
+	  fst = mkNoopXob();
+	  copyLabels(fst,xb);
+	  push(rs,fst);
+	  }
+  est = mkNoopXob();
+  elb = gen_a_label(est);
+  loopBreakLabel = elb;
+  tsm = theTempStackMark();
+  cn = stripCasts(obsel(x~ob,Xwhile_test)~Xob);
+//  cn = stripCasts(test(x));
+  if (isPrimitive(cn)) 
+     {
+	 cnarg = applyTempMap(cn);
+	 cn = mkNoopXob();
+	 cnlb = gen_a_label(cn);
+	 push(rs,cn);
+	 }
+  else
+     {
+     cnarg = allocTemp(storage_int);
+	 cnlb = gen_a_label(cn);
+     flatten(rs,cn,cnarg);
+     }
+  loopContinueLabel = cnlb;
+  push(rs,mkXgoIfFalse(cnarg,elb)); //if not(test) goto end
+  flatten(rs,obsel(x~ob,Xwhile_body)~Xob,nil~Xob);
+//  flatten(rs,body(x),nil~Xob);
+  push(rs,mkXgo(cnlb));//goto test
+  push(rs,est);
+  popTempStack(tsm);
+  }

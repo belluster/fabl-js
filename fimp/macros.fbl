@@ -1,0 +1,1903 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+var copyStringConst_fun = getVariant(home,'copyStringConst',sequence(string));
+
+Xob function stripStringCopy(Xob x)
+{
+   var Xob fn,SeqOfXob args;
+   if (hasType(x~ob,Xapply))
+      {
+	  fn = obsel(x~ob,Xapply_functionOf)~Xob;
+	  if (eq(fn,copyStringConst_fun))
+	     {
+		 args = obsel(x~ob,Xapply_arguments)~SeqOfXob;
+		 return args[0];
+		 }
+	  }
+  return x;
+}
+
+
+var Function(Sort,ob) analyzeTypen;
+
+
+
+//var Function(Sort,Sort,Sort) and;
+Sort function analyzeTypen(ob x)
+  {
+   var Binding srt,b,rs,Sort ssrt,resulttype,ob cx,int k,ln,
+       SeqOfType sbs,Sort cs,a0s,a1s,ob vl,rm,id xs,ob qv;
+   k = obkind(x);
+   if (k == string_kind)
+      {
+	  xs = x ~ id;
+      srt = lookupBinding(homePath(),xs);
+      if (nul(srt) || not(eq(obsel(srt~ob,Binding_type), Sort))) return nil ~ Sort;
+	  return bindingValue(srt)~Sort;
+	  }
+   if (isList(x))
+      {
+      ln = listLength(x);
+	  if (ln == 2)
+	     {
+	     if (eq(car(x),'SeqOf')) 
+	        {
+		    ssrt = analyzeTypen(cadr(x));
+		    if (nul(ssrt)) return nil ~ Sort;
+		    return SeqOf(ssrt);
+		    }
+	     if (eq(car(x),'BagOf')) 
+	        {
+		    ssrt = analyzeTypen(cadr(x));
+		    if (nul(ssrt)) return nil ~ Sort;
+		    return BagOf(ssrt);
+		    }
+	     if (eq(car(x),'AltOf')) 
+	        {
+		    ssrt = analyzeTypen(cadr(x));
+		    if (nul(ssrt)) return nil ~ Sort;
+		    return AltOf(ssrt);
+		    }
+	      }
+       if ((ln >= 2)&&eq(car(x),'_colon_'))
+	      {
+		  qv = evalQname(x);
+          if (hasType(qv,Sort)) return qv~Sort;
+		  return nil~Sort;
+		  }
+
+	 if ((ln >= 2)&&eq(car(x),'Function'))
+	      {
+		  sbs = emptysequence(Sort);
+		  cx = cdr(x);
+		  resulttype = analyzeTypen(car(cx));
+		  cx = cdr(cx);
+		  while (isList(cx))
+		     {
+		     cs = analyzeTypen(car(cx));
+		     if (nul(cs)) return nil~Sort;
+			 push(sbs,cs);
+			 cx = cdr(cx);
+			 }
+		  return mkFunctionType(resulttype,sbs);
+		  }
+	   }
+   return nil ~ Sort;
+   }
+
+Sort function analyzeType(ob x)
+  {
+  var Sort rs;
+  rs = analyzeTypen(x);
+  if (nul(rs)) error('Non-type: ',x);
+  return rs;
+  }
+
+
+
+
+var Function(Binding,id,Sort) defineClassField; 
+
+
+
+//returns either a binding, or a function
+ob function bindPif(ob cn,id nm,Sort s)
+  {
+  if (nnul(inputTypes(s))) return internFunction(cn,nm,s)~ob;
+  else return bindGlobal(cn,nm,s)~ob;
+  }
+
+
+Sort function typeOfBindingOrFunction(ob x)
+{
+   if (isBinding(x)) return obsel(x,Binding_type)~Sort;
+   else return obsel(x,Function_type)~Sort;
+}
+
+var Function(boolean,ob) isQname;
+var Function(Property,ob) toProperty;
+
+// assumes x has the form (type name type)
+Sort function analyzeTypedVar(ob fr,ob x,boolean local)
+   {
+   var ob nm,id nms,Property prp,boolean iss,Sort srt;
+
+   nm = caddr(x);
+   iss = isId(nm);
+   if (iss) nms = nm~id;
+   srt = analyzeType(cadr(x));
+   if (local)
+      {
+	  if (not(iss)) error('Expected id: ',nm);
+	  bindLocal(fr,nms,srt)~ob;
+	  return srt;
+	  }
+   if (nul(classBeingDefined)) 
+      {
+	  if (not(iss)) error('NOT YET');
+
+      return typeOfBindingOrFunction(bindPif(fr,nms,srt));
+	  }
+   if (iss) 
+      {
+	  addField(classBeingDefined,nms,srt);
+	  return srt;
+	  }
+   if  (isQname(nm))
+     {
+	 prp = toProperty(nm);
+	 addPropertyRestriction(classBeingDefined,prp,srt);
+     return srt;
+	 }
+   error('Incorrect form for variable in var statement: ',nm)
+
+
+   }
+
+// here x is a list of elements  where each element 
+// has the form (type name type)  or just name
+// 
+
+
+   
+void function analyzeTypedVars(ob nwe,ob x,boolean local)
+  {
+  var ob cx,ce,Sort lsts;
+  cx = x;
+  lsts = nil ~ Sort;
+  while (isList(cx))
+        {
+		ce = car(cx);
+		if (obkind(ce)==string_kind) 
+		   {
+		   if (nul(lsts)) error('Sort needed for variable ',ce);
+		   if (local) bindLocal(nwe,ce~id,lsts); 
+		   else bindPif(nwe,ce~id,lsts); 
+		   }
+		else 
+		   lsts = analyzeTypedVar(nwe,ce,local);
+		cx = cdr(cx);
+		}
+   }
+
+void function analyzeLocalVars(ob nwe,ob x)
+  {
+  analyzeTypedVars(nwe,x,true);
+  }
+
+
+void function analyzeTypedVars(ob nwe,ob x)
+  {
+  analyzeTypedVars(nwe,x,false);
+  }
+
+
+/* what a block looks like:
+
+(block (
+       (var (type int y)) 
+	   (assign y ( plus x x)) (freturn y)))
+
+*/
+
+// LATER better report of function type
+
+void function times(string s,Function fn)
+{
+  var id nm,Sort tp,SeqOfType itps,Sort rtp,int ln,lnm1,i;
+  nm = obsel(fn~ob,Function_name)~id;
+  tp = obsel(fn~ob,Function_type)~Sort;
+  rtp = resultType(tp);
+  itps = inputTypes(tp);
+  writeTo(s,nm,'(');
+  ln =length(itps);
+  lnm1 = ln-1;
+  for (i = 0;i<ln;i++) 
+      {
+	  s * itps[i];
+	  if (i < lnm1) s * ',';
+	  }
+  writeTo(s,') => ',rtp);
+}
+
+
+// LATER and improve this too
+void function times(string s,Binding fn)
+{
+  var ob ky,Sort tp0,tp,ob rg;
+  s * '[';
+  ky = obsel(fn~ob,Binding_key);
+  if (obkind(ky)==string_kind) 
+     s * (ky~id);
+  else
+    {
+	tp0 = type0(ky);
+	if (tp0 == Regarding)
+	   {
+	   rg =obsel(ky,Regarding_value);
+	   if (obkind(rg) == string_kind)
+	      s * rg~id;
+	   else s * '<unprintable>';
+	   }
+	else s * name(ky);
+    }
+  s *  ' of type ';
+  tp = type(fn);
+  if (nul(tp)) s * 'Resource'; 
+  else s * type(fn);
+  s * ']';
+}
+
+
+
+void function help1(id x)
+  {
+  var int i,ln,j,iln,ob ce,Binding b,SeqOfFunction vrs,id pfx,SeqOfOb pth;
+  pth = homePath();
+  ln = length(pth);
+  for (i = ln-1;i>=0;i--)
+      {
+	  ce = pth[i];
+//	  pfx = get(namespacesInverse,ce~ob)~id;
+//      if (nnul(pfx)) writeln(pfx,' '); else
+	  writeln(i,' ');
+	  b = selectGlobalBinding(ce,x);
+	  if (nnul(b)) 
+		 writeln('  ',b);
+      vrs = variants(ce,x);
+	  if (nnul(vrs))
+	     {
+		 iln = length(vrs);
+		 for (j = 0;j<iln;j++)
+		     writeln('  ',vrs[j]);
+		 }
+	   }
+  }
+
+var help1_fun = getVariant(home,'help1',sequence(id));
+
+
+
+
+//var Xob help1_fun;
+Xob function help_tf(ob x)
+  {
+  var ob cx;//IQname iqn;
+  if (listLength(x) == 2)
+     {
+	 cx = cadr(x);
+	 if (obkind(cx)==string_kind)
+       return metaApplyn(help1_fun~Xob,meta(cx~id));
+//	 iqn = toIQname(cx);
+//	 if (nul(iqn)) error('The argument to help should be a id or qualified name');
+//	   return metaApplyn(help2_fun,meta(iqn~ob,ob));
+	 }
+  else
+  error('Format: help(name)')
+  }
+
+
+Xob function Xblock_tf(ob x)
+  {
+  var ob st,cs,int cel,SeqOfXob rs,ob e,boolean isvr;
+  e = nil;
+  st = cadr(x);
+  cel = length(cPath);
+  rs = emptysequence(Xob);
+  while (isList(st))
+       {
+		cs = car(st);
+		if (isList(cs)) isvr = eq(car(cs),'var');
+		else isvr = false;
+		if (isvr)
+		{
+		if (eq(car(cs),'var'))
+		   {
+		   if (nul(e)) 
+		      {
+			  e = mkResource();
+			  push(cPath,e~ob);
+			  }
+		   analyzeLocalVars(e~ob,cdr(cs));
+		   }
+		}
+	    else 
+		   push(rs,analyze(cs));
+		 st = cdr(st);
+		 }
+  set_length(cPath,cel); 
+  return mkXblock(e,rs);
+  }
+
+
+Xob function Xsequence_tf(ob x,id ck)//ck = collection kind
+  {
+  var ob st,Sort csrt,esrt,SeqOfXob args,Xob cs;
+  st = cdr(x~ob);
+  if (nul(st)) 
+    error('collections introduced with bag(...) or seq(...) must have at least one element');
+  args = emptysequence(Xob);
+  esrt = nil ~ Sort;
+  while (isList(st))
+        {
+		cs = analyze(car(st));
+		csrt = type(cs);
+		if (nul(esrt)) esrt = csrt;
+		else 
+		   {
+		   if (not(esrt == csrt)) error('Elements in sequence must have the same type');
+		   }
+		push(args,cs);
+	    st = cdr(st);
+		}
+   return metaSequencen(nil~Xob,esrt,args,ck);
+   }
+
+
+Xob function Xsequence_tf(ob x)
+  {
+  return Xsequence_tf(x,'seq');
+  }
+
+
+Xob function Xbag_tf(ob x)
+  {
+  return Xsequence_tf(x,'bag');
+  }
+
+
+
+
+Xob function Xalt_tf(ob x)
+  {
+  return Xsequence_tf(x,'alt');
+  }
+
+Xob function Function_tf(ob x)
+  {
+  var Sort rs;
+  rs = analyzeTypen(x);
+  if (nul(rs)) error('Argument to Function is not a sort');
+  return meta(rs);
+  }
+
+
+
+var Xob mk_emptyseq1_fun;
+
+
+
+Xob function Xemptyseq_tf(ob x,id ck)
+  {
+  var ob st,Sort srt,ssrt,int ln,Xob cp;
+  st = cdr(x~ob);
+  ln = listLength(st);
+  if ((ln ==0) || (ln>2)) error('Format: emptysequence(sort) or emptysequence(sort,capacity)');
+  srt  = analyzeType(car(st));
+//  if (ck == 'bag') ssrt = BagOf(srt); else
+  if (ck == 'seq') ssrt = SeqOf(srt); else
+  error('Unknown collection kind: ',ck);
+  if (ln==2) 
+     {
+	 cp = analyze(cadr(st));
+     if (not(type(cp)==int)) error('int expected for capacity in emptyseq(type,capacity)');
+     return metaCast1(metaApplyn(homeFimpFun('mk_emptyseq1_fun'),meta(ssrt),cp),ssrt);
+	 }
+  return metaCast1(metaApplyn(homeFimpFun('mk_emptyseq_fun'),meta(ssrt)),ssrt);
+  }
+
+Xob function Xemptybag_tf(ob x)
+  {
+  return Xemptyseq_tf(x,'bag');
+  }
+
+
+
+Xob function Xemptyseq_tf(ob x)
+  {
+  return Xemptyseq_tf(x,'seq');
+  }
+
+
+var stringbufReset_fun = getVariant(home,'reset',sequence(string)) ~ Xob;
+
+var setBit_fun = getVariant(home,'setBit',sequence(int,int,boolean))~Xob;
+
+var getBit_fun = getVariant(home,'getBit',sequence(int,int))~Xob;
+
+var SeqOfInt = SeqOf(int);
+var SeqOfByte = SeqOf(byte);
+var SeqOfDouble = SeqOf(double);
+var SeqOfBoolean = SeqOf(boolean);
+//var SeqOfByte = sequence_of(byte);
+//var SeqOfDouble = sequence_of(double);
+
+id function collectionKind(Sort s)
+{
+  var id cn;
+  cn = obsel(s~ob,Sort_constructor)~id;// LATER constructor(ssrt);
+  //cn = s.param~id;
+  if (nul(cn)) return nil~id;
+  if ((cn == 'SeqOf') || (cn == 'BagOf') || (cn == 'AltOf')) return cn;
+  return nil~id;
+}
+// for now the only types with a param field are collections
+Sort function collectionSubtype(Sort s)
+{
+//  return s.param~Sort;
+  if ((s == Seq)||(s == Bag)||(s == Alt)) return ob;
+  return obsel(s~ob,Sort_param)~Sort;
+}
+
+boolean function isCollectionType(Sort s)
+{
+//  return nnul(s.param);
+  return (s == Seq)||(s==Bag)||(s==Alt) || nnul(obsel(s~ob,Sort_param));
+}
+
+
+
+Xob function seq_elt_tf(id nm,SeqOfXob a)
+  {
+  var Xob sq,rs,el,elc,fn,Sort sqs,sqsi,sqss,SeqOfXob args,int r,st;
+  if (not(length(a) == 2)) return nil ~ Xob;
+  sq = a[0];
+  el = a[1];
+  sqsi = type(sq);
+//  sqss = sqs.param~Sort;
+  if (sqsi == Seq) //equivalent to SeqOfOb
+     {
+	 sqs = SeqOfOb;
+	 sqss = ob;
+	 }
+  else     
+  if (sqsi == Bag) 
+     {
+	 sqs = BagOfOb;
+	 sqss = ob;
+	 }
+  else     
+  if (sqsi == Alt) 
+     {
+	 sqs = AltOfOb;
+	 sqss = ob;
+	 }
+  else     
+     {
+	 sqs = sqsi;
+     sqss = obsel(sqs~ob,Sort_param)~Sort;
+	 }
+  if (nul(sqss)) return nil~Xob;
+  st = storage(sqss);
+  elc = metaCoerce(el,sqss);
+  if (nul(elc)) return nil~Xob;
+  args = sequence(sq,elc);
+  if (nm == 'push')
+     {
+	 if (sqs == SeqOfByte) fn = homeFimpFun('seqbyteAdd_fun'); else
+	 if (st == storage_int)  fn = homeFimpFun('seqintAdd_fun'); else
+	 if (st == storage_double) fn = homeFimpFun('seqdoubleAdd_fun'); else
+     fn = homeFimpFun('seqobAdd_fun'); 
+	 }
+  else
+  if (nm == 'contains')
+     {
+	 if (sqs == SeqOfByte) fn = homeFimpFun('seqbyteContains_fun'); else
+	 if (st == storage_int) fn = homeFimpFun('seqintContains_fun'); else
+	 if (st == storage_double) fn = homeFimpFun('seqdoubleContains_fun'); else
+     fn = homeFimpFun('seqobContains_fun'); 
+	 }
+  rs = metaApplyn(fn,args);
+  if (nm == 'push') return metaCast1(rs,sqsi);
+  return rs;
+  }
+
+
+//LATER implement in C
+
+ob function seqobConcat(ob x,y)
+{
+  var ob rs;
+  rs = emptysequence(ob)~ob;
+  seqobAppend(rs,x);
+  seqobAppend(rs,y);
+  return rs;
+}
+
+var seqobConcat_fun = getVariant(home,'seqobConcat',sequence(ob,ob));
+
+ob function seqintConcat(ob x,y)
+{
+  var ob rs;
+  rs = emptysequence(int)~ob;
+  seqintAppend(rs,x);
+  seqintAppend(rs,y);
+  return rs;
+}
+
+var seqintConcat_fun = getVariant(home,'seqintConcat',sequence(ob,ob));
+
+
+ob function seqdoubleConcat(ob x,y)
+{
+  var ob rs;
+  rs = emptysequence(double)~ob;
+  seqdoubleAppend(rs,x);
+  seqdoubleAppend(rs,y);
+  return rs;
+}
+
+var seqdoubleConcat_fun = getVariant(home,'seqdoubleConcat',sequence(ob,ob));
+
+
+
+Xob function seq_seq_tf(id nm,SeqOfXob a)
+  {
+  var Xob sq0,sq1,fn,Sort sq0s,sq1s,sq0si,sq1si;
+  if (not(length(a) == 2)) return nil ~ Xob;
+  sq0 = a[0];
+  sq1 = a[1];
+  sq0si = type(sq0);
+  sq1si = type(sq1);
+  if (sq0si == Seq) sq0s = SeqOfOb; else  
+  if (sq0si == Bag) sq0s = BagOfOb; else
+  if (sq0si == Alt) sq0s = AltOfOb; else
+  sq0s = sq0si;
+  if (sq1si == Seq) sq1s = SeqOfOb; else  
+  if (sq1si == Bag) sq1s = BagOfOb; else
+  if (sq1si == Alt) sq1s = AltOfOb; else
+  sq1s = sq1si;
+  if (not(sq0s == sq1s)) return nil ~ Xob;
+  if (not(isCollectionType(sq0s))) return nil ~ Xob;
+  if (nm == 'times')
+     {
+	 if ((sq0s == SeqOfInt)||(sq0s == SeqOfBoolean)||(sq0s == BagOfInt)||(sq0s == AltOfInt)) fn = homeFimpFun('seqintAppend_fun'); else
+	 if (sq0s == SeqOfByte) fn = homeFimpFun('seqbyteAppend_fun'); else
+	 if ((sq0s == SeqOfDouble)||(sq0s == BagOfDouble)||(sq0s == AltOfDouble)) fn = homeFimpFun('seqdoubleAppend_fun'); else
+     fn = homeFimpFun('seqobAppend_fun'); 
+	 }
+  if (nm == 'plus')
+     {
+	 if ((sq0s == SeqOfInt)||(sq0s == SeqOfBoolean)||(sq0s == BagOfInt)||(sq0s == AltOfInt)) fn = homeFimpFun('seqintConcat_fun'); else
+	 if ((sq0s == SeqOfDouble)||(sq0s == BagOfDouble)||(sq0s == AltOfDouble)) fn = homeFimpFun('seqdoubleConcat_fun'); else
+     fn = homeFimpFun('seqobConcat_fun'); 
+	 }
+  return metaCast1(metaApplyn(fn,a),sq0si);
+  }
+
+
+
+
+Xob function seq_int_tf(id nm,SeqOfXob a)
+  {
+  var Xob sq,el,fn,Sort sqsi,sqs;
+  if (not(length(a) == 2)) return nil ~ Xob;
+  sq = a[0];
+
+  el = a[1];
+  if (not(type(el) == int)) return nil~Xob;
+  sqsi = type(sq);
+  if (sqsi == Seq) sqs = SeqOfOb; else 
+  if (sqsi == Bag) sqs = BagOfOb; else
+  if (sqsi == Alt) sqs = AltOfOb;
+  else sqs = sqsi;
+  if (not(isCollectionType(sqs))) return nil~Xob;
+  if (nm == 'set_length') fn = homeFimpFun('seqSetLength_fun');
+  return metaApplyn(fn,a);
+  }
+
+
+
+
+
+
+
+Xob function seq_tf(id nm,SeqOfXob a)
+  {
+  var Xob sq,el,fn,Sort sqs;
+  if (not(length(a) == 1)) return nil ~ Xob;
+  sq = a[0];
+  sqs = type(sq);
+  if (not(isCollectionType(sqs))) return nil~Xob;
+  if (nm == 'length') fn = homeFimpFun('seqLength_fun');
+  else
+  if (nm == 'reset') fn = homeFimpFun('seqReset_fun');
+  return metaApplyn(fn,a);
+  }
+
+
+
+Xob function seq_to_seq_tf(id nm,SeqOfXob a)
+  {
+  var Xob sq,el,fn,Sort sqs,sqsi,int r;
+  if (not(length(a) == 1)) return nil ~ Xob;
+  sq = a[0];
+  sqsi = type(sq);
+  if (sqsi == Seq) sqs = SeqOfOb; else 
+  if (sqsi == Bag) sqs = BagOfOb; else 
+  if (sqsi == Alt) sqs = AltOfOb; else 
+  sqs = sqsi;
+  if (not(isCollectionType(sqs))) return nil~Xob;
+  if (nm == 'copy') fn = homeFimpFun('seqCopy_fun'); 
+  else return nil~Xob;
+  return metaCast1(metaApplyn(fn,a),sqsi);
+  }
+
+
+
+
+Xob function eq_tf(id nm,SeqOfXob a)
+  {
+  var Xob a0,a1,Sort sa0,sa1;
+  if (not(length(a) == 2)) return nil ~ Xob;
+  a0 = a[0];
+  sa0 = type(a0);
+  a1 = a[1];
+  sa1 = type(a1);
+  if ((storage(sa0) == storage_ob)&&(storage(sa1)== storage_ob)) 
+    return metaApplyn(homeFimpFun('obEq_fun'),a);
+  return nil ~ Xob;
+  }
+
+var intIntEqual_fun  = getVariant(home,'equal',sequence(int,int))~Xob;
+
+
+Xob function intIntEqual_tf(id nm,SeqOfXob a)
+  {
+  var Xob a0,a1,Sort sa0,sa1;
+  if (not(length(a) == 2)) return nil ~ Xob;
+  a0 = a[0];
+  sa0 = type(a0);
+  a1 = a[1];
+  sa1 = type(a1);
+  if (sa0 == byte)
+     {
+	 if (sa1 == byte) return metaApplyn(homeFimpFun('intIntEqual_fun'),metaCast(a0,int),metaCast(a1,int));
+	 if (sa1 == int) return metaApplyn(homeFimpFun('intIntEqual_fun'),metaCast(a0,int),a1);
+	 return nil ~ Xob;
+	 }
+  if (sa1 == byte)
+     {
+	 if (sa0 == int) return metaApplyn(homeFimpFun('intIntEqual_fun'),a0,metaCast(a1,int));
+	 return nil ~ Xob;
+	 }
+  return nil ~ Xob;
+  }
+
+
+
+string function nameToString(ob x)
+{
+  var int k,ob pr,lc;
+  k = obkind(x);
+  if ((k == nstring_kind)||(k == wstring_kind))  return mkString(x~id);
+  else 
+  if (isQname(x))
+     {
+	 pr = cadr(x);
+	 lc = caddr(x);
+	 return '{pr~id}:{lc~id}';
+	 }
+  error('Expected name');
+}
+
+
+// handles the syntax f[itp0...itpn]
+Xob function functionname_tf(ob x)
+{
+  var int ln,i,nmok,ob nmo,ns,boolean nmisid,id fnm,pr,SeqOf(Class) itps,Function vr;
+  ln = listLength(x);
+  nmo = cadr(x);
+  nmok = obkind(nmo);
+  if ((nmok == nstring_kind)||(nmok == wstring_kind))
+     {
+	 nmisid = true;
+	 ns = home;
+	 fnm = nmo~id;
+	 }
+  else
+  if (isQname(nmo))
+     {
+	 nmisid = false;
+	 pr = cadr(nmo)~id;
+	 fnm = caddr(nmo) ~ id;
+	 ns = namespace(pr);
+	 }
+  else error('Function name must be an id or qualified name');
+  itps = emptysequence(Class);
+  for (i=2;i<ln;i++)
+	  push(itps,analyzeType(listSelect(x,i)));
+  if (nmisid) vr = getVariant(homePath(),fnm,itps);
+  else vr = getVariant(ns,fnm,itps);
+  if (nul(vr)) error('No such function: ',fnm);
+  return meta(vr~ob,vr.type);
+}
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+
+Xob function dotMethod_tf(ob x)
+{
+  error('Not yet');
+}
+
+
+ob function idSelect(ob x,id nm)
+{
+   return fget(x,regarding(nm));
+}
+
+var idSelect_fun = getVariant(home,'idSelect',sequence(ob,id))~Xob;
+
+// for the syntax []
+
+Xob function arrayRef_tf(ob x)
+  {
+  var Xob ar,sl,Sort ars,arss,int ln,id cn,
+      ob cd,a0,a1,Function vr;
+  ln = listLength(x);
+  if (not(ln == 3))
+     {
+	 if (isList(cadr(x))) return dotMethod_tf(x); else
+	 return functionname_tf(x);
+	 }
+  cd = cdr(x);
+  a0 = car(cd);
+  cd = cdr(cd);
+  a1 = car(cd);
+  sl = analyze(a1);  // note: this might be reanalyzed if dot_method_tf is called
+  if (type(sl) == id)
+	 return metaApplyn(homeFimpFun('idSelect_fun'),metaCast(analyze(a0),ob),sl);
+  if (not(type(sl)==int)) 
+     {
+//	 if (isList(cadr(x))) return dot_method_tf(x); else
+	 return functionname_tf(x);
+	 }
+  ar = analyze(a0);
+  ars = type(ar);
+  if (isCollectionType(ars) || (ars == string) || (ars == hexBinary)) return metaSelectIndexn(ar,sl);
+  vr = getVariant(homePath(),'select',sequence(ars,int));
+  if (nul(vr)) error('No variant of selection X[Y] found');
+  return metaApplyn(vr~Xob,ar,sl);
+  }
+
+
+
+
+Xob function call_tf(ob x)
+  {
+  error('call_tf not needed');
+  return analyze(cons(cadr(x~ob),caddr(x~ob)));
+  }
+
+
+Xob function getMember_tf(ob x)
+  {
+
+ return analyze(cons(caddr(x),cons(cadr(x),rdf:nil)));
+  }
+
+Xob function return_tf(id nm,SeqOfXob x)
+  {
+  var SeqOfXob dt,int ln,Xob rv,rc,Sort srt;
+  ln = length(x);
+  if (ln==1)
+     {
+	 rv = x[0];
+	 srt = type(rv);
+	 if (funReturnType == void) 
+	    error('No value should be returned from a function of sort void');
+	 rc = metaCoerce(rv,funReturnType);
+	 if (nul(rc)) error('Wrong sort for returned value; expected ',funReturnType);
+	 return metaReturn(rc);
+	 }
+  else
+  if (ln==0)
+     {
+	 if (not(funReturnType == void)) 
+	    error('No return value');
+     return metaReturnVoid();
+	 }
+  }
+
+void function unprintable(string s)
+  {
+  s*'<unprintable>';
+  }
+var unprintable_fun = getVariant(home,'unprintable',sequence(string))~Xob;
+
+
+var map_void_ob_ob = mkFunctionType(void,sequence(ob,ob));
+var map_void_ob_int = mkFunctionType(void,sequence(ob,int));
+var map_void_ob_double = mkFunctionType(void,sequence(ob,double));
+var Function(void,string,ob,Sort) gAppend;
+
+void function gAppend_seq(string s,SeqOfOb x,Sort elsort)
+{
+   var int ln,i;
+   s*'[';
+   ln = length(x);
+   for (i=0;i<ln;i++)
+       {
+	   gAppend(s,x[i],elsort);
+	   if (i<(ln-1)) s*',';
+	   }
+   s*']';
+}
+
+
+void function gAppend_seq(string s,SeqOfInt x,Sort elsort)
+{
+   var int ln,i;
+   s*'[';
+   ln = length(x);
+   for (i=0;i<ln;i++)
+       {
+	   s * x[i];
+	   if (i<(ln-1)) s*',';
+	   }
+   s*']';
+}
+
+
+void function gAppend_seq(string s,SeqOfDouble x,Sort elsort)
+{
+   var int ln,i;
+   s*'[';
+   ln = length(x);
+   for (i=0;i<ln;i++)
+       {
+	   s * x[i];
+	   if (i<(ln-1)) s*',';
+	   }
+   s*']';
+}
+
+
+
+boolean function isFunctionType(Class x)
+{
+  var id scn;
+  scn = get(x~ob,Sort_constructor)~id;
+  return scn == 'Function';
+}
+
+
+
+var Function(void,string,Sort) gAppend;
+var Function(void,string,boolean) times;
+var Function(boolean,string,ob) times0;
+//var Function(void,string,boolean) plus;
+
+void function gAppend(string s,ob x,Sort sx)
+   {
+   var map_void_ob_ob fno,map_void_ob_int fni,Sort ssb,rtp,
+                 map_void_ob_double fnd,int st,ob vrv,SeqOfType atps;
+   if (nul(x)) 
+      {
+	  if (sx == void) s * '<ok>'; else
+	     {
+	     s*'<nul of type ';
+	     gAppend(s,sx~ob,Sort);
+	     s * '>';
+		 }
+	  return;
+	  }
+   if (isFunctionType(sx))
+      {
+	  s * '<function of type ';
+	  gAppend(s,sx~ob,Sort);
+	  s * '>';
+	  return;
+	  }
+   if (sx == ob) 
+      {
+	  rtp = type0(x);
+	  if ((rtp == ob) || (rtp==rdf:List)) 
+	     {
+		 if (!times0(s,x)) 
+		    {
+			s*'<unprintable of type ';
+		    gAppend(s,sx~ob,Sort);
+		    s*'>';
+			}
+		 return;
+		 }
+	  gAppend(s,x,rtp);
+	  return;
+	  }
+    if ((sx == SeqOfByte)||(sx == string)) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~string);
+	  return;
+	  }
+    if (sx == id) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~id);
+	  return;
+	  }
+    if (sx == int) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~int);
+	  return;
+	  }
+     if (sx == double) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~double);
+	  return;
+	  }
+   if (sx == byte) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~byte);
+	  return;
+	  }
+    if (sx == boolean) // these is a generic sequence ops with implementation named add (though the times macro invokes it)
+      {
+	  s*(x~boolean);
+	  return;
+	  }
+   ssb = collectionSubtype(sx);
+//   if (nul(ssb)) ssb = bag_subsort(sx);
+   if (nnul(ssb~ob))
+      {
+	  if (storage(ssb) == storage_ob)
+	     gAppend_seq(s,x~SeqOfOb,ssb);
+	  else
+	  if (storage(ssb) == storage_int)
+	     gAppend_seq(s,x~SeqOfInt,ssb);
+	  else
+	     gAppend_seq(s,x~SeqOfDouble,ssb);
+	  return;
+	  }
+
+
+   atps = sequence(string,sx);
+   vrv = getVariant(homePath(),'times', atps)~ob;
+//   if (nul(vrv)) vrv = getVariant(homePath(),'plus', atps)~ob;
+   if (nnul(vrv)) 
+	   {
+	   st = storage(sx);
+	   if (st == storage_ob) 
+	      {
+		  fno = vrv~map_void_ob_ob;
+		  fno(s~ob,x);
+		  }
+	   else
+	   if (st == storage_int) 
+	      {
+		  fni = vrv ~ map_void_ob_int;
+		  fni(s~ob,x~int);
+		  }
+     else
+	      {
+		  fnd = vrv~map_void_ob_double;
+		  fnd(s~ob,x~double);
+		  }
+	   return;
+	   }
+	s*'<unprintable of type ';
+  gAppend(s,sx~ob,Sort);
+	s*'>';
+	}
+
+
+var Function(boolean,string,ob) qualifiedName;
+
+var gAppend_fun = getVariant(home,'gAppend',sequence(string,ob,Sort)) ~ Xob;
+
+var Function(void,string,ob) times;
+
+void function listPrint(string s,ob x)
+{
+   var ob cx,carx,cdrx,boolean done;
+   if (nul(x)) 
+      {
+      s * 'nil';
+      return;
+      }
+   s * '(';
+   cx = x;
+   done = false;
+   while (!done)
+      {
+      carx = car(cx);
+      cdrx = cdr(cx);
+      s * carx;
+      if (isList(cdrx)) 
+         {
+         s * ',';
+         cx = cdrx;
+         }
+      else
+         {
+         done = true;
+         if (nul(cdrx)||eq(cdrx,rdf:nil)) 
+            s * ')';
+         else 
+            {
+            s * ' . ';
+            s * cdrx;
+            s * ')';
+            }
+         }
+      }
+}      
+/*
+var ss = "";
+var uu = cons(3~ob,cons(2~ob,1~ob));
+listPrint(ss,uu);
+*/
+   
+
+var Function(string,ob) uri;
+   
+boolean function times0(string s,ob x)
+  {
+  var int k,string ui;
+//  gAppend(s,x,mysort(x));// LATER fix this to enhance ob printing
+   if (nul(x)) 
+      {
+      s * 'nil';
+      return true;
+      }
+  k = obkind(x);
+  if (k == string_kind) s * (x~id); else
+  if (k == int_kind) s * (x~int); else
+  if (k == double_kind) s * (x~double); else
+  //LATER when utf and binary datatypes supported, this will need to change
+  if ((k == seq_kind) && (seqDataKind(x) == seqDataByte_kind)) s * (x~string); else
+  if (isList(x)) listPrint(s,x); else  
+  if (qualifiedName(s,x)) return true;
+  else
+     {
+     ui = uri(x);
+     if (nul(ui)) return false;
+	 s * "<";
+	 s * ui;
+	 s * ">";
+     }
+  return true;	 
+  }
+
+
+void function times(string s,ob x)
+  {
+  if (!times0(s,x)) s * '<unprintable>';
+  }
+
+
+void function uwrite(ob x)
+  {
+  reset(uwriteBuffer);
+  times(uwriteBuffer,x);
+  tprint(uwriteBuffer);
+  }
+
+ 
+void function uwrite(ob x,Sort sx)
+  {
+  reset(uwriteBuffer);
+  gAppend(uwriteBuffer,x,sx);
+  tprint(uwriteBuffer);
+  }
+ 
+ 
+
+void function uwriteln(ob x,Sort sx)
+  {
+  uwrite(x,sx);
+  terpri();
+  }
+
+
+void function uwriteln(ob x)
+  {
+  uwrite(x);
+  terpri();
+  }
+
+
+void function beforeError()
+{
+   if (cgiMode)  
+     {
+	 silent(false);
+	 htmlHeader();
+	 }
+}
+
+var  uwriteBufferBinding = selectGlobalBinding(home,'uwriteBuffer')~Xob;
+
+Xob function write_tf(id nm,SeqOfXob x)
+  {
+  var int ln,i,Xob cx,px,Function vr,SeqOfXob sq;
+  if (buildingFimp) 
+  uwriteBufferBinding = selectGlobalBinding(home,'uwriteBuffer')~Xob;
+  else uwriteBufferBinding = selectGlobalBinding(fimp,'uwriteBuffer')~Xob;
+  ln = length(x);
+  sq = emptysequence(Xob);
+  if (nm == 'error') 
+     push(sq,metaApplyn(homeFimpFun('beforeError_fun'),emptysequence(Xob)));
+  push(sq,metaApplyn(homeFimpFun('stringbufReset_fun'),uwriteBufferBinding));
+  for (i = 0;i<ln;i++)
+      {
+	  cx = x[i] ~ Xob;
+	  cx = stripStringCopy(cx);
+	  vr = getVariant(homePath(),'times',sequence(string,type(cx)));
+
+	  if (nul(vr)) 
+	     px = metaApplyn(homeFimpFun('gAppend_fun'),uwriteBufferBinding,cx,meta(type(cx)));
+	  else
+	     px = metaApplyn(vr~Xob,uwriteBufferBinding,cx);
+	  push(sq,px);
+	  }
+  push(sq,metaApplyn(homeFimpFun('stringBuf_tprint_fun'),uwriteBufferBinding));
+  if (nm == 'write') return mkXblock(sq); else
+  if (nm == 'writeln') 
+     {
+	 push(sq,metaApplyn(homeFimpFun('terpri_fun'),emptysequence(Xob)));
+	 return mkXblock(sq);
+	 }
+  else
+  if (nm == 'error') 
+     {
+	 push(sq,metaApplyn(homeFimpFun('terpri_fun'),emptysequence(Xob)));
+	 push(sq,metaApplyn(homeFimpFun('afterError_fun'),emptysequence(Xob)));
+	 return mkXblock(sq);
+	 }
+  return nil ~ Xob;
+  }
+
+
+var lf = 10 ~ byte;
+
+
+
+Xob function writeToBuffer_tf(id nm,SeqOfXob x)
+  {
+  var int ln,i,Xob cx,px,a0,Function vr,SeqOfXob sq;
+  ln = length(x);
+  if (ln < 2) return nil ~ Xob;
+  a0 = x[0];
+  if (not(type(a0)==string)) return nil ~ Xob;
+  sq = emptysequence(Xob);
+  for (i = 1;i<ln;i++)
+      {
+	  cx = x[i] ~ Xob;
+	  cx = stripStringCopy(cx);
+	  vr = getVariant(homePath(),'times',sequence(string,type(cx)));
+	  if (nul(vr)) 
+	     px = metaApplyn(homeFimpFun('gAppend_fun'),a0,cx,meta(type(cx)));
+	  else
+	     px = metaApplyn(vr~Xob,a0,cx);
+	  push(sq,px);
+	  }
+  return mkXblock(sq); 
+  }
+
+
+Xob function toStringBuf_tf(id nm,SeqOfXob x)
+  {
+  var int ln,i,Xob cx,px,rsx,Function vr,SeqOfXob sq,ob e;
+  e = mkObject();
+  rsx = bindLocal(e,'toStringResult',string)~Xob;
+  sq = emptysequence(Xob);
+  push(sq,metaAssignn(rsx,
+     metaApplyn(homeFimpFun('mkStringBuf_function'),meta(''))));
+
+  ln = length(x);
+  for (i = 0;i<ln;i++)
+      {
+	  cx = x[i] ~ Xob;
+	  vr = getVariant(homePath(),'times',sequence(string,type(cx)));
+	  if (nul(vr)) 
+	     px = metaApplyn(homeFimpFun('gAppend_fun'),rsx,cx,meta(type(cx)));
+	  else
+	     px = metaApplyn(vr~Xob,rsx,cx);
+	  push(sq,px);
+	  }
+  blockReturnType = string;
+  push(sq,metaBlockReturn(rsx,nil~id));
+  blockReturnType = nil ~ Sort;
+  return mkValueReturningXblock(string,e~ob,sq);
+  }
+
+
+
+Xob function nul_tf(id nm,SeqOfXob x)
+  {
+  var int ln,Xob a,Sort srt,Binding fn;
+  ln = length(x);
+  if (ln==1)
+     {
+	 a = x[0];
+	 srt = type(a);
+	 if (storage(srt) == storage_ob) 
+	    return(metaApplyn(homeFimpFun('nul_fun'),x));
+	 }
+  return nil ~ Xob;
+  }
+
+
+Xob function nnul_tf(id nm,SeqOfXob x)
+  {
+  var int ln,Xob a,Sort srt,Binding fn;
+  ln = length(x);
+  if (ln==1)
+     {
+	 a = x[0];
+	 srt = type(a);
+	 if (storage(srt) == storage_ob) 
+	    return(metaApplyn(homeFimpFun('nnul_fun'),x));
+	 }
+  return nil ~ Xob;
+  }
+
+
+boolean function isClass(Sort s) //as opposed to datatype
+{
+  if (s == id) return false;
+  if (storage(s) == storage_ob) return true;
+  return false;
+}
+
+var splice_fun = getVariant(home,'splice1',sequence(ob,ob))~Xob;
+
+  
+Xob function splice_tf(id nm,SeqOfXob x)
+  {
+  var int ln,Xob a0,a1,Sort srt0,srt1,int k0,k1;
+  ln = length(x);
+  if (ln==2)
+     {
+	 a0 = x[0];
+	 srt0 = type(a0);
+	 a1 = x[1];
+	 srt1 = type(a1);
+	 if (isClass(srt0) && isClass(srt1)) // both Objects
+	    {
+	    return metaApplyn(homeFimpFun('splice_fun'),x); 
+		}
+	 }
+  return nil ~ Xob;
+  }
+
+var get_fun = getVariant(home,'get',sequence(ob,Property))~Xob;
+var fget_fun = getVariant(home,'fget',sequence(ob,Property))~Xob;
+var mget_fun = getVariant(home,'mget',sequence(ob,Property))~Xob;
+
+
+// return results in rs
+void function restrictionsOn(SeqOf(Restriction) rs,Sort tp,Property prp)
+{
+  // fill in later
+}
+
+var restrictionsBuf = emptysequence(Restriction);
+
+boolean function cardinalityIsOne(SeqOf(Restriction) rs)
+{
+   var int ln,i,c;
+   ln = length(rs);
+   for (i=0;i<ln;i++)
+       {
+	   c = intsel(rs[i]~ob,owl:cardinality~Property);
+	   if (c == 1) return true;
+	   }
+  return false;
+}
+
+void function allValuesFroms(SeqOf(Class) rs,SeqOf(Restriction) rst)
+{
+   var int ln,i,c,Class cls;
+   ln = length(rst);
+   for (i=0;i<ln;i++)
+       {
+	   cls = obsel(rst[i]~ob,owl:allValuesFrom~Property)~Class;
+	   if (nnul(cls)) push(rs,cls);
+	   }
+}
+
+Xob function not_equal_tf(ob x)
+  {
+  return analyze(cons('not'~ob,cons(cons('equal',cdr(x)),nil)));
+  }
+
+
+Property function findPropertyInPath(id p)
+{
+    var int ln,i,ob cp,pv,SeqOf(ob) pth;
+	pth = homePath();
+    ln = length(pth);
+	for (i = 0;i< ln;i++)
+	    {
+		cp = pth[i];
+		pv = selectUri(cp,p);
+		if (nnul(pv) && hasType(pv,Property))
+		   return pv ~ Property;
+		}
+    return nil~Property;
+}
+
+   
+// interprets a.b; used for both _dot_ (the parse of a.b) and get;
+// Parsing . to _dot_ rather than get makes the analysis just a bit more efficient,
+// since the get function variants need not be considered, only this macro
+
+var ob propNS;
+
+Xob function _dot_tf(ob x)
+  {
+  var ob sl,qn,Xob a0,Class srt0,srt1,rst,Property prp,
+  BitField btf,boolean fnc,ob pvc,fld,int ln;
+  a0 = analyze(cadr(x));
+  sl = caddr(x);
+  srt0 = type(a0);
+  if (isQname(sl))
+     {
+     qn = evalQname(sl);
+     if (not(hasType(qn,Property))) error('Expected property: ',sl);
+     prp = qn ~ Property;
+     }
+
+  else
+  if (obkind(sl) == string_kind)
+
+       {
+       fld = selectUri(srt0~ob,sl~id);
+	   if (nnul(fld) && hasType(fld,Property)) prp = fld~Property;
+	   else
+	      prp  = findPropertyInPath(sl~id);
+       if (nul(prp)) error('No such field: ',sl~id);
+       }
+
+  else error('Expected id or qualified name in ',sl);
+
+
+//  prp = constantValue(a1)~Property;
+  pvc = propertyValueConstraints(srt0,prp);
+  rst = car(pvc)~Class;
+//  fnc = eq(cdr(pvc),'functional');
+//  if (not(fnc)) rst = SeqOf(rst);
+  btf = propertyBitField(srt0,prp);
+  if (nul(btf)) return metaSelectProperty(a0,prp,rst,true);
+  else return metaSelectBitField(a0,btf);
+  }
+
+
+// gets multiple values
+Xob function _dotdot_tf(ob x)
+  {
+  var ob sl,qn,Xob a0,Class srt0,srt1,rst,Property prp,
+  BitField btf,boolean fnc,ob pvc,fld,int ln;
+  a0 = analyze(cadr(x));
+  sl = caddr(x);
+  srt0 = type(a0);
+  if (isQname(sl))
+     {
+     qn = evalQname(sl);
+     if (not(hasType(qn,Property))) error('Expected property: ',sl);
+     prp = qn ~ Property;
+     }
+
+  else
+  if (obkind(sl) == string_kind)
+        {
+       fld = selectUri(srt0~ob,sl~id);
+	   if (nnul(fld) && hasType(fld,Property)) prp = fld~Property;
+	   else
+	      prp  = findPropertyInPath(sl~id);
+       if (nul(prp)) error('No such field: ',sl~id);
+       }
+
+  else error('Expected id or qualified name in ',sl);
+
+
+//  prp = constantValue(a1)~Property;
+  pvc = propertyValueConstraints(srt0,prp);
+  rst = SeqOf(car(pvc)~Class);
+//  fnc = eq(cdr(pvc),'functional');
+//  if (not(fnc)) rst = SeqOf(rst);
+  btf = propertyBitField(srt0,prp);
+  if (nnul(btf)) error('Bitfields do not have multiple values');
+  return metaSelectProperty(a0,prp,rst,false);
+  }
+
+var set_fun = getVariant(home,'set',sequence(ob,Property,ob))~Xob;
+
+
+
+
+Xob function plus_StringBuf_sequence_tf(id nm,SeqOfXob x)
+  {
+  var int ln,Xob a0,a1,Sort srt1,ssb;
+  ln = length(x);
+  if (ln==2)
+     {
+	 a0 = x[0];
+	 if (not(type(a0)==string)) return nil~Xob;
+	 a1 = x[1];
+	 srt1 =type(a1);
+	 ssb = collectionSubtype(srt1);
+	 if (nnul(ssb))
+	 	 return metaApplyn(homeFimpFun('gAppend_fun'),a0,a1,meta(srt1));
+	 }
+  return nil ~ Xob;
+  }
+  
+Xob function if_tf(ob x)
+  {
+  var Xob cnd,ift;
+  cnd = analyze(cadr(x~ob));
+  if (not(type(cnd)==boolean)) error('Test in IF must return a boolean');
+  ift = analyze(caddr(x~ob));
+  return mkXif(cnd,ift);
+  }
+
+
+Xob function ifElse_tf(ob x)
+  {
+  var Xob cnd,ift,iff;
+  cnd = analyze(cadr(x~ob));
+  if (not(type(cnd)==boolean)) error('Test in IF must return a boolean');
+  ift = analyze(caddr(x~ob));
+  iff = analyze(cadddr(x~ob));
+  return mkXif(cnd,ift,iff);
+  }
+
+
+
+Xob function for_tf(ob x)
+  {
+  var Xob init,cnd,ob xo;
+  xo = x~Any;
+  init = analyze(cadr(xo));
+  cnd = analyze(caddr(xo));
+  if (not(type(cnd)==boolean)) error('Test in FOR must return a boolean');
+  return metaFor(init,cnd,analyze(listSelect(xo,3)),analyze(listSelect(xo,4)));
+  }
+
+
+Xob function twiddle_tf(ob x)
+  {
+  var Xob a,Sort s;
+  a = analyze(cadr(x));
+  s = analyzeType(caddr(x));
+  return metaCast(a,s);
+  }
+
+
+
+//var new_fun = getVariant(home,'iNew',sequence(Sort))~Xob;
+//var instantiate_fun = nil~Xob;
+//var newIsInstantiate = false;
+
+Seq function newSeq()
+{
+   var Seq rs;
+   rs  = emptysequence(ob)~Seq;
+   rs . rdf:type = Seq;
+   return rs;
+}
+
+var newSeq_fun = getVariant(home,'newSeq',emptysequence(Sort));
+
+
+Bag function newBag()
+{
+   var Bag rs;
+   rs  = emptysequence(ob)~Bag;
+   rs . rdf:type = Bag;
+   return rs;
+}
+
+var newBag_fun = getVariant(home,'newBag',emptysequence(Sort));
+
+
+
+Alt function newAlt()
+{
+   var Alt rs;
+   rs  = emptysequence(ob)~Alt;
+   rs . rdf:type = Alt;
+   return rs;
+}
+
+var newAlt_fun = getVariant(home,'newAlt',emptysequence(Sort));
+
+Xob function new_tf(ob x)
+  {
+  var Sort s;
+  if (not(listLength(x) == 2)) error('format new(<sort>)');
+  s = analyzeType(cadr(x));
+  if (s == Seq) 
+     return metaApplyn(homeFimpFun('newSeq_fun'),emptysequence(Xob));
+  if (s == Bag) 
+     return metaApplyn(homeFimpFun('newBag_fun'),emptysequence(Xob));
+  if (s == Alt) 
+     return metaApplyn(homeFimpFun('newAlt_fun'),emptysequence(Xob));
+  return metaCast(metaApplyn(homeFimpFun('new_fun'),meta(s)),s);
+  }
+
+var install_fun = nil~Xob;// Not implemented yet LATER
+
+Xob function install_tf(id nm,SeqOfXob ins)
+  {
+  var Xob s,a;
+  if (length(ins) == 2)
+     {
+	 a = ins[0];
+	 s = ins[1];
+	 if (type(s) == Sort) return metaApplyn(homeFimpFun('install_fun'),metaCast(a,ob),s);
+	 }
+   return nil~Xob;
+}
+
+
+
+
+
+
+Xob function while_tf(ob x)
+  {
+  var Xob cnd,ob xo;
+  xo = x~Any;
+  cnd = analyze(cadr(xo));
+  if (not(type(cnd)==boolean)) error('Test in WHILE must return an int');
+  return metaWhile(cnd,analyze(caddr(xo)));
+  }
+
+
+
+ob function mkAlreadyAnalyzed(Xob x)
+   {
+   return cons('alreadyAnalyzed'~ob,cons(x~ob,nil));
+   }
+
+
+//var Xob aars;
+
+Xob function alreadyAnalyzed_tf(ob x)
+  {
+  var Xob rs;
+  rs =  cadr(x)~Xob;
+  return rs;
+  }
+
+/*
+Xob function metaAssignn(Xob dst,id flds,Xob src,boolean try_set)
+{
+	 error('OBSOLETE metaAssignn(Xob dst,id flds,Xob src,boolean try_set)');
+}
+*/
+
+// For now, this only takes into account the range of the property, not
+// the property restriction asserted by the class to which src belongs
+
+Xob function metaAssignn(Xob dst,Property prp,Xob src,boolean addValue,boolean try_set)
+{
+    var ob rng,Sort dtp,Xob csrc,xsel,BitField btf;
+// break('mmm');
+//    writeln('dst = ',dst);
+//     aasrc = mkAlreadyAnalyzed(src);
+   dtp = propertyValueType(type(dst),prp);
+//    select(prp~ob,rangeProperty);
+   if (not(dtp == ob)) 
+      {
+	  csrc = metaCoerce(src,dtp);
+	  if (nul(csrc)) error('Could not coerce ',src,' to ',dtp);
+	  }
+   else 
+	  csrc = metaCast(src,ob);
+
+   btf = propertyBitField(type(dst),prp);
+   if (nul(btf)) xsel = metaSelectProperty(dst,prp,dtp);
+   else xsel = metaSelectBitField(dst,btf);
+// 
+// 
+//   xsel = metaSelectProperty(dst,prp,dtp)~Xob;
+   return metaAssignn(xsel,csrc,addValue,false);
+}
+
+
+	
+Xob function set_tf(id nm,SeqOfXob x)
+{
+  var Xob src,dstcn,aprp,Property prp;
+  dstcn = x[0];
+  aprp  = x[1];
+  src = x[2];
+  if (not(type(aprp) == Property)) return nil~Xob;
+ // if x has the form a.b = c try analyzing set_b(a,c)
+  if (isConstant(aprp))
+	 {
+	 prp = constantValue(aprp)~Property;
+     return metaAssignn(dstcn,prp,src,false,true);
+	 }
+  return metaApplyn(homeFimpFun('set_fun'),metaCast(dstcn,ob),aprp,metaCast(src,ob));
+}
+
+
+	  
+var Function(Property,ob) toProperty;
+
+
+
+
+
+Xob function assign_tf(ob ix)
+  {
+  var ob dst,sl,fld,qn,Xob src,dstcn,aprp,rs,Property prp,boolean addValue;
+  dst = cadr(ix);
+  src = analyze(caddr(ix));
+  if (isList(dst) && (eq(car(dst),'_dot_')||eq(car(dst),'_dotdot_')))
+  // dstcn . prp = src
+     {
+	 addValue = eq(car(dst),'_dotdot_');
+     dstcn = analyze(cadr(dst)); //dst container
+     sl = caddr(dst);
+     if (isQname(sl))
+        {
+        qn = evalQname(sl);
+        if (not(hasType(qn,Property))) error('Expected property: ',sl);
+        prp = qn ~ Property;
+	}
+    else
+    if (obkind(sl) == string_kind)
+       {
+       fld = selectUri(type(dstcn)~ob,sl~id);
+	   if (nnul(fld) && hasType(fld,Property)) prp = fld~Property;
+	   else
+	      prp  = findPropertyInPath(sl~id);
+       if (nul(prp)) error('No such field: ',sl~id);
+       }
+     else error('Expected id or qualified name in ',sl);
+     return metaAssignn(dstcn,prp,src,addValue,true);
+     }
+  return metaAssignnCheck(analyze(dst),src);
+  }
+
+
+// 
+
+
+var genName_buf = mkStringBuf();
+id function genName(id seed,int count)
+  {
+  reset(genName_buf);
+  genName_buf * seed;
+  genName_buf * count;
+  return toString(genName_buf);
+  }
+
+
+id function allocAnalysisTemp()
+{
+   analysisTempCount++;
+   return genName('analysistemp_',analysisTempCount);
+}
+
+
+Xob function plus_tf(id nm,SeqOfXob x)
+{
+// a + b is resolved to rs = ""; rs * a;rs * b;; return rs
+  var Xob rsx,a0,a1,vr0,vr1,ob e,SeqOfXob sq,int ln,Class tp0;
+  ln = length(x);
+  if (not(ln == 2)) return nil~Xob;
+  a0 = x[0];
+  a1 = x[1];
+  tp0 = type(a0);
+  if ((tp0 == int) || (tp0 == double)) return nil~Xob;// don't reinterpret arithmetic ops!
+  vr0 = getVariant(homePath(),'times',sequence(string,type(a0)))~Xob;
+  if (nul(vr0)) return nil~Xob;
+  vr1 = getVariant(homePath(),'times',sequence(string,type(a1)))~Xob;
+  if (nul(vr1)) return nil~Xob;
+  e = mkObject();
+  rsx = bindLocal(e,allocAnalysisTemp(),string)~Xob;
+  sq = emptysequence(Xob);
+  push(sq, metaAssignn(rsx,
+     metaApplyn(homeFimpFun('mkStringBuf_function'),meta(''))));
+  push(sq , metaApplyn(vr0,rsx,a0));
+  push(sq , metaApplyn(vr1,rsx,a1));
+  blockReturnType = string;
+  push(sq ,metaBlockReturn(rsx,nil~id));
+  blockReturnType = nil ~ Sort;
+  return mkValueReturningXblock(string,e~ob,sq);
+  }
+
+
+
+// assumes nm is a function on obs, and causes nm to apply to any type of input
+// general form universalizeN_type0_type1.._typen  universalizes the Nth argument, 
+// assuming type_type_type are arg types
+
+Xob function universalize0_ob_tf(id nm,SeqOfXob x)
+{
+   var Xob a0,Class tp0,Xob vr,ob hm;
+   if (length(x) == 1)
+      {
+	  a0 = x[0];
+	  tp0 = type(a0);
+	  if (tp0 == ob) return nil~Xob;  // this is the type of the base function; ordinary polymorphic lookup will do this
+	  if (buildingFimp && analyzingFunction) hm = home;
+	  else hm = fimp;
+	  vr = getVariant(hm,nm,sequence(ob))~Xob;
+	  if (nnul(vr)) return metaApplyn(vr,metaCast(a0,ob));
+	  }
+  return nil~Xob;
+}
+
+Function function supplyObArgument(Function f,ob v)
+{
+   var int k;
+   k = obkind(f~ob);
+   if (k == seq_kind) error("Not yet: iterated supplyArgument");
+   return [f~ob,nil,v] ~ Function;
+}
+
+var supplyObArgument_fun = getVariant(home,'supplyObArgument',sequence(Function,ob))~Xob;
+
+
+Function function supplyIntArgument(Function f,int v)
+{
+   var int k;
+   k = obkind(f~ob);
+   if (k == seq_kind) error("Not yet: iterated supplyArgument");
+   return [f~ob,nil,v~ob] ~ Function;
+}
+
+var supplyIntArgument_fun = getVariant(home,'supplyIntArgument',sequence(Function,int))~Xob;
+
+
+Function function supplyDoubleArgument(Function f,double v)
+{
+   var int k;
+   k = obkind(f~ob);
+   if (k == seq_kind) error("Not yet: iterated supplyArgument");
+   return [f~ob,nil,v~ob] ~ Function;
+}
+
+var supplyDoubleArgument_fun = getVariant(home,'supplyDoubleArgument',sequence(Function,double))~Xob;
+
+
+
+Xob function supplyArgument_tf(id nm,SeqOfXob x)
+  {
+  var int ln,lni,i,st,Xob a0,a1,Class t0,t1,sat,rst,SeqOf(Class) itps,nitps;
+  ln = length(x);
+  if (ln==2)
+     {
+	 a0 = x[0];
+	 t0 = type(a0);
+	 a1 = x[1];
+	 t1 = type(a1);
+	 itps = inputTypes(t0);
+	 if (nul(itps)) return nil~Xob;
+	 if (not(itps[0] == t1)) return nil~Xob;
+	 nitps = new(SeqOf(Class));
+	 ln  = length(itps);
+	 for (i = 1;i<ln;i++) push(nitps ,itps[i]);
+	 rst = resultType(t0);
+	 sat = mkFunctionType(rst,nitps);
+	 st = storage(t1);
+	 if (st == storage_ob)
+	    return metaCast1(metaApplyn(homeFimpFun('supplyObArgument_fun'),a0,a1),sat);
+	 if (st == storage_int)
+	    return metaCast1(metaApplyn(homeFimpFun('supplyIntArgument_fun'),a0,a1),sat);
+	 if (st == storage_double)
+	    return metaCast1(metaApplyn(homeFimpFun('supplyDoubleArgument_fun'),a0,a1),sat);
+    }
+}
+
+	    
+
+
+
+
+
+
+void function initMacros()
+{
+
+  constructor(home,'help','help_tf');
+  constructor(home,'block','Xblock_tf');
+  constructor(home,'if','if_tf');
+  constructor(home,'seq','Xsequence_tf');
+  constructor(home,'sequence','Xsequence_tf');//synonym
+  constructor(home,'bag','Xbag_tf');
+  constructor(home,'alt','Xalt_tf');
+  constructor(home,'Function','Function_tf');
+  constructor(home,'emptysequence','Xemptyseq_tf');
+  constructor(home,'emptybag','Xemptybag_tf');
+  constructor(home,'if_else','ifElse_tf');
+  constructor(home,'call','call_tf');
+  constructor(home,'not_equal','not_equal_tf');
+
+  constructor(home,'get_member','getMember_tf');
+  constructor(home,'assign','assign_tf');
+  constructor(home,'for','for_tf');
+  constructor(home,'while','while_tf');
+  constructor(home,'twiddle','twiddle_tf');
+  constructor(home,'new','new_tf');
+  constructor(home,'already_analyzed','alreadyAnalyzed_tf');
+  constructor(home,'array_ref','arrayRef_tf');
+  constructor(home,'_dot_','_dot_tf');
+  constructor(home,'_dotdot_','_dotdot_tf');
+  constructor(home,'restrict','restrict_tf');
+   macro(home,'freturn','return_tf');
+  macro(home,'nul','nul_tf');
+  macro(home,'nnul','nnul_tf');
+  macro(home,'plus','seq_seq_tf');
+  macro(home,'plus','plus_tf');
+  macro(home,'push','seq_elt_tf');
+  macro(home,'times','seq_seq_tf');
+  macro(home,'contains','seq_elt_tf');
+  macro(home,'length','seq_tf');
+  macro(home,'set_length','seq_int_tf');
+  macro(home,'reset','seq_tf');
+  macro(home,'copy','seq_to_seq_tf');
+  macro(home,'eq','eq_tf');
+  macro(home,'write','write_tf');
+  macro(home,'writeln','write_tf');
+  macro(home,'error','write_tf');
+  macro(home,'write_to_buffer','writeToBuffer_tf');
+  macro(home,'writeTo','writeToBuffer_tf');
+  macro(home,'toStringBuf','toStringBuf_tf');
+  macro(home,'SB','toStringBuf_tf');
+  macro(home,'splice','splice_tf');
+  macro(home,'times','plus_StringBuf_sequence_tf');
+  macro(home,'equal','intIntEqual_tf');
+  macro(home,'uri','universalize0_ob_tf');
+
+//  macro(home,'get','_dot_tf');
+  macro(home,'set','set_tf');
+  macro(home,'supplyArgument','supplyArgument_tf');
+//  macro(home,'install','install_tf'); LATER
+
+}
+
+
+
+
+

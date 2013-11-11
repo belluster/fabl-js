@@ -1,0 +1,300 @@
+/*
+load('fimpsrc/raptor.v10.fbl');
+*/
+
+class('home:RaptorStatement');
+var int subjectType;
+var id subject;
+var int predicateType;
+var id predicate;
+var int ordinal;  // for rdf:li
+var int objectType;
+var id object;
+var string literalObject;
+var id literalDatatype;
+endClass();
+
+constant RaptorStatement = home:RaptorStatement;
+
+// Raptor Identifier Types; see raptor.h
+
+var  ritUnknown = 0;
+var   ritResource = 1;           /* Resource URI (e.g. rdf:about) */
+var ritAnonymous = 2;            /* _:foo N-Triples, or generated */
+var  ritPredicate = 3;           /* Predicate URI */
+var  ritOrdinal = 4;             /* rdf:li, rdf:_<n> etc. */
+var  ritLiteral = 5;            /* regular literal */
+var  ritXmlLiteral = 6;          /* rdf:parseType="Literal" */
+
+
+
+boolean function complete(RaptorStatement rs)
+{
+  return nnul(rs.subject) && (nnul(rs.predicate) || (rs.predicateType == ritOrdinal)) &&
+     (nnul(rs.object)||nnul(rs.literalObject));
+}
+
+
+
+void function raptorTriplePrintResource(string rs,id s,int tp)
+{
+
+   if ((tp == ritResource)||(tp == ritPredicate))
+       writeTo(rs,'<',s,'>');
+   else
+   if (tp == ritAnonymous)
+      writeTo(rs,'_:',s);
+   else
+      writeTo(rs,'<UNKNOWNTYPE>');
+
+
+}
+
+void function times(string bf,RaptorStatement rs)
+{
+   var string ol,id ov,dtp;
+   if (not(complete(rs))) {bf * '<incomplete>';return}
+   raptorTriplePrintResource(bf,rs.subject,rs.subjectType);
+   bf * ' ';
+ //  writeTo(bf,'<',rs.subject,'> ');
+   if (rs.predicateType == ritOrdinal)
+       writeTo(bf,'<http://www.w3.org/1999/02/22-rdf-syntax-ns#_',rs.ordinal,'>');
+//      writeTo(bf,'[',rs.ordinal,']');
+   else
+     raptorTriplePrintResource(bf,rs.predicate,rs.predicateType);
+//   writeTo(bf,'<',rs.predicate,'> ');
+   bf * ' ';
+   ol = rs.literalObject;
+   ov = rs.object;
+   if (nnul(ol) && (length(ol)>0))
+      {
+      writeTo(bf,' "',ol,'"');
+      dtp = rs.literalDatatype;
+      if (nnul(dtp))
+         writeTo(bf,':"',dtp,'"');
+     }
+else
+      raptorTriplePrintResource(bf,rs.object,rs.objectType);
+//      writeTo(bf,'<',ov,'> .');
+   writeTo(bf,' .',lf);
+
+}
+
+
+var raptorResources = mkObject();
+var raptorSubjects = emptysequence(ob);
+// kind = "subject" "predicate","object","type"
+ob function insertRaptorResource(id s,int tp,id kind)
+{
+   var Property r,ob rs;
+   r = regarding(s);
+   rs = get(raptorResources,r);
+   if (nul(rs))
+      {
+      if ((tp == ritResource)||(tp == ritPredicate))
+         {
+	 if (kind == 'predicate') rs = uriAllocate(s,Property)~ob; else
+	 if (kind == 'type') rs = uriAllocate(s,Class)~ob; else
+	 rs = uriAllocate(s,ob);
+	 }
+      else
+      if (tp == ritAnonymous)
+         {
+	 if (kind == 'predicate') error("Anonymous predicates are not supported");
+	 if (kind == 'type') rs = new(Class)~ob;
+	 else rs = mkObject();
+	 }
+      else
+         {
+	 writeln('could not insert ',s,' of type ',tp);
+	 return nil;
+	 }
+      set(raptorResources,r,rs);
+      if (kind == 'subject') raptorSubjects + rs;
+      }
+   return rs;
+}
+
+ob function raptorAnon(id s)
+{
+   return insertRaptorResource(s,ritAnonymous,'object');
+}
+
+
+ob function raptorUri(id s)
+{
+   return insertRaptorResource(s,ritResource,'object');
+}
+
+
+
+
+
+void function assert(RaptorStatement rs)
+{
+   var id dtpid,sb,pr,ov,string ol,ob sbr,prr,ovr,int sbt,prt,otp,id oknd,ob olv,dtp;
+   sb = rs.subject;
+   sbt = rs.subjectType;
+   pr = rs.predicate;
+   prt = rs.predicateType;
+   otp = rs.objectType;
+   ov = rs.object;
+   ol = rs.literalObject;
+   if (nul(sb) || nul(pr)) return;
+   if (nul(ol)&&nul(ov)) return;
+   sbr = insertRaptorResource(sb,sbt,'subject');
+   if (nul(sbr)) return;
+   prr = insertRaptorResource(pr,prt,'predicate');
+   if (nul(prr)) return;
+   if (nnul(ov)&&(length(ov)>0))
+      {
+      if (eq(prr,rdf:type)) oknd = 'type'; else oknd ='object';
+      ovr = insertRaptorResource(ov,otp,oknd);
+      if (nul(ovr)) return;
+      assert(sbr,prr~Property,ovr);
+      }
+   else
+   if (nnul(ol))
+      {
+	  dtpid = rs.literalDatatype;
+	  if (nnul(dtpid))
+	     dtp = insertRaptorResource(dtpid,ritResource,'type');
+	  else
+	     dtp = nil;
+	  if (eq(dtp,int)) 
+	     {
+		 writeln("FOUND AN INT");
+		 olv = toInt(ol~Literal)~ob;
+		 }
+	  else olv = ol ~ ob;
+      assert(sbr,prr~Property,olv);
+	  }
+   else error("neither object nor literal assigned");
+}
+
+
+var raptorParseBuf = emptysequence(RaptorStatement);
+var raptorFilenameBuf = SB('');
+void function raptorLoadFile(string fln)
+{
+   var int ln,i;
+   reset(raptorFilenameBuf);
+   raptorFilenameBuf * 'file'; //just for paste weirdness on KDE
+   raptorFilenameBuf * '://';
+   raptorFilenameBuf * fln;
+   reset(raptorParseBuf);
+   raptorParseFile(raptorParseBuf~SeqOfOb,raptorFilenameBuf);
+   ln = length(raptorParseBuf);
+   for (i=0;i<ln;i++) assert(raptorParseBuf[i]);
+}
+
+void function printRaptorStatements()
+{
+   var int ln,i;
+   ln = length(raptorParseBuf);
+   for (i=0;i<ln;i++) writeln(i,' ',raptorParseBuf[i]);
+}
+/* temporary synonym */
+
+void function prs(){printRaptorStatements();}
+
+
+void function raptorReset()
+{
+   reset(raptorParseBuf);
+   reset(raptorSubjects);
+   raptorResources = mkObject();
+}
+
+
+
+
+
+
+
+/*
+load('fimpsrc/raptor.v6.fbl');
+var fln = "/mnt/windows/fabl/local1/rdfmapper/basemaps/astoria.0.xml";
+raptorLoadFile(fln);
+
+
+var parseRs = emptysequence(RaptorStatement);
+// seq test
+var fln = "file"+":///usr/local/src/raptor-1.0.0/tests/ex-7.rdf";
+// weird: pastvar fln = "filee:///usr/local/src/raptor-1.0.0/tests/ex-12.rdf";
+var fln = "file"+":///mnt/windows/fabl/local1/rdfmapper/basemaps/astoria.0.xml";
+var fln = "/mnt/windows/fabl/local1/rdfmapper/basemaps/astoria.0.xml";
+var fln = "/usr/local/src/raptor-1.0.0/tests/ex-12.rdf";
+var bf = SB('');
+readFromFile(bf,fln);
+
+raptorParseBuf(parseRs~SeqOfOb,bf);
+*/
+/*
+load('fimp/raptor.fbl');
+
+load('fimpsrc/raptor.v8.fbl');
+raptorInit();
+var parseRs = emptysequence(RaptorStatement);
+var fln = "file";
+fln +":///mnt/windows/fabl/local1/rdfmapper/basemaps/astoria.0.xml";
+fln +":tests/astoria.0.xml";
+reset(parseRs);
+raptorParseFile(parseRs~SeqOfOb,fln);
+
+
+var fln = "file"+":///usr/local/src/raptor-1.0.0/tests/ex-07.rdf";
+var fln = "file"+":///usr/local/fabl/tests/datatypes.rdf";
+reset(parseRs);
+raptorParseFile(parseRs~SeqOfOb,fln);
+
+
+
+namespace('geom2d','http://nurl.org/0/geom2d/1.0');
+allocateProperty('geom2d:xmin');
+geom2d:xmin.rdfs:range = int;
+allocateProperty('geom2d:xmax');
+geom2d:xmin.rdfs:range = int;
+allocateProperty('geom2d:ymin');
+geom2d:ymin.rdfs:range = int;
+allocateProperty('geom2d:ymax');
+geom2d:ymax.rdfs:range = int;
+
+class('geom2d:Box');
+addPropertyRestriction(classBeingDefined,geom2d:xmin,int,nil,1,0);
+addPropertyRestriction(classBeingDefined,geom2d:xmax,int,nil,1,0);
+addPropertyRestriction(classBeingDefined,geom2d:ymin,int,nil,1,0);
+addPropertyRestriction(classBeingDefined,geom2d:ymax,int,nil,1,0);
+endClass();
+constant Box = geom2d:Box;
+var bx = new(Box);
+var bb = bx~ob;
+set(bb,geom2d:xmin,toLiteral("123")~ob);
+var mm = get(bb,geom2d:xmin);
+iInstall(bb,Box,true);
+get(bb,geom2d:xmin);
+
+
+
+load('fimp/raptor.v8.fbl');
+
+
+namespace('geom2d','http://nurl.org/0/geom2d/1.0');
+deserializeFromFile('geom2d/geom2d.fb',newPage());
+
+raptorInit();
+raptorReset();
+raptorLoadFile("/usr/local/fabl-2.0.0/tests/astoria.1.xml");
+var bx = raptorSubjects[1];
+bx.geom2d:xmax;
+
+var mm = get(bx,geom2d:xmax);
+var pp = raptorParseBuf[7];
+iInstall(bx,Box,true);
+get(bx,geom2d:xmax);
+
+
+var bb = new(Box);
+
+
+*/

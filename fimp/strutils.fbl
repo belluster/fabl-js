@@ -1,0 +1,778 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+/*
+
+id and string utilities
+*/
+
+
+
+
+int function arrayRef(string s,int n)
+{
+  return select(s,n);
+}
+
+int function arrayRef(id s,int n)
+{
+  return select(s,n);
+}
+
+
+var ascii_space = 32;
+var ascii_plus = 43;
+var ascii_minus = 45;
+var ascii_star = 42;
+var ascii_rparen = 41;
+var ascii_lparen = 40;
+var ascii_rbracket = 93;
+var ascii_lbracket = 91;
+var ascii_dot = 46;
+var ascii_rcurly = 125;
+var ascii_lcurly = 123;
+var ascii_equal = 61;
+var ascii_twiddle = 126;
+var ascii_lessp = 60;
+var ascii_greaterp  = 62;
+var ascii_comma  = 44;
+var ascii_minus = 45;
+var ascii_slash = 47;
+var ascii_vbar = 124;
+var ascii_lf = 10;
+var ascii_ampersand = 38;
+var ascii_percent = 37;
+var ascii_semicolon = 59;
+var ascii_squote = 39;
+var ascii_dquote = 34;
+var ascii_colon = 58;
+var ascii_underbar = 95;
+var ascii_backslash = 92;
+var ascii_bang = 33;
+var ascii_e = 101;
+var ascii_E = 69;
+var ascii_n = 110; 
+var ascii_r = 114;
+var ascii_t = 116;
+var ascii_u = 117;
+var ascii_x = 120;
+var ascii_T = 84;
+
+
+boolean function equal(byte a,b)
+{
+  return (a~int)==(b~int);
+}
+
+
+int function find(string s,int c)
+{
+   var int ln,i;
+   ln = length(s);
+   for (i = 0;i<ln;i++)
+   {
+       if (select(s,i) == c) return i;
+   }
+   return -1;
+}
+
+// return the position of the first occurence of c at or after sp; -1 if not found
+
+
+int function find(string s,int c,int sp)
+{
+   var int ln,i;
+   ln = length(s);
+   for (i = sp;i<ln;i++)
+   {
+       if (select(s,i) == c) return i;
+   }
+   return -1;
+}
+
+
+int function findFromEnd(string s,int c)
+{
+   var int ci,ln,i;
+   ln = length(s);
+   ci = c~int;
+   for (i = ln-1;i>=0;i--)
+   {
+       if (select(s,i) == ci) return i;
+   }
+   return -1;
+}
+
+int function findFromEnd(string s,int c,int startat)
+{
+   var int i,ci;
+   ci = c ~int;
+   for (i = startat;i>=0;i--)
+   {
+       if (select(s,i) == ci) return i;
+   }
+   return -1;
+}
+var temp_stringbuf = mkStringBuf();
+
+
+ 
+string function substr(string s,int ilb,iln)
+{
+   var int lb,ub,ln,string rs;
+   if (ilb < 0) lb = 0; else lb = ilb;
+   ln = length(s);
+   ub = lb + iln;
+   if (ub > ln) ub = ln;
+   rs = mkStringBuf(ub - lb);
+   select(rs,s,lb,ub-1);
+   return rs;
+}
+
+string function substr(string s,int ilb)
+{
+  return substr(s,ilb,length(s));
+}
+
+ 
+string function slice(string s,int ilb,iub)
+{
+   var int lb,ub,ln,rln,string rs;
+   if (ilb < 0) lb = 0; else lb = ilb;
+   ln = length(s);
+   if (iub > ln) ub = ln;  else ub = iub;
+   if (ub <= lb) return "";
+   rln = ub - lb;
+   rs = mkStringBuf(rln);
+   select(rs,s,lb,ub-1);
+   return rs;
+}
+
+
+
+void function slice(string rs,string s,int ilb,iub)
+{
+   var int lb,ub,ln,rln;
+   if (ilb < 0) lb = 0; else lb = ilb;
+   ln = length(s);
+   if (iub > ln) ub = ln;  else ub = iub;
+   if (ub <= lb) 
+      {
+	  rs * s;
+	  return;
+	  }
+   rln = ub - lb;
+   select(rs,s,lb,ub-1);
+}
+
+// matches Jscript function of the same name
+
+string function substring(string s,int ilb,iub)
+{
+   var int lb,ub;
+   if (ilb > iub) 
+      {
+	  lb = iub;
+	  ub = ilb;
+	  }
+   else
+      {
+	  lb = ilb;
+	  ub = iub;
+	  }
+   return slice(s,lb,ub);
+}
+
+string function select(string s,int lb,ub)
+{
+   var string rs;
+   rs = mkStringBuf(1 + ub - lb);
+   select(rs,s,lb,ub);
+   return rs;
+}
+  
+
+id function substringS(string s,int ilb,iub)
+{
+   var int lb,ub;
+   if (ilb > iub) 
+      {
+	  lb = iub;
+	  ub = ilb;
+	  }
+   else
+      {
+	  lb = ilb;
+	  ub = iub;
+	  }
+   reset(temp_stringbuf);
+   select(temp_stringbuf,s,lb,ub-1);
+   return toString(temp_stringbuf);
+}
+
+string function afterLast(string s,int c)
+{
+   var int fs;
+   fs = findFromEnd(s,c);
+   if (fs < 0) return s;
+   else return substring(s,fs+1,length(s));
+}
+
+
+id function afterLastS(string s,int c)
+{
+   var int fs;
+   fs = findFromEnd(s,c);
+   if (fs < 0) return toString(s);
+   else return substringS(s,fs+1,length(s));
+}
+
+
+
+
+id function afterLastDotS(string s)
+{
+   return afterLastS(s,ascii_dot);
+}
+
+// this finds the first occurence of cn in the lstring cnx
+//it returns the indx of the beginning of y in x, or -1 if not found }
+
+
+int function find(string cnx,string cny,int sp)
+{
+   var int lnx,lny,mp,mi,boolean dn,fnd;
+   lny = length(cny);
+   if (lny == 1) return find(cnx,cny[0],sp);//optimization
+   lnx = length(cnx);
+   mp = sp;   // position of first character of current match attempt in x 
+   mi = -1;   // index relative to mp of last verified character in current match attempt 
+   fnd = false;
+   dn = false;
+   while (not(dn))
+         {
+         if (mi == lny - 1) { fnd = true;dn = true} else
+         if ((mp + mi) == (lnx - 1))  { fnd = false;dn = true} else
+            {
+            mi = mi + 1;
+            if (not(select(cnx,mp + mi) == select(cny,mi)))  // mismatched character
+               {
+               mp = mp + 1;
+               mi = -1;
+               }
+            }
+         }
+    if (fnd)  return mp; else return -1;
+}
+
+int function find(string cnx,string cny)
+{
+  return find(cnx,cny,0);
+}
+
+
+int function findFromEnd(string cnx,string cny,int sp,boolean nosp)
+{
+   var int lnx,lny,lnxmlny,mp,mi,boolean dn,fnd;
+   lny = length(cny);
+   if (lny == 1) return findFromEnd(cnx,cny[0],sp);//optimization
+   lnx = length(cnx);
+   lnxmlny = lnx - lny;
+   if (nosp) mp = lnxmlny;
+   else
+   if (lnxmlny < sp) mp = lnxmlny;
+   else mp = sp; // position of first character of current match attempt in x    
+   mi = -1;   // index relative to mp of last verified character in current match attempt 
+   fnd = false;
+   dn = false;
+   while (not(dn))
+         {
+         if (mi == lny - 1) { fnd = true;dn = true} else
+         if (mp < 0)  { fnd = false;dn = true} else
+            {
+            mi = mi + 1;
+            if (not(select(cnx,mp + mi) == select(cny,mi)))  // mismatched character
+               {
+               mp = mp - 1;
+               mi = -1;
+               }
+            }
+         }
+    if (fnd)  return mp; else return -1;
+}
+
+int function findFromEnd(string cnx,string cny,int sp)
+{
+   return findFromEnd(cnx,cny,sp,false);
+}
+
+
+int function findFromEnd(string cnx,string cny)
+{
+    return findFromEnd(cnx,cny,0,true);
+}
+
+
+/*
+findFromEnd("abcdefabcdef","abc");
+findFromEnd("aabcdefabcdef","abc",5);
+*/
+
+//  javascript names
+
+int function indexOf(string cnx,string cny)
+{
+  return find(cnx,cny,0);
+}
+
+int function indexOf(string cnx,int cny)
+{
+  return find(cnx,cny,0);
+}
+
+int function indexOf(string cnx,string cny,int n)
+{
+  return find(cnx,cny,n);
+}
+int function indexOf(string cnx,int cny,int n)
+{
+  return find(cnx,cny,n);
+}
+
+
+int function lastIndexOf(string cnx,string cny,int sp)
+{
+   return findFromEnd(cnx,cny,sp,false);
+}
+
+
+int function lastIndexOf(string cnx,string cny)
+{
+    return findFromEnd(cnx,cny,0,true);
+}
+
+
+int function lastIndexOf(string cnx,int cny)
+{
+    return findFromEnd(cnx,cny);
+}
+
+
+
+
+boolean function startsWith(string cnx,string cny)
+{
+   var int lnx,lny,i,boolean oksf;
+   lnx = length(cnx);
+   lny = length(cny);
+   if (lny > lnx) return false;
+   oksf = true;
+   for (i=0;i<lny;i++)
+       {
+	   if (not(select(cnx,i) == select(cny,i))) return false;
+	   }
+   return true;
+}
+
+
+
+boolean function endsIn(string cnx,string cny)
+{
+   var int lnx,lny,i,sp,boolean oksf;
+   lnx = length(cnx);
+   lny = length(cny);
+   if (lny > lnx) return false;
+   oksf = true;
+   sp = lnx - lny;
+   for (i=sp;i<lnx;i++)
+       {
+	   if (not(select(cnx,i) == select(cny,i-sp))) return false;
+	   }
+   return true;
+}
+
+
+id function plus(id a,b)
+{
+   var string rs;
+   rs = mkStringBuf(a);
+   rs * b;
+   return toString(rs);
+}
+
+/* for now; should be in C; maybe should be a char type (check xsd)
+void function addChar(string b,int c)
+{
+   b * (c~byte);
+}
+*/
+
+SeqOf(string) function split(string s,int delim)
+{
+   var int ln,i,c,string cbf,SeqOf(string) rs;
+   rs = emptysequence(string);
+   ln = length(s);
+   cbf = SB();
+   for (i=0;i<ln;i++)
+       {
+	   c = s[i];
+	   if (c == delim)
+	      {
+		  push(rs,cbf);
+		  cbf = SB();
+		  }
+	   else
+	      addChar(cbf,c);
+	   }
+  push(rs,cbf);
+  return rs;
+}
+
+boolean function matchesAt(string buf,int p,string s)
+{
+   var int cc,int i,ln;
+   i = 0;
+   ln = length(s);
+   if ((p+ln) > length(buf)) return false;
+   while (i < ln)
+	     {
+		 cc = buf[p+i];
+	     if (cc == s[i]) i++;
+		 else return false;
+		 }
+   return true;
+}
+
+SeqOf(string) function split(string s, string dl)
+{
+   var int ln,lnd,dl0,i,c,string cbf,SeqOf(string) rs;
+   rs = emptysequence(string);
+   lnd = length(dl);
+   if (lnd == 0) error("attempt to split on an empty delimiter");
+   dl0 = dl[0];
+   if (lnd == 1) return split(s,dl0);
+   ln = length(s);
+   cbf = SB();
+   while (i < ln)
+       {
+	   c = s[i];
+	   if ((c == dl0) && matchesAt(s,i,dl))
+	      {
+		  push(rs,cbf);
+		  i = i + lnd;
+		  cbf = SB();
+		  }
+	   else
+	      {
+	      addChar(cbf,c);
+		  i = i + 1;
+		  }
+	   }
+  if (length(cbf)>0) push(rs,cbf);
+  return rs;
+}  
+
+string function implode(id glue,SeqOf(string) pieces)
+{
+  var int ln,i,lnm1,string rs;
+  ln = length(pieces);
+  lnm1 = ln - 1;
+  rs = SB('');
+  for (i=0;i<ln;i++)
+      {
+	  rs * pieces[i];
+	  if (i < lnm1) rs * glue;
+	  }
+  return rs;
+}
+
+// replace fc by tc in the slice lb ub; no checking that lb 
+void function replaceChar(string rs,string s,int fc,tc,lb,ub)
+{
+   var int ln,i,cc;
+   ln = length(s);
+   if ((lb < 0) || (lb > ub) || (ub > ln)) error("Bad inputs to replaceChar");
+   select(rs,s,0,lb-1);
+   for (i = lb;i<ub;i++)
+       {
+	   cc = s[i];
+	   if (cc == fc) addChar(rs,tc); else addChar(rs,cc);
+	   }
+    select(rs,s,ub,ln-1);
+}
+
+string function replaceChar(string s,int fc,tc,lb,ub)
+{
+   var string rs;
+   rs = mkStringBuf(length(s));
+   replaceChar(rs,s,fc,tc,lb,ub);
+   return rs;
+}
+
+
+void function replaceChar(string rs,string s,int fc,string ts,int lb,ub)
+{
+   var int ln,i,cc;
+   ln = length(s);
+   if ((lb < 0) || (lb > ub) || (ub > ln)) error("Bad inputs to replaceChar");
+   select(rs,s,0,lb-1);
+   for (i = lb;i<ub;i++)
+       {
+	   cc = s[i];
+	   if (cc == fc) rs * ts; else addChar(rs,cc);
+	   }
+    select(rs,s,ub,ln-1);
+}
+
+string function replaceChar(string s,int fc,string ts,int lb,ub)
+{
+   var string rs;
+   if (length(ts) < 2) rs = mkStringBuf(length(s));
+   else rs = "";
+   replaceChar(rs,s,fc,ts,lb,ub);
+   return rs;
+}
+
+/*
+replaceChar("abcdefef",101,"ZZ",0,length("abcdefef"));
+var s= "abcdefef";
+var fc = 101;
+var ts = "ZZ";
+var lb = 0;
+var ub = length(s);
+
+*/
+
+
+
+string function fileExtension(string fln)
+{
+  var int ld;
+  ld = lastIndexOf(fln,ascii_dot);
+  if (ld < 0) return nil~string;
+  return slice(fln,ld+1,length(fln));
+}
+
+string function copy(string s)
+{
+   var string rs;
+   rs = mkString(length(s));
+   rs * s;
+   return rs;
+}
+
+// is the string within the slice from sp to ep (sp <= index < ep) an int 
+// 
+boolean function isInt(string x,int sp,ep)
+{
+   var int p,cc,i;
+   p = sp;
+   if (x[sp] == ascii_minus)  p++;
+   for (i=p;i<ep;i++)
+      {
+	  cc = x[i];
+	  if ((cc < 48) || (cc > 57)) return false;
+	  }
+   return true;
+}
+
+
+// append trimmed x onto rs (trim = remove whitespace from beginning and end)
+void function trim(string rs,string x)
+{
+   var int lb,ub,ln,boolean nfnd;
+   lb = 0;
+   ln = length(x);
+   nfnd = true;
+   while (nfnd && (lb < ln))
+      {
+	  if (x[lb]==ascii_space) lb++; else nfnd = false;
+	  }
+   if (lb == ln) return;
+   ub = ln - 1;
+   nfnd = true;
+   while (nfnd && (ub >= 0))
+      {
+	  if (x[ub]==ascii_space) ub--; else nfnd = false;
+	  }
+   slice(rs,x,lb,ub+1);
+}
+
+string function trim(string x)
+{
+   var string rs;
+   rs = "";
+   trim(rs,x);
+   return rs;
+}
+/*
+trim("abc");
+*/
+
+   
+
+   
+   
+   
+// allow 
+var trimBuf = "";
+
+boolean function isInt(string x)
+{
+  if (length(x) == 0) return false;
+  reset(trimBuf);
+  trim(trimBuf,x);
+  return isInt(trimBuf,0,length(trimBuf));
+}
+
+	  
+    
+
+// form of double: [-]ip[.db][eE] where E is an it
+
+boolean function isDouble1(string x)
+{
+   var int ln,dcm,ep;
+   ln = length(x);
+   if (ln == 0) return false;
+   dcm = indexOf(x,ascii_dot);
+   if (dcm < 0) return isInt(x,0,ln);
+   if (!isInt(x,0,dcm)) return false;
+   ep = indexOf(x,ascii_e);
+   if (ep < 0) ep = indexOf(x,ascii_E);
+   if (ep < 0)
+      {
+	  if (ln == (dcm + 1)) return true;
+	  return isInt(x,dcm+1,ln);
+	  }
+   if ((ep+1) == ln) return false;
+   return isInt(x,ep+1,ln);
+}
+
+
+boolean function isDouble(string x)
+{
+  if (length(x) == 0) return false;
+  reset(trimBuf);
+  trim(trimBuf,x);
+  return isDouble1(trimBuf);
+}
+
+
+boolean function isInt(Literal x)
+{
+  var ob xo,int k;
+  xo = x ~ ob;
+  k = obkind(xo);
+  if (k == int_kind) return true;
+  if (isString(xo)) return isInt(xo~string);
+  return false;
+}
+
+
+boolean function isDouble(Literal x)
+{
+  var ob xo,int k;
+  xo = x ~ ob;
+  k = obkind(xo);
+  if ((k == int_kind)||(k == double_kind)) return true;
+  if (isString(xo)) return isDouble(xo~string);
+  return false;
+}
+
+
+boolean function isBoolean(Literal x)
+{
+  var ob xo,int k,xi;
+  xo = x ~ ob;
+  k = obkind(xo);
+  if (k == int_kind) 
+     {
+	 xi = x ~ int;
+	 return (xi == 0)||(xi == 1);
+	 }
+  if (isString(xo)) return isInt(xo~string);
+  return false;
+}
+
+   
+
+
+
+
+/*
+
+
+var ff= "abc\\hij\\def?ddd\\eee";
+replaceChar(ff,ascii_backslash,ascii_slash,0,indexOf(ff,"?"[0]));
+
+var analyzeFunctionVerbose = true;
+
+void function foob()
+{
+  var boolean nfnd;
+  nfnd = true;
+  while (nfnd && (2 < 3)) {writeln("ho");nfnd=false}
+}
+
+void function foob()
+{
+  var boolean nfnd;
+  nfnd = true;
+  while ((2 < 3) && nfnd) {writeln("ho");nfnd=false}
+}
+
+
+*/
+
+
+
+int function toUpperCase(int ci)
+{
+   if ((ci <= 122) && (ci >= 97)) return (ci - 32)~char;
+   return ci;
+}
+   
+string function toUpperCaseD(string bf)
+{
+   var int ln,i;
+   ln = length(bf);
+   for (i=0;i<ln;i++) bf[i] = toUpperCase(bf[i]);
+   return bf;
+}
+
+
+string function toUpperCase(string bf)
+{
+   return toUpperCaseD(copy(bf));
+}
+
+
+
+int function toLowerCase(int ci)
+{
+   if ((ci <= 90) && (ci >= 65)) return (ci + 32)~char;
+   return ci;
+}
+   
+string function toLowerCaseD(string bf)
+{
+   var int ln,i;
+   ln = length(bf);
+   for (i=0;i<ln;i++) bf[i] = toLowerCase(bf[i]);
+   return bf;
+}
+
+
+string function toLowerCase(string bf)
+{
+   return toLowerCaseD(copy(bf));
+}

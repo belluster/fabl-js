@@ -1,0 +1,111 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+// a few utilities of functional type
+
+
+void function cull(SeqOf(ob) rs,SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var int ln,i,ob ce,boolean flt;
+   ln = length(vls);
+   for (i=0;i<ln;i++)
+       {
+	   ce = vls[i];
+//	   writeln(i);
+	   if (nnul(lcf(ce))) push(rs, ce);
+	   }
+}
+
+
+
+
+void function cull(SeqOf(ob) rs,SeqOf(ob) vls,Function(boolean,ob) lcf)
+{
+   var int ln,i,ob ce,boolean flt;
+   ln = length(vls);
+   for (i=0;i<ln;i++)
+       {
+	   ce = vls[i];
+//	   writeln(i);
+	   if (lcf(ce)) push(rs, ce);
+	   }
+}
+
+
+SeqOf(ob) function cull(SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var SeqOf(ob) rs;
+   rs = new(SeqOf(ob));
+   cull(rs,vls,lcf);
+   return rs;
+}
+
+
+SeqOf(ob) function cull(SeqOf(ob) vls,Function(boolean,ob) lcf)
+{
+   var SeqOf(ob) rs;
+   rs = new(SeqOf(ob));
+   cull(rs,vls,lcf);
+   return rs;
+}
+
+
+//collects the results of the culling function
+void function cull(SeqOf(ob) frs,SeqOf(ob) rs,SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var int ln,i,ob ce,fr,boolean flt;
+   ln = length(vls);
+   for (i=0;i<ln;i++)
+       {
+	   ce = vls[i];
+//	   writeln(i);
+       fr = lcf(ce);
+	   if (nnul(fr)) {push(rs, ce);push(frs,fr);}
+	   }
+}
+
+
+void function map(SeqOf(ob) rs,SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var int ln,i,ob ce,boolean flt;
+   ln = length(vls);
+   for (i=0;i<ln;i++)
+       {
+	   ce = vls[i];
+//	   writeln(i);
+	   push(rs, lcf(ce));
+	   }
+}
+
+
+SeqOf(ob) function map(SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var SeqOf(ob) rs;
+   rs = new(SeqOf(ob));
+   map(rs,vls,lcf);
+   return rs;
+}
+
+
+ob function firstNonNul(SeqOf(ob) vls,Function(ob,ob) lcf)
+{
+   var int ln,i,ob ce,rs,boolean flt;
+   ln = length(vls);
+   for (i=0;i<ln;i++)
+       {
+	   ce = vls[i];
+       rs = lcf(ce);
+	   if (nnul(rs)) return rs;
+	   }
+}
+
+

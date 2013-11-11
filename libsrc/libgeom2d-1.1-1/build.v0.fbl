@@ -1,0 +1,43 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+/*
+compile("file://../lib/libgeom2d-1.1-1.fb","file://../libsrc/libgeom2d-1.1-1/build.v0.fbl");
+*/
+
+
+
+/* assumes prior  loading of the following code, normally in init.fbl
+load("{stdlibPrefix}discovery-1.1.fb");
+discovery:namespaces_0();
+discovery:discovery_0();
+*/
+
+install(namespace('geom'));
+install(namespace('geom2d'));
+
+
+var thisDir = "file://../libsrc/libgeom2d-1.1-1/";
+
+setHomeAndTopic(namespace('libgeom2d'));
+
+startCollectingTriples();
+
+writeln("***************************");
+ writeln("TOPIC ******** ",fget(thisFileR,topicP)," *******");
+writeln("***************************");
+
+load("{thisDir}points.v0.fbl");
+
+writeln("***************************");
+ writeln("TOPIC ******** ",fget(thisFileR,topicP)," *******");
+writeln("***************************");
+
+load("{thisDir}box.v0.fbl");
+load("{thisDir}matrix.v0.fbl");

@@ -1,0 +1,126 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+constant Regarding_value = assertUriChildAsFunctionalProperty(Regarding~ob,'value');
+var Regarding_aspect = assertUriChildAsFunctionalProperty(Regarding~ob,'aspect');
+var Sort_constructor = assertUriChildAsFunctionalProperty(fablType~ob,'constructor');
+var Sort_param = assertUriChildAsFunctionalProperty(fablType~ob,'param');
+var Sort_params = assertUriChildAsFunctionalProperty(fablType~ob,'params');
+var Sort_properties = assertUriChildAsFunctionalProperty(fablType~ob,'properties');
+var Sort_prototype = assertUriChildAsFunctionalProperty(fablType~ob,'prototype');
+var Sort_booles = assertUriChildAsFunctionalProperty(fablType~ob,'booles');
+var Binding_value = assertUriChildAsFunctionalProperty(Binding~ob,'value');
+var Binding_type = assertUriChildAsFunctionalProperty(Binding~ob,'type');
+var Binding_key = assertUriChildAsFunctionalProperty(Binding~ob,'key');
+var Xob1_type = assertUriChildAsFunctionalProperty(Xob1~ob,'type');
+var Xob1_name = assertUriChildAsFunctionalProperty(Xob1~ob,'name');
+var Xob1_parent = assertUriChildAsFunctionalProperty(Xob1~ob,'parent');
+var Xob1_value = assertUriChildAsFunctionalProperty(Xob1~ob,'value');
+var Xob1_booles = assertUriChildAsFunctionalProperty(Xob1~ob,'booles');
+var Function_name = assertUriChildAsFunctionalProperty(Function~ob,'name');
+var Function_definedIn = assertUriChildAsFunctionalProperty(Function~ob,'definedIn');
+var Function_type = assertUriChildAsFunctionalProperty(Function~ob,'type');
+var Function_implementation = assertUriChildAsFunctionalProperty(Function~ob,'implementation');
+var Function_cimp = assertUriChildAsFunctionalProperty(Function~ob,'cimp');
+var Function_booles = assertUriChildAsFunctionalProperty(Function~ob,'booles');
+var Xapply_dest = assertUriChildAsFunctionalProperty(Xapply~ob,'dest');
+var Xapply_functionOf = assertUriChildAsFunctionalProperty(Xapply~ob,'functionOf');
+var Xapply_arguments = assertUriChildAsFunctionalProperty(Xapply~ob,'arguments');
+var Xapply_booles = assertUriChildAsFunctionalProperty(Xapply~ob,'booles');
+var Xsequence_dest = assertUriChildAsFunctionalProperty(Xsequence~ob,'dest');
+var Xsequence_elementType = assertUriChildAsFunctionalProperty(Xsequence~ob,'elementType');
+var Xsequence_arguments = assertUriChildAsFunctionalProperty(Xsequence~ob,'arguments');
+var Xsequence_booles = assertUriChildAsFunctionalProperty(Xsequence~ob,'booles');
+var Xcast_castee = assertUriChildAsFunctionalProperty(Xcast~ob,'castee');
+var Xcast_booles = assertUriChildAsFunctionalProperty(Xcast~ob,'booles');
+var XselectProperty_source = assertUriChildAsFunctionalProperty(XselectProperty~ob,'source');
+var XselectProperty_selector = assertUriChildAsFunctionalProperty(XselectProperty~ob,'selector');
+var XselectProperty_booles = assertUriChildAsFunctionalProperty(XselectProperty~ob,'booles');
+var XselectIndex_source = assertUriChildAsFunctionalProperty(XselectIndex~ob,'source');
+var XselectIndex_selector = assertUriChildAsFunctionalProperty(XselectIndex~ob,'selector');
+var XselectIndex_booles = assertUriChildAsFunctionalProperty(XselectIndex~ob,'booles');
+var Xassign_source = assertUriChildAsFunctionalProperty(Xassign~ob,'source');
+var Xassign_dest = assertUriChildAsFunctionalProperty(Xassign~ob,'dest');
+var Xassign_booles = assertUriChildAsFunctionalProperty(Xassign~ob,'booles');
+var Xfor_init = assertUriChildAsFunctionalProperty(Xfor~ob,'init');
+var Xfor_test = assertUriChildAsFunctionalProperty(Xfor~ob,'test');
+var Xfor_incr = assertUriChildAsFunctionalProperty(Xfor~ob,'incr');
+var Xfor_body = assertUriChildAsFunctionalProperty(Xfor~ob,'body');
+var Xfor_booles = assertUriChildAsFunctionalProperty(Xfor~ob,'booles');
+var Xwhile_test = assertUriChildAsFunctionalProperty(Xwhile~ob,'test');
+var Xwhile_incr = assertUriChildAsFunctionalProperty(Xwhile~ob,'incr');
+var Xwhile_body = assertUriChildAsFunctionalProperty(Xwhile~ob,'body');
+var Xwhile_booles = assertUriChildAsFunctionalProperty(Xwhile~ob,'booles');
+var Xreturn_value = assertUriChildAsFunctionalProperty(Xreturn~ob,'value');
+var Xreturn_target = assertUriChildAsFunctionalProperty(Xreturn~ob,'target');
+var Xreturn_booles = assertUriChildAsFunctionalProperty(Xreturn~ob,'booles');
+var Xblock_returnType = assertUriChildAsFunctionalProperty(Xblock~ob,'returnType');
+var Xblock_locals = assertUriChildAsFunctionalProperty(Xblock~ob,'locals');
+var Xblock_statements = assertUriChildAsFunctionalProperty(Xblock~ob,'statements');
+var Xblock_booles = assertUriChildAsFunctionalProperty(Xblock~ob,'booles');
+var Xgo_condition = assertUriChildAsFunctionalProperty(Xgo~ob,'condition');
+var Xgo_toLabel = assertUriChildAsFunctionalProperty(Xgo~ob,'toLabel');
+var Xgo_booles = assertUriChildAsFunctionalProperty(Xgo~ob,'booles');
+var Xif_condition = assertUriChildAsFunctionalProperty(Xif~ob,'condition');
+var Xif_ifTrue = assertUriChildAsFunctionalProperty(Xif~ob,'ifTrue');
+var Xif_ifFalse = assertUriChildAsFunctionalProperty(Xif~ob,'ifFalse');
+var Xif_booles = assertUriChildAsFunctionalProperty(Xif~ob,'booles');
+//var Xlabel_labels = assertUriChildAsFunctionalProperty(Xlabel~ob,'labels');
+var DblockLayout_numobs = assertUriChildAsFunctionalProperty(DblockLayout~ob,'numobs');
+var DblockLayout_numints = assertUriChildAsFunctionalProperty(DblockLayout~ob,'numints');
+var DblockLayout_doubleoffset = assertUriChildAsFunctionalProperty(DblockLayout~ob,'doubleoffset');
+var DblockLayout_numdoubles = assertUriChildAsFunctionalProperty(DblockLayout~ob,'numdoubles');
+var DblockLayout_booles = assertUriChildAsFunctionalProperty(DblockLayout~ob,'booles');
+var Pcode_code = assertUriChildAsFunctionalProperty(Pcode~ob,'code');
+var Pcode_dblock = assertUriChildAsFunctionalProperty(Pcode~ob,'dblock');
+var Pcode_dblockPool = assertUriChildAsFunctionalProperty(Pcode~ob,'dblockPool');
+var Pcode_booles = assertUriChildAsFunctionalProperty(Pcode~ob,'booles');
+var PcodeArg_kind = assertUriChildAsFunctionalProperty(PcodeArg~ob,'kind');
+var PcodeArg_dblockStorage = assertUriChildAsFunctionalProperty(PcodeArg~ob,'dblockStorage');
+var PcodeArg_dblockIndex = assertUriChildAsFunctionalProperty(PcodeArg~ob,'dblockIndex');
+var PcodeArg_selectionIndex = assertUriChildAsFunctionalProperty(PcodeArg~ob,'selectionIndex');
+var PcodeArg_pcodePos = assertUriChildAsFunctionalProperty(PcodeArg~ob,'pcodePos');
+var PcodeArg_pcodeLength = assertUriChildAsFunctionalProperty(PcodeArg~ob,'pcodeLength');
+var PcodeArg_booles = assertUriChildAsFunctionalProperty(PcodeArg~ob,'booles');
+var TempStackMark_obIndex = assertUriChildAsFunctionalProperty(TempStackMark~ob,'obIndex');
+var TempStackMark_intIndex = assertUriChildAsFunctionalProperty(TempStackMark~ob,'intIndex');
+var TempStackMark_doubleIndex = assertUriChildAsFunctionalProperty(TempStackMark~ob,'doubleIndex');
+var Token_datum = assertUriChildAsFunctionalProperty(Token~ob,'datum');
+var Token_position = assertUriChildAsFunctionalProperty(Token~ob,'position');
+var Token_booles = assertUriChildAsFunctionalProperty(Token~ob,'booles');
+
+var Xob1_labels = selectUri(Xob1~ob,'labels')~Property;
+
+
+var Xob1_isNoop = 1;
+var Xob1_isConstant = 0;
+var XselectProperty_isBitField = 0;
+var XselectProperty_isFunctional = 1;
+var Xreturn_blockReturn = 0;
+var Xreturn_loopBreak = 1;
+var Xreturn_loopContinue = 2;
+var Xgo_goIfFalse = 0;
+var Xblock_isFunctionBody = 0;
+var Xassign_addValue = 0;
+
+
+var Token_isInfix = 0;
+var Token_isPrefix = 1;
+var Token_isPostfix = 2;
+var Token_isTerminator = 3;
+var Token_isOperator = 4;
+var Token_isAtom = 5;
+var Token_isKeyword = 6;
+var Token_isNumber = 7;
+var Token_isString = 8;
+var Token_isId = 9;
+
+

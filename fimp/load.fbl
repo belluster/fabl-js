@@ -1,0 +1,695 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+// pseudo uris of the form a/b/c (that don't start with a scheme) are turned into
+// file://./a/b/c/
+
+var nowCompiling = false;
+
+
+
+string function uriToFilename(string u)
+{
+   var int ln,string rst;
+   if (startsWith(u,"file://")) 
+      {
+	  ln = length(u);
+	  rst = select(u,7,ln-1);
+	  return rst;
+	  }
+   return nil~string;
+}
+
+// takes windows or unix filenames, and produces legit uris
+string function filenameToUri(string u)
+{
+   var int fc,qidx,colonidx,bsidx,boolean isbs,string u1;
+   qidx = indexOf(u,"?"[0]); // later, "?"[0] will be turned into an int constant
+   colonidx = indexOf(u,":"[0]);
+   bsidx = indexOf(u,"\\"[0]);
+   if (qidx < 0) isbs = bsidx > 0;
+   else isbs = (bsidx > 0) && (bsidx < qidx);  
+   //repalace \ before ? by /    
+   if (isbs) 
+      {
+	  if (qidx < 0) u1  = replaceChar(u,ascii_backslash,ascii_slash,0,length(u));
+	  else u1 = replaceChar(u,ascii_backslash,ascii_slash,0,qidx);
+	  }
+   else u1 = u;
+	     
+   if (colonidx == 1) return "file://{u1}";
+   if (length(u1)==0) return "file://";
+   fc = u1[0];
+   if ((fc == ascii_slash)||(fc == ascii_dot)) return "file://{u1}";
+   return "file://./{u1}";
+}
+
+// if uri lacks a scheme, assume it denotes a file
+string function schemify(string uri)
+{
+   if (indexOf(uri,":"[0]) < 0) return filenameToUri(uri);
+   else return uri;
+}
+
+  
+
+
+/*
+var ff = filenameToUri("c:\\a\\b?def\\gg");
+uriToFilename(ff);
+*/
+
+var pageCount = 10; // system allocated pages below here
+
+
+int function newPage()
+{
+  setCurrentPage(pageCount++);
+  return pageCount;
+}
+
+
+
+int function newPage(ob vl)
+{
+  setCurrentPage(pageCount++);
+  set_page(vl,pageCount);
+  return pageCount;
+}
+
+
+void function prepareToBuild(id nms)
+{
+   set_page(namespace(nms),newPage());
+}
+
+void function startCollectingTriples()
+{
+   reset(collectedSubjects());
+   set_collectingSubjects(true);
+   newPage();
+}
+
+// finally, string ops on files
+
+
+boolean function fread(string dst,string url)
+{
+  var string urls,fln,rs;
+  urls = schemify(url);
+  if (startsWith(urls,"file:"))
+     {
+	 fln = uriToFilename(urls);
+	 return readFromFile(dst,fln);
+	 }
+  initWWW();
+  rs = www_fetch(urls);
+  if (nnul(rs))  
+     {
+	 dst *  rs;
+	 return true;
+	 }
+  return false;
+}
+
+
+
+boolean function fileExists(string url)
+{
+  var string urls,fln;
+  urls = schemify(url);
+  if (startsWith(urls,"file:"))
+     {
+	 fln = uriToFilename(urls);
+	 return fileExistsI(fln);
+	 }
+  return false;
+}
+
+
+/*
+initWWW();
+raptorInit();
+var vv = www_fetch("http://www.mapbureau.com/etcon/mapcode.fb");
+var vv = www_fetch("http://www.mapbureau.com/index.html");
+
+var vv = www_fetch("http://www.mapbureau.com/etcon/mapcode.fb");
+
+*/
+
+string function fread(string url)
+{
+  var string urls,fln,rs,dst;
+  urls = schemify(url);
+  if (startsWith(urls,"file:"))
+     {
+	 fln = uriToFilename(urls);
+	 dst = "";
+	 if (readFromFile(dst,fln)) return dst;
+	 return nil~string;
+	 }
+  initWWW();
+  return www_fetch(urls);
+}
+     
+
+boolean function fwrite(string url,string cnt)
+{
+  var string urls,fln,rs;
+  urls = schemify(url);
+  if (startsWith(urls,"file:")) return writeToFile(uriToFilename(urls),cnt);
+  error("fwrite only applies to files, not general urls: ",url);
+}
+
+var deserializeBuffer = "";
+
+ob function loadFB(SeqOf(ob) subjects,string uri,boolean intoNewPage)
+{
+   var string fln,sbf,boolean fr,int pg;
+   sbf = getSerializeBuffer();
+   reset(sbf);
+   fr = fread(sbf,uri);
+   if (!fr) error("Failed to load ",uri);
+   if (intoNewPage) pg = newPage(); else pg = currentPage();
+   return deserializeFromBuffer(subjects,sbf,pg);
+}
+
+ob function loadFB(SeqOf(ob) subjects,string uri)
+{
+   return loadFB(subjects,uri,true);
+}
+
+ob function loadFB(string uri)
+{
+   return loadFB(nil~SeqOf(ob),uri);
+}
+/*
+var ss = new(SeqOf(ob));
+
+var vv = load(ss,"http://rss.news.yahoo.com/rss/topstories","rss");
+
+load(ss,"http://www.mapbureau.com/userdata/donalda/worstplacesforjournalists/data.xml","xml");
+
+
+initWWW();
+raptorInit();
+
+var vv = loadFB("http://www.mapbureau.com/etcon/mapcode.fb");
+
+var nn = resource("http://www.mapbureau.com/etcon/mapcode");
+
+
+var vv = loadFB("file:///fabl3/etcon/mapcode.fb");
+
+var nn = resource("file:///fabl3/etcon/mapcode");
+
+
+
+var uri = "http://www.mapbureau.com/etcon/mapcode.fb";
+var subjects = nil~SeqOf(ob);
+   var string fln,sbf;
+   sbf = getSerializeBuffer();
+   reset(sbf);
+fread(sbf,uri);
+var bb = fread("http://www.mapbureau.com/etcon/mapcode.fb");
+
+*/
+
+
+
+
+
+ob function newHome()
+{
+  var ob rs;
+  newPage();
+   rs = mkObject();
+ initHome(rs);
+  return rs;
+}
+// later maybe lasthome should return to the old page too
+   
+void function writeRDF(string url,ob x)
+{
+   serializeToFile(url,x,page(x));
+}
+
+
+
+  
+var string fablLoadBuf;
+var SeqOfOb scanStack;
+scanStack = emptysequence(ob);
+var loadVerbose = true;//turned on in init.fbl but not cgi.fbl
+var loadSilent = false; // means that silent is turned on while loading
+var hasBeenLoadedP  = selectUri(fabl,'hasBeenLoaded')~Property;
+var isDefinedByP  = selectUri(rdfs,'isDefinedBy')~Property;
+
+boolean function beenLoaded(string url)
+{
+   var ob rs;
+   rs = uriToResource(url,false);
+   if (nul(rs)) return false;
+   return intsel(rs,hasBeenLoadedP)~boolean;
+}
+
+id function raptorSyntaxName(id s)
+{
+    if ((s == 'rdf')||(s=='xml')) return 'rdfxml';
+    if (s == 'nt') return 'ntriples';
+    if (s == 'ttl') return 'turtle';
+    if (s == 'rss') return 'rss-tag-soup';
+    return nil~id;
+}
+
+
+ob function load(SeqOfOb subjects,string ui,string syntax,boolean reload,safe,intoNewPage)
+  {
+   var ob flu,string fln,u,id rsn,ob rs,boolean bld,boolean loadok,svsilent;
+   // allows ui to be a non-uri after all
+   u = schemify(ui);
+   flu = uriToResource(u);
+   bld = intsel(flu,hasBeenLoadedP)~boolean;
+   if (!reload && bld) 
+	  return fget(flu,topicP);
+   if (syntax == 'fbl') 
+      {
+	  if (loadVerbose) 
+	     writeln('Loading ',u);
+	  push(scanStack,extractScannerState()~ob);
+	  scan_inbuf = mkStringBuf('');
+	  if (nul(fablLoadBuf)) fablLoadBuf = mkStringBuf('');
+	  reset(fablLoadBuf);
+	  if (fread(fablLoadBuf,u))
+	     {
+	     if (!nowCompiling) set(thisFileR,topicP,nil);
+		 svsilent = silent();
+		 if (loadSilent) silent(true);
+		 if (safe) safeMode(true);
+	     scan_init(fablLoadBuf);
+	     fablLoop(false);
+	     restoreScannerState(pop(scanStack)~SeqOfOb);
+		 silent(svsilent);
+	     if (!nowCompiling)
+		    {
+			rs = fget(thisFileR,topicP);
+	        if (nnul(rs)) set(flu,topicP,rs);
+			}
+	     }
+	  else error("missing: ",ui);
+	  }
+  else
+  if (syntax == "fb")
+     {
+	 set(thisFileR,topicP,nil);
+	 loadFB(subjects,u,intoNewPage);
+	 rs = fget(thisFileR,topicP);
+	 if (nnul(rs)) set(flu,topicP,rs);
+	 }
+  else
+     {
+     rsn = raptorSyntaxName(toId(syntax));
+     if (nul(rsn)) error('Syntax not supported for loading:',syntax);
+     if (nnul(subjects)) rs = loadRaptor(subjects,u,rsn);
+     else rs = loadRaptor(u,rsn);// LATER newpage mode for raptor
+     }
+//   flu.fabl:hasBeenLoaded = true;
+  intset(flu,hasBeenLoadedP,1);
+  return rs;
+  }
+
+ob function load(SeqOfOb subjects,string ui,string syntax,boolean reload)
+  {
+  return load(subjects,ui,syntax,reload,false,true);
+  }
+
+
+ob function loadIn(SeqOfOb subjects,string ui,string syntax,boolean reload)
+  {
+  return load(subjects,ui,syntax,reload,false,false);
+  }
+
+
+string function extensionForLoad(string fln)
+{
+   var string fle;
+   fle = fileExtension(fln);
+   if (nul(fle)) error("No file  extension, so cannot determine file type: ",fln);
+   if ((fle == 'fbl') || (fle == 'fb') || (fle == 'xml')||(fle == 'nt') || (fle == 'ttl')) return fle;
+   if (fle == 'fsp') return 'fbl';
+   if (fle == 'rdf') return 'xml';
+   error('No Fabl loader is assigned to  extension:',fle);
+}
+
+
+ob function load(SeqOf(ob) subjects,string fln,boolean reload)
+  {
+  return load(subjects,fln,extensionForLoad(fln),reload);
+  }
+
+
+
+ob function load(SeqOf(ob) subjects,string fln,string stx)
+  {
+  return load(subjects,fln,stx,true);
+  }
+
+/*
+-L/usr/local/lib
+xmlSAX2StartDocument
+
+var ss = new(SeqOf(ob));
+load(ss,"http://www.egraffiti.net/wordpress-1.0.2/wp-rss2.php","rss");
+
+load(ss,"http://www.blogmapper.com/outlinesf.htm","rss");
+load(ss,"http://www.blogmapper.com/outlinesf.htm","rss");
+var ss = new(SeqOf(ob));
+load(ss,"http://www.mapbureau.com/basemaps/astoria.0.xml","rdf");
+
+gcc -o .libs/rapper rdfdump.o  ./.libs/libraptor.so -L/usr/local/lib /usr/local/lib/libxml2.so -lz -lpthread -lm -Wl,--rpath -Wl,/usr/local/lib
+
+
+-Wl,--rpath -Wl,/usr/local/lib
+
+
+
+/sbin/ldconfig -n -v /usr/local/lib
+/sbin/ldconfig -n /usr/local/src/raptor-1.2.0/.libs
+*/
+
+
+
+ob function loadOnce(SeqOf(ob) subjects,string fln,string stx)
+  {
+   return load(subjects,fln,stx,false);
+  }
+
+
+ob function load(SeqOf(ob) subjects,string fln)
+  {
+  return load(subjects,fln,true);
+  }
+
+ob function loadOnce(SeqOf(ob) subjects,string fln)
+  {
+  return load(subjects,fln,false);
+  }
+
+ob function load(string fln,string tp,boolean reload)
+  {
+  return load(nil~SeqOf(ob),fln,tp,reload);
+  }
+
+ob function load(string fln,tp)
+  {
+  return load(fln,tp,true);
+  }
+
+ob function loadOnce(string fln,tp)
+  {
+  return load(fln,tp,true);
+  }
+
+
+
+ob function loadIn(string fln,boolean reload)
+  {
+  return loadIn(nil~SeqOf(ob),fln,extensionForLoad(fln),reload);
+  }
+
+ob function load(string fln,boolean reload)
+  {
+  return load(nil~SeqOf(ob),fln,extensionForLoad(fln),reload);
+  }
+
+ob function load(string fln)
+  {
+  return load(fln,true);
+  }
+
+
+ob function loadIn(string fln)
+  {
+  return loadIn(fln,true);
+  }
+
+ob function loadOnce(string fln)
+  {
+  return load(fln,false);
+  }
+
+
+
+boolean function install(ob x,boolean reinstall)
+{
+   var SeqOf(ob) dfb,int ln,i;
+   dfb = mget(x,isDefinedByP);
+   ln = length(dfb);
+  if (ln == 0) return false;
+   for (i = 0;i<ln;i++)
+	   load(uri(dfb[i]),reinstall);
+  return true;
+}
+
+
+
+boolean function install(ob x)
+{
+   return install(x,false);
+}
+
+
+boolean function reinstall(ob x)
+{
+   return install(x,true);
+}
+
+
+boolean function install(string fln,boolean reinstall)
+{
+   return install(uriToResource(fln),reinstall);
+}
+
+boolean function install(string fln)
+{
+   return install(fln,false);
+}
+
+
+boolean function reinstall(string fln)
+{
+   return install(fln,true);
+}
+
+
+void function installNamespace(string ns,boolean reinstall)
+{
+   var ob flu,SeqOf(ob) dfb,int ln,i;
+   flu = namespace(ns);
+ //  dfb = flu..rdfs:isDefinedBy;
+   dfb = mget(flu,isDefinedByP);
+   ln = length(dfb);
+   if (ln == 0) writeln("Warning: no source of information known for namespace ",ns);
+   for (i = 0;i<ln;i++)
+	   load(uri(dfb[i]),reinstall);
+}
+
+void function installNamespace(string ns)
+{
+   installNamespace(ns,false);
+}
+
+/* old version 
+
+
+void function storeValue(string ui,string syntax,ob vl)
+  {
+   var string fln,uri,u,ob rs,boolean bld;
+   uri = schemify(ui);
+   if (!startsWith(uri,"file://")) error("Expected file:// URL: ",uri);
+   fln = uriToFilename(uri);
+   if (syntax == 'fb') 
+      serializeToFile(fln,vl,page(vl));
+  else error("store is only supported for fb syntax for now");
+  }
+
+
+
+*/
+
+
+void function store(string ui,string syntax,SeqOf(ob) vls)
+  {
+   var string fln,uri,u,ob rs,boolean bld,SeqOf(ob) cls,int ln,i;
+   set_collectingSubjects(false);
+   cls = collectedSubjects();
+   if (length(cls)==0) error("No triples collected; nothing to store");
+   ln = length(cls);
+   for (i = 0;i<ln;i++) set_tempbit(cls[i],false);
+   uri = schemify(ui);
+   if (!startsWith(uri,"file://")) error("Expected file:// URL: ",uri);
+   fln = uriToFilename(uri);
+   if (syntax == 'fb') 
+      serializeSeqToFile(fln,vls,currentPage());
+  else error("store is only supported for fb syntax for now");
+  }
+
+
+void function store(string ui,string syntax)
+  {
+   var string fln,uri,u,ob rs,boolean bld,SeqOf(ob) cls,int ln,i;
+   set_collectingSubjects(false);
+   cls = collectedSubjects();
+   if (length(cls)==0) error("No triples collected; nothing to store");
+   ln = length(cls);
+   for (i = 0;i<ln;i++) set_tempbit(cls[i],false);
+   uri = schemify(ui);
+   if (!startsWith(uri,"file://")) error("Expected file:// URL: ",uri);
+   fln = uriToFilename(uri);
+   if (syntax == 'fb') 
+      serializeSeqToFile(fln,cls,currentPage());
+  else error("store is only supported for fb syntax for now");
+  }
+
+
+
+void function store(string uri,SeqOf(ob) vls)
+  {
+  store(uri,extensionForLoad(uri),vls);
+  }
+
+
+void function store(string uri)
+  {
+  store(uri,extensionForLoad(uri));
+  }
+
+
+
+
+
+
+void function namespaceDefinedBy(string nms,string url)
+{
+   var ob ns;
+   ns = namespace(nms);
+   assert(ns,isDefinedByP,resource(url));
+}
+
+void function loadFabl(string uri,boolean safe)
+{
+load(nil~SeqOfOb,uri,"fbl",true,safe,true);
+}
+
+void function loadCgiFile(boolean safe)
+{
+   var string ev,id ext;
+   ev = SB();
+   getenv(ev,'PATH_TRANSLATED');
+   ext = toString(afterLast(ev,ascii_dot));
+   if (ext == 'fsp') loadFabl(filenameToUri(ev),safe);
+}
+
+var safeFiles = new(SeqOf(id));
+// this version turns on safe mode for all except the safeFiles, which must handle 
+// safety issues for themselves
+
+void function loadCgiFile()
+{
+   var string ev,id ext,boolean sfm;
+   ev = SB();
+   getenv(ev,'PATH_TRANSLATED');
+   ext = toString(afterLast(ev,ascii_dot));
+   sfm = !contains(safeFiles,toId(ev));
+   if (ext == 'fsp') loadFabl(filenameToUri(ev),sfm);
+}
+
+string function writeToTempFile(string extension,string contents)
+{
+   var string rs;
+   rs = "";
+   writeToTempFile(rs,extension,contents);
+   return rs;
+}
+
+
+void function compile(string dst,src)
+{
+   var ob chm,tp;
+
+   if (not(fileExtension(dst) == "fb")) error("Expected .fb extension for destination of compile");
+   if (not(fileExtension(src) == "fbl")) error("Expected .fbl extension for destination of compile");
+   set(thisFileR,topicP,nil);
+   chm = home;
+   nowCompiling = true;
+   load(src);
+   nowCompiling = false;
+   tp = fget(thisFileR,topicP);
+   if (nul(tp)) error("No topic defined in compiling ",src);
+   store(dst,"fb",[tp]);
+   set(thisFileR,topicP,nil);
+   home = chm;
+}
+
+void function setTopic(ob x)
+{
+   set(thisFileR,topicP,x);
+}
+
+void function setHomeAndTopic(ob x)
+{
+   set(thisFileR,topicP,x);
+   setHome(x);
+}
+
+
+
+void function storeValue(string ui,string syntax,ob vl)
+  {
+   var string fln,uri,u,ob rs,boolean bld,SeqOf(ob) cls,int ln,i;
+   uri = schemify(ui);
+   if (!startsWith(uri,"file://")) error("Expected file:// URL: ",uri);
+   fln = uriToFilename(uri);
+   set(thisFileR,topicP,vl);
+   if (syntax == 'fb') 
+      serializeSeqToFile(fln,[vl,thisFileR],page(vl));
+  else error("store is only supported for fb syntax for now");
+  }
+
+   
+
+void function storeValue(string uri,ob vl)
+  {
+  storeValue(uri,extensionForLoad(uri),vl);
+  }
+
+
+//
+/*
+writeToTempFile(".xml","ZZabcdefg");
+var bf = "";
+writeToPubFile(bf,"ss",".xml","ZZabcdefg");
+*/
+
+
+
+//called from main.c
+void function loadInit()
+{
+  load('init.fbl');
+}
+
+void function loadCgi()
+{
+  load('cgi.fbl');
+}

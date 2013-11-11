@@ -1,0 +1,100 @@
+/*
+* Copyright (C) 2003 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the GNU Lesser General Public License (LGPL)
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+
+// pseudo uris of the form a/b/c (that don't start with a scheme) are turned into
+// file://./a/b/c/
+
+
+string function uriToFilename(string u)
+{
+   var int ln,string rst;
+   if (startsWith(u,"file://")) 
+      {
+	  ln = length(u);
+	  rst = select(u,7,ln-1);
+	  return rst;
+	  }
+   return nil~string;
+}
+
+
+string function filenameToUri(string u)
+{
+   var int fc,qidx,colonidx,bsidx,boolean isbs,string u1;
+   qidx = indexOf(u,"?"[0]); // later, "?"[0] will be turned into an int constant
+   colonidx = indexOf(u,":"[0]);
+   bsidx = indexOf(u,"\\"[0]);
+   if (qidx < 0) isbs = bsidx > 0;
+   else isbs = (bsidx > 0) && (bsidx < qidx);  
+   //repalace \ before ? by /    
+   if (isbs) 
+      {
+	  if (qidx < 0) u1  = replaceChar(u,ascii_backslash,ascii_slash,0,length(u));
+	  else u1 = replaceChar(u,ascii_backslash,ascii_slash,0,qidx);
+	  }
+   else u1 = u;
+	     
+   if (colonidx == 1) return "file://{u1}";
+   if (length(u1)==0) return "file://";
+   fc = u1[0];
+   if ((fc == ascii_slash)||(fc == ascii_dot)) return "file://{u1}";
+   return "file://./{u1}";
+}
+/*
+var ff = filenameToUri("c:\\a\\b?def\\gg");
+uriToFilename(ff);
+*/
+
+var pageCount = 10; // system allocated pages below here
+
+
+int function newPage()
+{
+  return pageCount++;
+}
+
+
+ob function loadFB(string uri)
+{
+   var string fln;
+   fln = uriToFilename(uri);
+   if (nul(fln)) error('Cannot yet load fb from URL');
+   return deserializeFromFile(fln,newPage());
+}
+
+
+
+
+
+
+ob function newHome()
+{
+  var ob rs;
+  setCurrentPage(newPage());
+   rs = mkObject();
+ initHome(rs);
+  return rs;
+}
+// later maybe lasthome should return to the old page too
+   
+void function writeRDF(string url,ob x)
+{
+   serializeToFile(url,x,page(x));
+}
+
+ob function readRDF(string url)
+{
+  return deserializeFromFile(url,newPage());
+}
+
+
+
+
+   

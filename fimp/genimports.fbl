@@ -1,0 +1,282 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+//GENERATION OF IMPORTS
+
+
+
+
+
+
+var fablCode = SB('');
+var cCode = SB('');
+var cFundecs = SB('');
+
+void function generateFuncode(string nm,cnm,rst,SeqOf(string) itps)
+{
+   var int ln,i,string itp,citp;
+   writeTo(cFundecs,lf,'extern void (*',cnm,')();',lf);
+   if (length(itps) == 0)
+      {
+	  writeTo(fablCode,
+        'internCFunction(home,"',nm,'",',rst,',emptysequence(Sort));');
+	  }
+
+
+   else
+     {
+     writeTo(fablCode,
+       'internCFunction(home,"',nm,'",',rst,',sequence(');
+     ln = length(itps);
+     for (i = 0;i < ln;i++) 
+        {
+	    itp = itps[i];
+        if (itp == "Sort") citp = "Type"; else citp = itp;
+	    writeTo(fablCode,itp);
+	    if (i < (ln-1)) writeTo(fablCode,',');
+	    writeTo(cCode,'importTypes[',i,']=',citp,'T;',lf);
+	    }
+     writeTo(fablCode,'));');
+	 }
+   writeTo(cCode,'cImport("',nm,'",',ln,',importTypes,&',cnm,');');
+   fablCode + lf;
+   cCode + lf;
+
+}
+
+var allCcode = SB('');
+
+void function finishFuncode()
+{
+  reset(allCcode);
+  writeTo(allCcode,'#include "includes.h"',lf,cFundecs,lf);
+  writeTo(allCcode,'void cImports()',lf,'{',cCode,lf,'}');
+  writeToFile('/fabl3/fimp/imports.fbl',fablCode);
+ writeToFile('/fabl3/source/imports.c',allCcode);
+}
+
+generateFuncode('length','string_length','int',sequence('string'));
+generateFuncode('array_ref','string_int_select','int',sequence('string','int'));
+generateFuncode('integer_to_ob','int_to_ob','ob',sequence('int'));
+generateFuncode('ob_to_integer','ob_to_int','int',sequence('ob'));
+//Later remove the above synonym
+generateFuncode('toInt','ob_to_int','int',sequence('ob'));
+generateFuncode('toInt','StringBuf_to_int','int',sequence('StringBuf'));
+generateFuncode('obkind','ob_obkind','int',sequence('ob'));
+generateFuncode('select','selectUri','ob',sequence('ob','string'));
+generateFuncode('select','selectOb','ob',sequence('ob','Property'));
+generateFuncode('mk_emptysequence','mkEmptySeq','ob',sequence('Sort'));
+generateFuncode('type0','ob_type0','Sort',sequence('ob'));
+generateFuncode('mkParamType','mk_paramType','Sort',sequence('string','Sort'));
+generateFuncode('setType','ob_setType','void',sequence('ob','SeqOfType'));
+generateFuncode('iType','ob_iType','ob',sequence('ob'));
+generateFuncode('hasType','ob_hasType','boolean',sequence('ob','Sort'));
+generateFuncode('iNew','ob_iNew','ob',sequence('Sort'));
+
+generateFuncode('mkObject','mk_Bindingtable','ob',emptysequence(string));
+generateFuncode('mkResource','mk_Bindingtable','ob',emptysequence(string));
+generateFuncode('set','setOb','Binding',sequence('ob','Property','ob'));
+generateFuncode('set','setInt','Binding',sequence('ob','Property','int'));
+generateFuncode('assert','assertOb','Binding',sequence('ob','Property','ob','Sort'));
+generateFuncode('assert','assertInt','Binding',sequence('ob','Property','int','Sort'));
+generateFuncode('selectBinding','selectUriBinding','Binding',sequence('ob','string'));
+generateFuncode('selectBinding','selectBinding','Binding',sequence('ob','Property'));
+generateFuncode('bindUri','bindUri','Binding',sequence('ob','string','ob'));
+generateFuncode('regarding','regarding1','Property',sequence('ob'));
+generateFuncode('regardingValue','regardingValue','ob',sequence('ob'));
+
+generateFuncode('fixBootType','fixBootType','boolean',sequence('Sort'));
+
+generateFuncode('name','ob_name','string',sequence('ob'));
+generateFuncode('parent','ob_parent','ob',sequence('ob'));
+generateFuncode('checkObkind','ob_check_obkind','ob',sequence('ob','int'));
+
+generateFuncode('bindingKey','bindingKey','ob',sequence('ob'));
+
+generateFuncode('inDblock','Binding_inDblock','boolean',sequence('Binding'));
+generateFuncode('setInDblock','Binding_setInDblock','void',sequence('Binding','boolean'));
+
+generateFuncode('select','string_int_select','int',sequence('string','int'));
+
+generateFuncode('set','StringBuf_set','void',sequence('StringBuf','int','int'));
+generateFuncode('select','StringBuf_select','int',sequence('StringBuf','int'));
+generateFuncode('mkStringBuf','mk_StringBuf','StringBuf',sequence('int'));
+generateFuncode('mkStringBuf','mk_empty_StringBuf','StringBuf',emptysequence(string));
+generateFuncode('mkStringBuf','string_mk_StringBuf','StringBuf',sequence('string'));
+generateFuncode('add','StringBuf_add','StringBuf',sequence('StringBuf','byte'));
+generateFuncode('seqobAdd','Seqob_add','ob',sequence('ob','ob'));
+generateFuncode('seqobContains','Seqob_contains','boolean',sequence('ob','ob'));
+generateFuncode('seqobAppend','Seqob_append','ob',sequence('ob','ob'));
+generateFuncode('seqobCopy','Seqob_copy','ob',sequence('ob'));
+generateFuncode('seqCopy','Seq_copy','ob',sequence('ob'));
+generateFuncode('seqobExpand','Seqob_expand_with_nuls','void',sequence('ob','int'));
+generateFuncode('seqobReset','Seqob_reset','void',sequence('ob'));
+generateFuncode('seqReset','Seq_reset','void',sequence('ob'));
+generateFuncode('seqobSetLength','Seqob_set_length','void',sequence('ob','int'));
+generateFuncode('seqSetLength','Seq_set_length','void',sequence('ob','int'));
+generateFuncode('seqintExpand','Seqint_expand_with_zeros','void',sequence('ob','int'));
+//generateFuncode('append','StringBuf_string_append','void',sequence('StringBuf','string'));
+
+generateFuncode('length','Seq_length','int',sequence('StringBuf'));
+generateFuncode('seqLength','Seq_length','int',sequence('ob'));
+generateFuncode('seqCapacity','Seq_capacity','int',sequence('ob'));
+generateFuncode('tprint','StringBuf_print','void',sequence('StringBuf'));
+generateFuncode('terpri','terpri','void',emptysequence(string));
+generateFuncode('afterError','after_error','void',emptysequence(string));
+generateFuncode('toString','StringBuf_to_string','string',sequence('StringBuf'));
+generateFuncode('select','StringBuf_int_int_select','void',sequence('StringBuf','StringBuf','int','int'));
+generateFuncode('reset','Seq_reset','void',sequence('StringBuf'));
+
+generateFuncode('plus','StringBuf_add','StringBuf',sequence('StringBuf','byte'));
+generateFuncode('plus','StringBuf_string_append','void',sequence('StringBuf','string'));
+generateFuncode('plus','StringBuf_append','void',sequence('StringBuf','StringBuf'));
+generateFuncode('plus','StringBuf_int_append','void',sequence('StringBuf','int'));
+
+
+generateFuncode('concat','string_string_times','string',sequence('string','string'));
+
+generateFuncode('mkFunctionOb','mk_Functionob','Function',sequence('string','ob','Sort'));
+generateFuncode('internFunction','internFunction','Function',sequence('Function'));
+generateFuncode('identifyFunction','identifyFunction','Function',sequence('Function'));
+generateFuncode('mkFunctionType','mk_functionType','Sort',sequence('Sort','SeqOfType'));
+
+generateFuncode('splice1','splice1','void',sequence('ob','ob'));
+
+generateFuncode('cons','cons','ob',sequence('ob','ob'));
+generateFuncode('listSelect','list_select','ob',sequence('ob','int'));
+generateFuncode('listLength','list_length','int',sequence('ob'));
+generateFuncode('isList','isList','boolean',sequence('ob'));
+
+generateFuncode('bindingValue','bindingValue','ob',sequence('Binding'));
+generateFuncode('applynOb','Function_ob_applyn_ob','ob',sequence('Function','ob'));
+generateFuncode('applynOb','Function_ob_ob_applyn_ob','ob',sequence('Function','ob','ob'));
+
+generateFuncode('mkHashSeq','mk_HashSeq','HashSeq',emptysequence(string));
+generateFuncode('put','HashSeq_put','ob',sequence('HashSeq','ob'));
+//returns index of where the fellow was found, or -1 if added 
+generateFuncode('put2','HashSeq_put2','int',sequence('HashSeq','ob'));
+generateFuncode('get','HashSeq_get','ob',sequence('HashSeq','ob'));
+generateFuncode('contents','HashSeq_contents','SeqOfOb',sequence('HashSeq'));
+generateFuncode('reset','Hashtable_reset','void',sequence('HashSeq'));
+// this needs some work; only works correctly for raw hashtable objects
+generateFuncode('removeProperties','Hashtable_reset','void',sequence('ob'));
+generateFuncode('isHashSeq','isHashSeq','boolean',sequence('ob'));
+
+generateFuncode('allocDblock','Dblock_alloc','Dblock',sequence('int','int','int'));
+generateFuncode('setFunctionOf','Dblock_set_function_of_fun','void',sequence('Dblock','Function'));
+
+generateFuncode('selectBits','get_bits','int',sequence('int','int','int'));
+generateFuncode('setBits','set_bits','int',sequence('int','int','int','int'));
+generateFuncode('setBit','int_setBit','int',sequence('int','int','boolean'));
+generateFuncode('getBit','int_getBit','boolean',sequence('int','int'));
+
+
+generateFuncode('setOb','Dblock_set_ob_fun','void',sequence('Dblock','int','ob'));
+generateFuncode('setInt','Dblock_set_int_fun','void',sequence('Dblock','int','int'));
+generateFuncode('selectOb','Dblock_select_ob_fun','ob',sequence('Dblock','int'));
+generateFuncode('selectInt','Dblock_select_int_fun','int',sequence('Dblock','int'));
+
+generateFuncode('numobs','Dblock_numobs_fun','int',sequence('Dblock'));
+generateFuncode('numint','Dblock_numints_fun','int',sequence('Dblock'));
+generateFuncode('numdoubles','Dblock_numdoubles_fun','int',sequence('Dblock'));
+
+
+generateFuncode('bindings','ob_bindings','SeqOfBinding',sequence('ob'));
+
+generateFuncode('pmEvaluate','Dblock_Seqbyte_pm_evaluate','ob',sequence('Dblock','SeqOfByte'));
+
+
+generateFuncode('tb','tb','void',emptysequence(string));
+//LATER DOUBLE seqofob,seqofint,seqofdouble as last args
+generateFuncode('consoleStackExtract','console_stack_extract','void',sequence('int','ob','ob','ob'));
+generateFuncode('isFunction','isFunction','boolean',sequence('ob'));
+generateFuncode('charAvail','charAvail','int',emptysequence(string));
+generateFuncode('sleepMsec','sleepMsec','void',sequence('int'));
+generateFuncode('readLine','Seqbyte_readLine','int',sequence('StringBuf'));
+
+generateFuncode('serializeMalloc','serializeMalloc','void',sequence('int','int'));
+generateFuncode('serializeReset','serializeReset','void',emptysequence(string));
+generateFuncode('serializeToBuffer','serializeToBuffer2','void',sequence('StringBuf','SeqOfOb','int'));
+generateFuncode('serializeToFile','serializeToFile','void',sequence('StringBuf','SeqOfOb','int'));
+generateFuncode('deserializeFromBuffer','deserializeFromStringBuf','ob',sequence('StringBuf'));
+generateFuncode('deserializeFromFile','deserializeFromFile','ob',sequence('StringBuf','int'));
+generateFuncode('tempbit','ob_tempbit','boolean',sequence('ob'));
+generateFuncode('set_tempbit','ob_set_tempbit','void',sequence('ob','boolean'));
+generateFuncode('tempbit2','Binding_tempbit2','boolean',sequence('Binding'));
+generateFuncode('set_tempbit2','Binding_set_tempbit2','void',sequence('Binding','boolean'));
+generateFuncode('kind','bindingKind','int',sequence('Binding'));
+//generateFuncode('valueType','bindingValueType','Sort',sequence('Binding'));
+generateFuncode('interned','ob_interned','boolean',sequence('ob'));
+
+
+generateFuncode('page','ob_page','int',sequence('ob'));
+generateFuncode('set_page','ob_set_page','void',sequence('ob','int'));
+generateFuncode('currentPage','currentPage','int',emptysequence(string));
+generateFuncode('setCurrentPage','set_currentPage','void',sequence('int'));
+
+generateFuncode('compactobExtension','Compactob_extension','ob',sequence('ob'));
+generateFuncode('compactobNumFields','compactobNumFields','int',sequence('ob'));
+generateFuncode('compactobProperties','compactobProperties','SeqOfOb',sequence('ob'));
+generateFuncode('selectNthOb','selectNthOb','ob',sequence('ob','int'));
+generateFuncode('mkTypeob','mk_Typeob','Sort',emptysequence(string));
+generateFuncode('hashtableBindingsSetPage','HashtableBindingsSetPage',
+   'void',sequence('ob','int'));
+
+generateFuncode('seqDataKind','Seq_dataKind','int',sequence('ob'));
+generateFuncode('readFromFile','Seqbyte_Seqbyte_readFromFile','int',sequence('StringBuf','StringBuf'));
+generateFuncode('writeToFile','Seqbyte_Seqbyte_writeToFile','int',sequence('StringBuf','StringBuf'));
+generateFuncode('cinspect','Cinspect','int',sequence('ob'));
+generateFuncode('timeMsec','time_msec','int',emptysequence(string));
+
+
+generateFuncode('cgiInit','cgiInit','void',emptysequence(string));
+generateFuncode('quit','fablQuit','void',emptysequence(string));
+generateFuncode('getenv','Seqbyte_string_getenv','int',sequence('StringBuf','string'));
+
+
+generateFuncode('isConstant','Binding_isConstant','int',sequence('Binding'));
+generateFuncode('set_isConstant','Binding_isConstant','void',sequence('Binding','boolean'));
+
+// socket library
+generateFuncode('socketInit','socket_init','void',emptysequence(string));
+generateFuncode('connectToSocket','connectToSocket','int',sequence('StringBuf','int'));
+generateFuncode('connectToSocketByAddr','connectToSocketByAddr','int',sequence('StringBuf','int'));
+generateFuncode('socketRead','socketRead','int',sequence('int','StringBuf'));
+generateFuncode('socketRead','socketRead2','int',sequence('int','StringBuf','int'));
+generateFuncode('socketWrite','socketWrite','int',sequence('int','StringBuf'));
+generateFuncode('createASocket','create_a_socket','int',sequence('int'));
+generateFuncode('socketReuseAddr','socket_reuseaddr','int',sequence('int'));
+generateFuncode('socketSetup','socket_setup','int',sequence('int'));
+generateFuncode('socketAccept','socket_accept','int',sequence('int'));
+generateFuncode('socketNoblock','socket_noblock','int',sequence('int'));
+generateFuncode('socketBlock','socket_block','int',sequence('int'));
+generateFuncode('socketListen','socket_listen','int',sequence('int','int'));
+generateFuncode('socketClose','socket_close','void',sequence('int'));
+generateFuncode('socketNolinger','socket_nolinger','void',sequence('int'));
+generateFuncode('socketKeepalive','socket_keepalive','void',sequence('int','int'));
+generateFuncode('socketShutdown','socket_shutdown','void',sequence('int','int'));
+
+
+//during the transition, seqbytes are accessed by function call
+generateFuncode('selectByte','Seqbyte_select','int',sequence('SeqOfByte','int'));
+generateFuncode('setByte','Seqbyte_set','void',sequence('SeqOfByte','int','int'));
+generateFuncode('addByte','Seqbyte_add','SeqOfByte',sequence('SeqOfByte','int'));
+generateFuncode('mkSeqOfByte','mk_empty_Seqbyte','SeqOfByte',emptysequence(string));
+
+// LATER double versions
+finishFuncode();
+/*
+first do a build after pasting this in.
+Then:
+cd \fabl
+remake imports.c
+linkit
+*/

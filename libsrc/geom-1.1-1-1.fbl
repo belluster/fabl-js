@@ -1,0 +1,127 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+/*
+compile("file://../lib/geom-1.1-1.fb","file://../libsrc/geom-1.1-1-1.fbl");
+*/
+
+/* assumes prior  loading of the following code, normally in init.fbl
+load("{stdlibPrefix}discovery-1.1.fb");
+discovery:namespaces_0();
+discovery:discovery_0();
+*/
+
+setTopic(namespace('geom'));
+startCollectingTriples();
+
+allocate("geom:minDimension",FunctionalProperty);
+geom:minDimension.rdfs:range = int;
+
+
+allocate("geom:maxDimension",FunctionalProperty);
+geom:maxDimension.rdfs:range = int;
+
+class("geom:Shape");
+endClass();
+
+allocate("geom:x",Property);
+allocate("geom:y",Property);
+allocate("geom:z",Property);
+
+class("geom:Point");
+endClass();
+
+geom:Point .. rdfs:subClassOf = geom:Shape;
+
+
+
+class("geom:Transformation");
+endClass();
+
+
+allocate("geom:elements",Property);
+allocate("geom:transform",Property);
+
+// note:  rdf:Seq is used here instead of SeqOf(geom2d:Shape)  
+// to keep this vocabulary within standard RDF/OWL
+
+var SeqOfShape = SeqOf(geom:Shape);
+
+class("geom:Group");
+//restrict geom:elements {cardinality 1;allValuesFrom SeqOf(geom:Shape)}
+restrict geom:elements {cardinality 1;allValuesFrom rdf:Seq}
+restrict geom:transform {cardinality 1;allValuesFrom geom:Transformation}
+endClass();
+
+geom:Group .. rdfs:subClassOf = geom:Shape;
+
+class("geom:Curve");
+endClass();
+
+geom:Curve .. rdfs:subClassOf = geom:Shape;
+
+
+// BAD FROM HERE
+
+allocate("geom:end0",Property);
+allocate("geom:end1",Property);
+
+
+class("geom:OpenCurve");
+restrict geom:end0 {cardinality 1;allValuesFrom geom:Point}
+restrict geom:end1 {cardinality 1;allValuesFrom geom:Point}
+endClass();
+
+
+geom:OpenCurve .. rdfs:subClassOf = geom:Curve;
+
+class("geom:ClosedCurve");
+endClass();
+
+//
+geom:ClosedCurve .. rdfs:subClassOf = geom:Curve;
+
+class("geom:Segment");
+endClass();
+
+
+geom:Segment .. rdfs:subClassOf = geom:OpenCurve;
+
+
+allocate("geom:points",Property);
+
+class("geom:Polyline");
+restrict geom:points {cardinality 1;allValuesFrom rdf:Seq}
+endClass();
+
+geom:Polyline .. rdfs:subClassOf = geom:Curve;
+
+allocate("geom:xmin",Property);
+allocate("geom:xmax",Property);
+allocate("geom:ymin",Property);
+allocate("geom:ymax",Property);
+allocate("geom:zmin",Property);
+allocate("geom:zmax",Property);
+
+class("geom:Box");
+restrict geom:xmin {cardinality 1;allValuesFrom double}
+restrict geom:xmax {cardinality 1;allValuesFrom double}
+restrict geom:ymin {maxCardinality 1;allValuesFrom double}
+restrict geom:ymax {maxCardinality 1;allValuesFrom double}
+restrict geom:zmin {maxCardinality 1;allValuesFrom double}
+restrict geom:zmax {maxCardinality 1;allValuesFrom double}
+endClass();
+
+
+
+
+geom:Box .. rdfs:subClassOf = geom:Shape;
+
+
+allocate("geom:center",Property);
+allocate("geom:radius",Property);

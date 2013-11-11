@@ -1,0 +1,861 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+var obToInt_fun = getVariant(home,'ob_to_integer',sequence(ob))~Xob;
+var obToDouble_fun = getVariant(home,'toDouble',sequence(ob))~Xob;
+
+var doubleToOb_fun = getVariant(home,'toOb',sequence(double))~Xob;
+
+
+
+Xob function meta(int n)
+  {
+  return n ~ ob ~ Xob;
+  }
+
+
+Xob function meta(double n)
+  {
+  return n~ob~Xob;
+  }
+
+
+// x should be consistent with s
+Xob function meta(ob x,Sort s)
+  {
+  var Xob1 rs;
+  if ((s == int)||(s == double)||(s == id)) return x~Xob;
+  rs = mkXob(s)~Xob1;
+  obset(rs~ob,Xob1_value,x);
+  bitset(rs~ob,Xob1_booles,Xob1_isConstant,1);
+//  rs . value = x;
+//  rs . isConstant = true;
+  return rs~Xob;
+  }
+
+
+
+var  nulXob = meta(nil,ob);
+
+
+Xob function meta(id n)
+  {
+  if (nul(n)) return nulXob; else
+  return n ~ ob ~ Xob;
+  }
+
+
+Xob function meta(Sort s)
+   {
+   return meta(s~ob,Sort);
+   }
+
+
+
+var typesXapply = sequence(Xob,Xapply);
+
+/* this is the non-checking version  */
+
+Xob function metaApplyn(Xob dst,Sort rt,Xob fn,SeqOfXob args)
+  {
+  var Xapply rs,Xob xb,a,int ln,i;
+//  rs = new(Xapply);
+  rs = iNew(Xapply)~Xapply;
+  xb = rs ~Xob;
+  obset(rs~ob,Xapply_dest,dst~ob);
+  obset(rs~ob,Xapply_functionOf,fn~ob);
+  obset(rs~ob,Xapply_arguments,args~ob);
+
+
+//  rs . dest = dst;
+//  rs . fun_of = fn;
+//  rs . arguments = args;
+//  rs . booles = 0;
+
+  obset(rs~ob,Xob1_type,rt~ob);
+//  rs . Xob1:type = rt;
+
+//  xb = mkXob(rt);
+//  splice1(xb~ob,rs~ob);
+  ln = length(args);
+  for (i = 0;i<ln;i++)
+      {
+	  a = args[i];
+	  if (Xobish(a)) setParent(a,xb);
+	  }  
+//  writeln('XAP=',xb);                                             
+  return xb;
+  }
+
+
+
+
+Xob function metaApplyn(Xob dst,Xob fn,SeqOfXob args)
+  {
+  var Sort rt,Xapply rs,Xob xb,a,int ln,i;
+  rt = resultType(type(fn));
+  return metaApplyn(dst,rt,fn,args);
+  }
+
+
+Xob function metaSequencen(Xob dst,Sort esrt,SeqOfXob args,id ck)
+  {
+  var Sort rt,Xsequence rs,Xob xb,a,int ln,i;
+  if (ck == 'seq') rt = SeqOf(esrt); else
+ if (ck == 'bag') rt = BagOf(esrt); else 
+ if (ck == 'alt') rt = AltOf(esrt); else 
+  error('Unknown collection kind: ',ck);
+  rs = iNew(Xsequence)~Xsequence;
+//  rs = new(Xsequence);
+  xb = rs ~ Xob;
+
+  obset(rs~ob,Xsequence_dest,dst~ob);
+  obset(rs~ob,Xsequence_elementType,esrt~ob);
+  obset(rs~ob,Xsequence_arguments,args~ob);
+
+
+/*  rs . dest = dst;
+  rs . element_sort = esrt;
+  rs . arguments = args;
+  rs . booles = 0;
+*/
+  obset(rs~ob,Xob1_type,rt~ob);
+//  xb = mkXob(rt);
+//  splice1(xb~ob,rs~ob);
+  ln = length(args);
+  for (i = 0;i<ln;i++)
+      {
+	  a = args[i];
+	  if (Xobish(a)) setParent(a,xb);
+	  }                                               
+  return xb;
+  }
+
+Xob function metaSequencen(Xob dst,Sort esrt,SeqOfXob args)
+  {
+  return metaSequencen(dst,esrt,args,'seq');
+  }
+
+
+Xob function metaApplyn(Xob fn,Xob a0)
+  {
+  return metaApplyn(nil~Xob,fn,sequence(a0));
+  }
+
+Xob function metaApplyn(Xob fn,Xob a0,a1)
+  {
+  return metaApplyn(nil~Xob,fn,sequence(a0,a1));
+  }
+
+
+Xob function metaApplyn(Xob fn,Xob a0,a1,a2)
+  {
+  return metaApplyn(nil~Xob,fn,sequence(a0,a1,a2));
+  }
+
+Xob function metaApplyn(Xob fn,SeqOfXob args)
+  {
+  return metaApplyn(nil~Xob,fn,args);
+  }
+
+
+boolean function isBoolean(BitField x)
+  {
+  return intsel(x~ob,BitField_lowbit)  == intsel(x~ob,BitField_highbit);
+  }
+
+var restrictionsP = selectUri(fabl,'restrictions')~Property;
+
+Restriction  function selectField(Sort cl, id nm)
+     {
+	 var ob ip,ob prp;
+	 prp = selectUri(cl~ob,nm); // the property representing the field
+	 if (nul(prp)) return nil~Restriction;
+	 ip = get(cl~ob,restrictionsP);
+	 if (nul(ip)) return nil~ Restriction;
+	 return get(ip,regarding(prp~ob))~Restriction;
+}
+
+
+boolean function isConstant(Xob x)
+ {
+   var int k;
+   k = obkind(x~ob);
+   if (k == binding_kind) return isConstant(x~Binding);
+   if ((k == smallob_kind)||(k == compact_kind) || (k == hashtable_kind)) // enable hashtable_kind?
+      return bitsel(x~ob,Xob1_booles,Xob1_isConstant) ~ boolean;
+   return true;
+}
+
+
+// should only be called if it is already known that x is constant
+ob function constantValue(Xob x)
+{
+   var int k;
+   k = obkind(x~ob);
+   if (k == binding_kind) return bindingValue(x~Binding); else 
+   if ((k == smallob_kind)||(k == compact_kind)||(k == hashtable_kind)) return obsel(x~ob,Xob1_value);
+  return x~ob;
+}
+
+
+
+
+Xob function metaCast1(Xob x,Sort s)
+  {
+  var Xcast rs,Xob xb;
+  if (type(x) == s) return x; 
+//  rs = new(Xcast);
+  rs = iNew(Xcast)~Xcast;
+  xb = rs ~ Xob;
+//  setType(rs~ob,typesXcast);
+  obset(rs~ob,Xcast_castee,x~ob);
+  obset(rs~ob,Xob1_type,s~ob);
+
+//  rs . castee = x;
+//  xb = mkXob(s);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(x)) setParent(x,xb);
+  return xb;
+  }
+
+var Function(Xob,Xob,Sort) metaCast;
+
+int function lowbit(XselectProperty x)
+{
+  return byte2(intsel(x~ob,XselectProperty_booles))~int;
+//  return byte2(booles(x))~int;
+}
+
+
+int function highbit(XselectProperty x)
+{
+  return byte3(intsel(x~ob,XselectProperty_booles))~int;
+//  return byte3(booles(x))~int;
+}
+
+
+void function set_lowbit(XselectProperty x,int b)
+{
+  intset(x~ob,XselectProperty_booles,
+        setByte2(intsel(x~ob,XselectProperty_booles),b~byte));
+//  x.booles = setByte2(booles(x),b~byte);
+}
+
+
+
+void function set_highbit(XselectProperty x,int b)
+{
+  intset(x~ob,XselectProperty_booles,
+        setByte3(intsel(x~ob,XselectProperty_booles),b~byte));
+//  x.booles = setByte3(booles(x),b~byte);
+}
+
+
+
+
+
+// low level; no checking that rstp is correct, and no coercion or casting
+Xob function metaSelectProperty(Xob src,Property nm,Sort rstp,boolean functional) 
+ {
+  var XselectProperty rs,Xob xb;
+ // writeln('isrc = ',isrc,' pm = ',pm,' srcs = ',srcs);
+//  rs = new(XselectProperty);
+  rs = iNew(XselectProperty)~XselectProperty;
+  xb = rs ~ Xob;
+  obset(rs~ob,Xob1_type,rstp~ob);
+//  setType(rs~ob,typesXselectProperty);
+  obset(rs~ob,XselectProperty_selector,nm~ob);
+  obset(rs~ob,XselectProperty_source,src~ob);
+  bitset(rs~ob,XselectProperty_booles,XselectProperty_isFunctional,functional~int);
+  //rs . selector = nm;
+//  xb = mkXob(rstp);
+//  splice1(xb~ob,rs~ob);
+  return xb;
+}
+
+Xob function metaSelectProperty(Xob src,Property nm,Sort rstp) 
+ {
+ return metaSelectProperty(src,nm,rstp,true);
+ }
+
+
+//low level:
+Xob function metaSelectBitField(Xob src,BitField btf) 
+  {
+  var XselectProperty rs,Xob xb,Restriction rst,Sort tp,rstp;
+  rs = new(XselectProperty);
+  xb = rs ~ Xob;
+  obset(rs~ob,XselectProperty_source,src~ob);
+//  rs = new(XselectProperty);
+//  setType(rs~ob,typesXselectProperty);
+	 if (isBoolean(btf)) rstp = boolean; else rstp = int;
+
+	 bitset(rs~ob,XselectProperty_booles,XselectProperty_isBitField,1);
+	 set_lowbit(rs,intsel(btf~ob,BitField_lowbit));
+	 set_highbit(rs,intsel(btf~ob,BitField_highbit));
+//	 set_highbit(rs,highbit(btf));
+	 obset(rs~ob,XselectProperty_selector,obsel(btf~ob,BitField_ofProperty));
+
+
+//	 rs . isBitField = true;
+//	 rs . lowbit = lowbit(btf);
+//	 rs . highbit = highbit(btf);
+//	 rs . selector = ofProperty(btf);
+  obset(rs~ob,Xob1_type,rstp~ob);
+
+//  xb = mkXob(rstp);
+//  splice1(xb~ob,rs~ob);
+  return xb;
+}
+
+
+//var Function(Xob,Xob,ob) meta_selectn;
+
+
+
+Xob function metaSelectIndexn(Xob src,sl)
+  {
+  var Sort ssrt,rt,XselectIndex rs,Xob xb,id cn;
+  ssrt  = type(src);
+  if ((ssrt == Seq)||(ssrt == Bag)||(ssrt==Alt))
+	rt = ob;
+  else
+  if ((ssrt == string) || (ssrt == hexBinary)) 
+    rt = int;
+  else
+    {
+    cn = obsel(ssrt~ob,Sort_constructor)~id; 
+  // cn = ssrt.constructor;
+    if (not(cn == 'SeqOf') &&  not(cn == 'BagOf')) return nil ~ Xob;
+     rt = obsel(ssrt~ob,Sort_param)~Sort;// LATER param(ssrt)
+	 }
+  // rt = ssrt.param;
+// rs = new(XselectIndex);
+  rs = iNew(XselectIndex)~XselectIndex;
+  xb = rs ~ Xob;
+//  setType(rs~ob,typesXselectIndex);
+  obset(rs~ob,XselectIndex_source,src~ob);
+  obset(rs~ob,XselectIndex_selector,sl~ob);
+//  rs . source = src;
+//  rs . selector = sl;
+//  rs . booles = 0;
+//writeln('rt = ** ',rt);
+  obset(rs~ob,Xob1_type,rt~ob);
+
+//  xb = mkXob(rt);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(sl)) setParent(sl,xb);
+  return xb;
+  }
+
+//low level; no checking that rstp is correct, or casting or coercion
+Xob function metaSelectIndex(Xob src,sl,Sort rstp)
+  {
+  var XselectIndex rs,Xob xb;
+ // rs = new(XselectIndex);
+//  setType(rs~ob,typesXselectIndex);
+  rs = iNew(XselectIndex)~XselectIndex;
+  xb = rs ~ Xob;
+  obset(rs~ob,XselectIndex_source,src~ob);
+  obset(rs~ob,XselectIndex_selector,sl~ob);
+//  rs . source = src;
+//  rs . selector = sl;
+//  rs . booles = 0;
+//writeln('rt = ** ',rt);
+  obset(rs~ob,Xob1_type,rstp~ob);
+//  xb = mkXob(rstp);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(sl)) setParent(sl,xb);
+  return xb;
+  }
+
+
+var mkStringBuf_function = getVariant(home,'mkStringBuf',sequence(id))~Xob;
+
+
+var coerceToSuperClasses = true;
+var coerceToOb = true;
+var coerceToLiteral = true;
+
+
+var literalToString_fun = getVariant(home,'toString',sequence(Literal))~Xob;
+
+// coercing literals to strings isn't quite right; they may not actually be strings
+
+Xob function metaCoerce(Xob x,Sort dst)
+   {
+   var Sort srt,int st;
+   srt = type(x);
+   if (srt == dst) return x;
+   if ((srt == int) && (dst == double))  
+      return metaApplyn(float_fun,x);// don't include coercions in fimp itself
+   if ((srt == id) && (dst == string))
+      return metaApplyn(homeFimpFun('mkStringBuf_function'),x);
+
+   if (coerceToOb && (dst == ob))
+      {
+      st = storage(srt);
+	  if (st == storage_ob) return x;
+	  if (st == storage_int) return metaApplyn(homeFimpFun('intToOb_fun'),x);
+	  if (st == storage_double) return metaApplyn(homeFimpFun('doubleToOb_fun'),x);
+	  }
+  if (coerceToLiteral && (dst==Literal))
+     {
+	 if ((srt == int)||(srt == double)||(srt==boolean)||(srt==string))
+	    return metaCast1(metaCast(x,ob),Literal);
+	 }
+
+  if (coerceToSuperClasses && not(dst == ob) && isSubClassOf(srt,dst)) return x;
+
+   return nil ~ Xob;
+   }
+
+
+
+
+
+
+// low-level: 
+
+
+Xob function metaAssignn(Xob dst,src,boolean addvalue,boolean chk)
+  {
+  var Xassign rs,Xob xb,crc,Sort ds;
+  ds = type(dst);
+  if (chk)
+     {
+	 crc = metaCoerce(src,ds);
+     if (nul(crc)) return nil ~ Xob;
+	 }
+  else crc = src;
+//  rs = new(Xassign);
+  rs = iNew(Xassign)~Xassign;
+  xb = rs ~ Xob;
+  obset(rs~ob,Xob1_type,void~ob);
+
+//  setType(rs~ob,typesXassign);
+
+  obset(rs~ob,Xassign_dest,dst~ob);
+  obset(rs~ob,Xassign_source,crc~ob);
+
+//  rs . dest = dst;
+//  rs . source = crc;
+//  rs . booles = 0;
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(src)) setParent(src,xb);
+  if (Xobish(crc)) setParent(crc,xb);
+  bitset(rs~ob,Xassign_booles,Xassign_addValue,toInt(addvalue));
+  return xb;
+  }
+
+Xob function metaAssignn(Xob dst,src,boolean addValue)
+  {
+  var Xob rs;
+  rs = metaAssignn(dst,src,addValue,false);
+//  writeln('meta_assignn(',dst,',',src,')=',rs);
+  return rs;
+  }
+
+Xob function metaAssignn(Xob dst,src)
+  {
+  var Xob rs;
+  rs = metaAssignn(dst,src,false,false);
+//  writeln('meta_assignn(',dst,',',src,')=',rs);
+  return rs;
+  }
+
+Xob function metaAssignnCheck(Xob dst,src,boolean addValue)
+  {
+  return metaAssignn(dst,src,addValue,true);
+  }
+
+
+Xob function metaAssignnCheck(Xob dst,src)
+  {
+  return metaAssignn(dst,src,false,true);
+  }
+
+
+
+
+Xob function metaFor(Xob init,test,incr,body)
+  {
+  var Xfor rs,Xob xb;
+//  writeln(12345678);
+//  rs = new(Xfor);
+   rs = iNew(Xfor)~Xfor;
+   xb = rs ~ Xob;
+// setType(rs~ob,typesXfor);
+  obset(rs~ob,Xfor_init,init~ob);
+  obset(rs~ob,Xfor_test,test~ob);
+  obset(rs~ob,Xfor_incr,incr~ob);
+  obset(rs~ob,Xfor_body,body~ob);
+
+
+//  rs . init = init;
+//  rs . test = test;
+//  rs . incr = incr;
+//  rs . body = body;
+//  rs . booles = 0;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(init)) setParent(init,xb);
+  if (Xobish(test)) setParent(test,xb);
+  if (Xobish(incr)) setParent(incr,xb);
+  if (Xobish(body)) setParent(body,xb);
+  return xb;
+  }
+
+
+
+
+
+
+Xob function metaWhile(Xob test,body)
+  {
+  var Xwhile rs,Xob xb;
+  rs = iNew(Xwhile)~Xwhile;
+  xb = rs ~ Xob;
+//  rs = new(Xwhile);
+  obset(rs~ob,Xwhile_test,test~ob);
+  obset(rs~ob,Xwhile_body,body~ob);
+//  rs . test = test;
+//  rs . body = body;
+//  rs . booles = 0;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(test)) setParent(test,xb);
+  if (Xobish(body)) setParent(body,xb);
+  return xb;
+  }
+
+
+var Sort funReturnType;
+var Sort blockReturnType;
+
+
+//var typesXreturn = sequence(Xreturn);
+
+Xob function metaReturn(Xob vl)
+  {
+  var Xreturn rs,Xob xb,Sort vs;
+  vs = type(vl);
+//  rs = new(Xreturn);
+  rs = iNew(Xreturn)~Xreturn;
+  xb = rs ~ Xob;
+  obset(rs~ob,Xreturn_value,vl~ob);
+//  obset(rs~ob,Xreturn_value,vl~ob);
+
+//  rs . value = vl;
+//  rs . target = nil~id;
+//  rs . booles = 0;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  if (Xobish(vl)) setParent(vl, xb);
+  return xb;
+  }
+
+Xob  function metaReturnVoid()
+  {
+  var Xreturn rs,Xob xb;
+//  rs = new(Xreturn);
+  rs = iNew(Xreturn)~Xreturn;
+  xb = rs ~ Xob;
+//  setType(rs~ob,typesXreturn);
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  return xb;
+  }
+
+
+Xob function metaBlockReturn(Xob vl,id trg)
+  {
+  var Xreturn rs,Xob xb,Sort vs;
+  vs = type(vl);
+  if (not(vs == blockReturnType)) error('Mismatch: returning ',vs,';expected ',blockReturnType);
+  rs = new(Xreturn);
+  xb = rs ~ Xob;
+  obset(rs~ob,Xreturn_value,vl~ob);
+  obset(rs~ob,Xreturn_target,trg~ob);
+  bitset(rs~ob,Xreturn_booles,Xreturn_blockReturn,1);
+//  rs . value = vl;
+//  rs . target = trg;
+//  rs . block_return = true;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  setParent(vl,xb);
+  return xb;
+  }
+
+Xob  function metaVoidBlockReturn(id trg)
+  {
+  var Xreturn rs,Xob xb;
+  rs = new(Xreturn);
+  xb = rs ~ Xob;
+
+  obset(rs~ob,Xreturn_target,trg~ob);
+  bitset(rs~ob,Xreturn_booles,Xreturn_blockReturn,1);
+
+
+//  rs . block_return = true;
+//  rs . target = trg;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  return xb;
+  }
+
+var xblockLocalsP = selectUri(Xblock~ob,'locals')~Property;//f2x
+
+var typesXblock = sequence(Xblock);
+
+Xob function mkXblock(ob e,SeqOfXob st)
+  {
+  var Xblock rs,Xob xb,cx,int i,ln;
+// rs = new(Xblock);
+  rs = iNew(Xblock)~Xblock;
+  xb = rs ~ Xob;
+// setType(rs~ob,typesXblock);
+// LATER rs . locals = e;
+  obset(rs~ob,Xblock_locals,e);
+  obset(rs~ob,Xblock_statements,st~ob);
+//  rs .statements = st;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  ln = length(st);
+  for (i = 0;i<ln;i++)
+      {
+	  cx = st[i];
+	  setParent(cx,xb);
+	  } 
+  return xb;
+  }
+
+Xob function mkXblock(SeqOfXob st)
+  {
+  return mkXblock(nil,st);
+  }
+
+
+Xob function mkValueReturningXblock(Sort s,ob e,SeqOfXob st)
+  {
+  var Xblock rs,Xob xb,cx,int i,ln;
+
+  rs = iNew(Xblock)~Xblock;
+  xb = rs ~ Xob;
+// setType(rs~ob,typesXblock);
+// LATER rs . locals = e;
+  obset(rs~ob,Xblock_locals,e);
+  obset(rs~ob,Xblock_statements,st~ob);
+  obset(rs~ob,Xblock_returnType,s~ob);
+
+
+//  rs = new(Xblock);
+// LATER rs . locals = e;
+//  rs . return_sort = s;
+//  rs . statements = st;
+  obset(rs~ob,Xob1_type,s~ob);
+//  xb = mkXob(s);
+//  splice1(xb~ob,rs~ob);
+  ln = length(st);
+  for (i = 0;i<ln;i++)
+      {
+	  cx = st[i];
+	  setParent(cx,xb);
+	  } 
+  return xb;
+  } 
+
+
+Xob function mkXgo(Xob cnd,id lb,boolean giff)
+  {
+  var Xgo rs,Xob xb;
+//  rs = new(Xgo);
+  rs = iNew(Xgo)~Xgo;
+  xb = rs ~ Xob;
+  obset(rs~ob,Xgo_condition,cnd~ob);
+  obset(rs~ob,Xgo_toLabel,lb~ob);
+//    rs . condition = cnd;
+//  rs . to_label = lb;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  setParent(cnd,xb);
+  bitset(xb~ob,Xgo_booles,Xgo_goIfFalse,giff~int);
+ // rs . go_if_false = giff;
+  return xb;
+  }
+
+Xob function mkXgo(Xob cnd,id lb)
+  {
+  return mkXgo(cnd,lb,false);
+  }
+
+
+Xob function mkXgo(id lb)
+  {
+  return mkXgo(nil~Xob,lb);
+  }
+
+
+
+Xob function mkXgoIfFalse(Xob cnd,id lb)
+  {
+  return mkXgo(cnd,lb,true);
+  }
+
+
+Xob function mkXif(Xob cnd,ift,iff)
+  {
+  var Xif rs,Xob xb;
+//  rs  = new(Xif);
+  rs  = iNew(Xif)~Xif;
+  xb = rs ~ Xob;
+  obset(rs~ob,Xif_condition,cnd~ob);
+  obset(rs~ob,Xif_ifTrue,ift~ob);
+  obset(rs~ob,Xif_ifFalse,iff~ob);
+//  rs . condition = cnd;
+//  rs . if_true = ift;
+//  rs . if_false = iff;
+  obset(rs~ob,Xob1_type,void~ob);
+//  xb = mkXob(void);
+//  splice1(xb~ob,rs~ob);
+  setParent(cnd,xb);
+  setParent(ift,xb);
+  setParent(iff,xb);
+  return xb;
+  }
+
+Xob function mkXif(Xob cnd,ift)
+  {
+  return mkXif(cnd,ift,nil~Xob);
+  }
+
+
+var Xob not_fun;
+
+
+// checks if x is of the from not(a) and if so returns a; ow returns nil
+
+Xob function unNot(Xob x)
+  {
+  var Xapply xap,SeqOfXob args;
+  if (Xobish(x)) 
+     {
+	 xap = x~Xapply;
+	 if (eq(obsel(xap~ob,Xapply_functionOf),not_fun)) 
+//	 if (eq(fun_of(xap),not_fun)) 
+	    {
+		args = obsel(xap~ob,Xapply_arguments)~SeqOfXob;
+//		args = arguments(xap);
+		return args[0];
+		}
+	 }
+  return nil ~ Xob;
+  }
+
+
+
+Xob function metaNot(Xob x)
+  {
+  var Xob un;
+  un = unNot(x);
+  if (nnul(un)) return un;
+  if (not(type(x) == boolean)) error('meta_not only applies to boolean valued expressions');
+  return metaApplyn(homeFimpFun('not_fun'),x);
+  }
+
+
+//var Xob change_view_fun;
+
+
+
+
+
+
+
+
+boolean function toBoolean(Literal x)
+{
+   var ob xo,string xs,int xi;
+   xo = x ~ ob;
+   if (isString(xo))
+      {
+	  xs = xo ~ string;
+	  if ((xs == "true")||(xs == "1")) return true;
+	  return false;
+	  }
+   if (obkind(xo) == int_kind)
+      {
+	  xi = xo ~ int;
+	  if (xi == 0) return false;
+	  return true;
+	  }
+  return false;
+}
+
+
+
+var literalToInt_fun = getVariant(home,'toInt',sequence(Literal))~Xob;
+var literalToDouble_fun = getVariant(home,'toDouble',sequence(Literal))~Xob;
+var literalToBoolean_fun = getVariant(home,'toBoolean',sequence(Literal))~Xob;
+
+
+Xob function metaCast(Xob x,Sort s)
+   {
+   var Sort xs,int xst,sst;
+   xs = type(x);
+   if (xs == s) return x; 
+   xst = storage(xs);
+   if (s == ob)
+      {
+	  if (xst== storage_int) return metaCast1(metaApplyn(homeFimpFun('intToOb_fun'),x),s);
+	  if (xst== storage_double) return metaCast1(metaApplyn(homeFimpFun('doubleToOb_fun'),x),s);
+	  return metaCast1(x,s);
+	  }
+   if (xs == Literal) 
+      {
+	  if (s == int) return metaApplyn(homeFimpFun('literalToInt_fun'),x);
+	  if (s == double) return metaApplyn(homeFimpFun('literalToDouble_fun'),x);
+	  if (s == boolean) return metaApplyn(homeFimpFun('literalToBoolean_fun'),x);
+	  if (s == string) return metaApplyn(homeFimpFun('literalToString_fun'),x);
+	  error('Illegal attempted cast from ',xs,' to ',s);
+	  }
+   if (s == Literal) 
+      {
+	  if (xst == storage_int) return metaCast1(metaApplyn(homeFimpFun('intToOb_fun'),x),s);
+	  if (xst == storage_double) return metaCast1(metaApplyn(homeFimpFun('doubleToOb_fun'),x),s);
+	  if ((xs == string)||(xs==ob)) return metaCast1(x,s);
+	  error('Illegal attempted cast from ',xs,' to ',s);
+	  }
+   sst = storage(s);
+   if (xs == ob)
+      {
+	  if (sst == storage_int) return metaCast1(metaApplyn(homeFimpFun('obToInt_fun'),x),s);
+	  if (sst == storage_double) return metaCast1(metaApplyn(homeFimpFun('obToDouble_fun'),x),s);
+	  return metaCast1(x,s);
+	  }
+   if ((xs == id) || (s == id)) error('Illegal attempted cast from ',xs,' to ',s);
+   if (sst == xst) return metaCast1(x,s);
+
+   error('Illegal attempted cast from ',xs,' to ',s);
+  }
+
+
+

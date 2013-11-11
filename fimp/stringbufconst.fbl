@@ -1,0 +1,162 @@
+/*
+* Copyright (C) 2004 Map Bureau - http://www.mapbureau.com
+*
+* This package is Free Software released under the BSD license.
+*
+* See license.html at the top of this package for the full license terms.
+*
+*/
+
+// Most code comments temporarily excised, pending review
+
+
+
+
+int function unescapedLcurly(string bf,int sf)
+{ 
+   var int cnd,pc;
+   cnd = find(bf,ascii_lcurly,sf);
+   if (cnd == sf) return sf;
+   while (cnd >= 0)
+        {
+		pc = bf[cnd-1];
+		if (not(pc == 1)) return cnd;
+		cnd = find(bf,ascii_lcurly,cnd+1);
+		}
+    return cnd;
+}
+
+// remove the 1 escapes 
+var removeEscapesBuf = "";
+
+void function removeEscapes(string bf,int esc)
+{
+  var string rs,int cnd,cc;
+  rs = removeEscapesBuf;
+  reset(rs);
+  cnd = find(bf,esc,0);
+  if (cnd < 0) return;
+  cc = 0;
+  while (cnd >= 0)
+     {
+     select(rs,bf,cc,cnd-1);
+	 cc = cnd + 1;
+	 if (bf[cc] == esc) 
+	    {
+		addChar(rs,esc);
+		cc = cc + 1;
+		}
+	 cnd = find(bf,esc,cc);
+	 }
+  select(rs,bf,cc,length(bf)-1);
+  reset(bf);
+  bf * rs;
+}
+
+void function removeEscapes(SeqOf(string) bfs,int esc)
+{
+  var int i,ln;
+  ln = length(bfs);
+  for (i=0;i<ln;i++) removeEscapes(bfs[i],esc);
+}
+
+
+
+
+   
+
+SeqOf(string) function bracketExtract(string bf)
+{
+   var SeqOf(string) rs,int ln,cc,opb,clb,i;
+   rs = emptysequence(string);
+   ln  = length(bf);
+   cc = 0;
+   while (cc < ln)
+      {
+	  opb = unescapedLcurly(bf,cc);
+	  if (opb < 0)
+	     {
+		 push(rs ,select(bf,cc,ln-1));
+		 removeEscapes(rs,1);
+		 return rs;
+		 }
+	  push(rs , select(bf,cc,opb-1));
+	  clb = find(bf,ascii_rcurly,opb);
+	  if (clb < 0) error('Missing closing bracket } in string constant');
+	  push(rs , select(bf,opb+1,clb-1));
+	  cc = clb + 1;
+	  }
+   // ok, now we can remove the escapes
+   removeEscapes(rs,1);
+   return rs;
+}
+
+// the parser expects a ; after simple expressions like 2+3
+void function semify(string bf)
+{
+   var int ln;
+   ln = length(bf);
+   if (bf[ln-1] == ascii_semicolon) return;
+   bf * ';';
+}
+
+
+var stringBuf_append_fun = getVariant(home,'times',sequence(string,string));
+
+// until renaming StringBuf->string completed
+
+string function emptyString()
+{
+   return mkStringBuf();
+}
+
+
+Xob function stringBufConstXob(SeqOf(string) bfs)
+{
+   var ob e,cpr,int i,ln,SeqOf(Xob) sq,string cbf,Function vr,
+      Xob px,rsx,cx,Class brt;
+   e = mkObject();
+   rsx = bindLocal(e,'stringConstantResult',string)~Xob;
+   ln = length(bfs);
+   sq = emptysequence(Xob);
+   push(sq , metaAssignn(rsx,
+     metaApplyn(homeFimpFun('mkStringBuf_function'),meta(''))));
+   push(sq , metaApplyn(homeFimpFun('stringStringTimes_fun'),rsx,meta(bfs[0]~ob,string)));
+//   sq + metaApplyn(homeFimpFun('stringStringTimes_fun',rsx,meta("SNOOB",string));
+
+//   sq + metaAssignn(rsx,meta(bfs[0]~ob,string));
+   i = 1;
+   while (i < ln)
+      {
+	  cbf = bfs[i];
+	  semify(cbf);
+	  cpr = parse(cbf);
+	  cx = analyze(cpr);
+	  vr = getVariant(homePath(),'times',sequence(string,type(cx)));
+	  if (nul(vr)) 
+	     px = metaApplyn(homeFimpFun('gAppend_fun'),rsx,cx,meta(type(cx)));
+	  else
+	     px = metaApplyn(vr~Xob,rsx,cx);
+	  push(sq,px);
+	  i = i + 1;
+	  if (i < ln)
+         push(sq , metaApplyn(homeFimpFun('stringBuf_append_fun'),rsx,meta(bfs[i]~ob,string)));
+      i = i + 1;
+	  }
+  brt = blockReturnType;
+  blockReturnType = string;
+  push(sq , metaBlockReturn(rsx,nil~id));
+  blockReturnType =brt;
+  return mkValueReturningXblock(string,e~ob,sq); 
+}
+
+
+
+Xob function analyzeStringBufConst(string bf)
+{
+   if ((find(bf,ascii_lcurly) < 0) && (find(bf,1) <0) ) 
+      return metaApplyn(homeFimpFun('copyStringConst_fun'),meta(bf~ob,string));
+   return stringBufConstXob(bracketExtract(bf));
+}
+
+
