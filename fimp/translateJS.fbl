@@ -1,0 +1,28 @@
+string function translateIf(Xif xif) {
+    var string js;
+    js += "if(";
+    js += translateToJS(xif.Xif_condition);
+    js += "){";
+    js += translateToJS(xif.Xif_ifTrue);
+    js += "}";
+    if (notnull(xif.Xif_ifFalse)) {
+        js += "else{";
+        js += translateToJS(xif.Xif_ifFalse);
+        js += "}";
+    }
+    return js;
+}
+
+string function translateToJS(Xob x) {
+    var string js, t;
+    t = type(x);
+    if (x == Xif) {
+        
+    } else {
+    }
+}
+
+string function translateToJS(string fn) {
+    load(fn); // this will parse and analyze the file, the resulting Xob is stored in lastXob
+    return translateToJS(lastXob);
+}

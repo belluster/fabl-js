@@ -1,0 +1,57 @@
+var buildStartTime = timeMsec(), string js;
+
+js = "";
+
+js += translateToJS('../fimp/globals.fbl');
+js += translateToJS('../fimp/props.fbl');
+js += translateToJS('../fimp/imports.fbl');
+js += translateToJS('../fimp/fglobals.fbl');
+js += translateToJS('../fimp/pcode.fbl');
+js += translateToJS('../fimp/primops.fbl');
+
+
+js += translateToJS('../fimp/xob.fbl');
+
+js += translateToJS('../fimp/utils.fbl');
+
+
+js += translateToJS('../fimp/arith.fbl');
+
+js += translateToJS('../fimp/hex.fbl');
+js += translateToJS('../fimp/fun.fbl');
+js += translateToJS('../fimp/literal.fbl');
+js += translateToJS('../fimp/meta.fbl');
+js += translateToJS('../fimp/strutils.fbl');
+js += translateToJS('../fimp/date.fbl');
+js += translateToJS('../fimp/hexbinary.fbl');
+
+js += translateToJS('../fimp/cgi.fbl');
+js += translateToJS('../fimp/label.fbl');
+js += translateToJS('../fimp/class.fbl');
+js += translateToJS('../fimp/analyze.fbl');
+js += translateToJS('../fimp/macros.fbl');
+//js += translateToJS('../fimp/plussup.fbl');
+js += translateToJS('../fimp/asm.fbl');
+js += translateToJS('../fimp/disasm.fbl');
+js += translateToJS('../fimp/flat.fbl');
+js += translateToJS('../fimp/flat2.fbl');
+js += translateToJS('../fimp/scan.fbl');
+js += translateToJS('../fimp/parse.fbl');
+js += translateToJS('../fimp/stringbufconst.fbl');
+js += translateToJS('../fimp/functionals.fbl');
+js += translateToJS('../fimp/toplevel.fbl');
+js += translateToJS('../fimp/debug.fbl');
+js += translateToJS('../fimp/printers.fbl');
+js += translateToJS('../fimp/xobprint.fbl');
+js += translateToJS('../fimp/home.fbl');
+js += translateToJS('../fimp/uri.fbl');
+js += translateToJS('../fimp/namespace.fbl');
+js += translateToJS('../fimp/serialize.fbl');
+js += translateToJS('../fimp/writerdfxml.fbl');
+
+js += translateToJS('../fimp/raptor.fbl');
+js += translateToJS('../fimp/translateToJS.fbl');
+
+serializeToFile('fimp.js',js,page(js));
+
+writeln('js build in ',timeMsec()-buildStartTime);
