@@ -365,6 +365,7 @@ void function fablLoop(boolean cn)
      cls = collectingSubjects();
 	 set_collectingSubjects(false);
 	 cv =parseToplevel();
+	 if (translateJS) translateToJS(lastXob);
 	 set_collectingSubjects(cls);
 	 if (parse_verbose) writeln('Parse toplevel = ',cv);
 	 if (eq(cv,eof_parse)) um_is_done = true; else

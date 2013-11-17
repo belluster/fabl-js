@@ -1,0 +1,1 @@
+k='test';if(k==='test') {k='A';} else {k='B';}

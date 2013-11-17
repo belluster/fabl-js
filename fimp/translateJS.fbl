@@ -1,28 +1,195 @@
-string function translateIf(Xif xif) {
+var string jsg, boolean translateJS;
+var Function(string, Xob) translateXob;
+
+void function resetJS() {
+	jsg = '';
+}
+
+void function storeJS(string fln) {
+	writeToFile(fln,jsg);
+}
+
+string function translateConstant(Xob xconstant) {
     var string js;
-    js += "if(";
-    js += translateToJS(xif.Xif_condition);
-    js += "){";
-    js += translateToJS(xif.Xif_ifTrue);
-    js += "}";
-    if (notnull(xif.Xif_ifFalse)) {
-        js += "else{";
-        js += translateToJS(xif.Xif_ifFalse);
-        js += "}";
+	js = '';
+	// writeln(obkind(xconstant));
+    js * xconstant;
+    return js;
+}
+
+string function translateBinding(Binding binding) {
+    var string js, ob ky, Sort tp0, ob rg;
+	js = '';
+	ky = obsel(binding~ob,Binding_key);
+	if (obkind(ky)==string_kind) js * (ky~id);
+	else {
+		tp0 = type0(ky);
+		if (tp0 == Regarding) {
+			rg = obsel(ky,Regarding_value);
+			if (obkind(rg) == string_kind) js * rg~id;
+			else js * '<unprintable>';
+		}
+	}
+    return js;
+}
+
+string function translateAssign(Xassign xassign) {
+    var string js;
+	js = '';
+    js * translateXob(obsel(xassign~ob, Xassign_dest)~Xob);
+    js * '=';
+    js * translateXob(obsel(xassign~ob, Xassign_source)~Xob);
+	js * ';';
+    return js;
+}
+
+string function translateBlock(Xblock xblock) {
+    var string js, Xob ls, SeqOfXob st, int i, ln;
+	js = '';
+    js * '{';
+	ls = obsel(xblock~ob, Xblock_locals)~Xob;
+    if (nnul(ls)) {
+		js * translateXob(ls);
+	}
+	st = obsel(xblock~ob, Xblock_statements)~SeqOfXob;
+	ln = length(st);
+	if (nnul(st) && (ln > 0)) {
+		for (i = 0;i < ln-1;i++) {
+			js * translateXob(st[i]);
+		}
+	}
+    js * '}';
+	return js;
+}
+
+string function funcname(Xapply xapply) {
+	var string fns, ob fnn, Xob fn;
+	fns = '';
+	fn = obsel(xapply~ob, Xapply_functionOf)~Xob;
+	fnn = obsel(fn, Function_name)~ob;
+	fns * fnn;
+	return fns;
+}
+
+string function translateEqual(Xapply xapply) {
+    var string js, Xob dst, SeqOfXob dt, int ln,i;
+	js = '';
+	dst = obsel(xapply~ob, Xapply_dest)~Xob;
+	if (nnul(dst)) {
+		js * translateXob(dst);
+		js * ' = ';
+	}
+	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
+	ln = length(dt);
+	if (nnul(dt) && (ln == 2)) {
+		js * translateXob(dt[0]);
+		js * '===';
+		js * translateXob(dt[1]);
+	}
+    return js;
+}
+
+string function translateMkStringBuf(Xapply xapply) {
+    var string js, Xob dst, SeqOfXob dt, int ln,i;
+	js = '';
+	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
+	ln = length(dt);
+	if (nnul(dt) && (ln == 1)) {
+		js * "'";
+		js * translateXob(dt[0]);
+		js * "'";
+	}
+    return js;
+}
+
+string function translateApply(Xapply xapply) {
+    var string js, fnn, Xob dst, SeqOfXob dt, int ln,i;
+	js = '';
+	fnn = funcname(xapply);
+	if (fnn == 'equal') return translateEqual(xapply);
+	if (fnn == 'mkStringBuf') return translateMkStringBuf(xapply);
+	dst = obsel(xapply~ob, Xapply_dest)~Xob;
+	if (nnul(dst)) {
+		js * translateXob(dst);
+		js * ' = ';
+	}
+	js * fnn;
+	js * '(';
+	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
+	ln = length(dt);
+	if (nnul(dt) && (ln > 0)) {
+		for (i = 0;i < (ln-1);i++) {
+			js * translateXob(dt[i]);
+			js * ',';
+		}
+		js * translateXob(dt[ln-1]);
+	}
+	js * ')';
+    return js;
+}
+
+string function translateIf(Xif xif) {
+    var string js, Xob iff;
+	js = '';
+    js * 'if(';
+    js * translateXob(obsel(xif~ob, Xif_condition)~Xob);
+    js * ') ';
+    js * translateXob(obsel(xif~ob, Xif_ifTrue)~Xob);
+    iff = obsel(xif~ob, Xif_ifFalse)~Xob;
+	if (nnul(iff)) {
+        js * ' else ';
+        js * translateXob(iff);
     }
     return js;
 }
 
-string function translateToJS(Xob x) {
-    var string js, t;
-    t = type(x);
-    if (x == Xif) {
-        
-    } else {
-    }
+string function translateXob(Xob x) {
+    var string js;
+
+	// writeln('type:',obsel(x, rdf:type),'  val  ',x);
+
+	if (isConstant(x)) js = translateConstant(x);
+	else if (isBinding(x~ob)) js = translateBinding(x~Binding);
+    else if (hasType(x~ob, Xassign)) js = translateAssign(x~Xassign);
+	else if (hasType(x~ob, Xblock)) js = translateBlock(x~Xblock);
+	else if (hasType(x~ob, Xapply)) js = translateApply(x~Xapply);
+	else if (hasType(x~ob, Xif)) js = translateIf(x~Xif);
+	else js = '';
+
+	return js;
 }
 
-string function translateToJS(string fn) {
-    load(fn); // this will parse and analyze the file, the resulting Xob is stored in lastXob
-    return translateToJS(lastXob);
+string function translateToJS(Xob x) {
+    var string js;
+
+	if (nul(jsg)) return '';
+	if (hasType(x~ob, Xapply) && (funcname(x~Xapply) == 'translateToJS')) { // exclude the call to translateJS itself from translation
+		return '';
+	}
+
+	js = translateXob(x);
+
+	jsg * js;
+
+	return js;
+}
+
+translateJS = false;
+
+string function translateToJS(string fln) {
+	var string fnc, Xob x, ob tp;
+	writeln('Translating ', fln);
+	translateJS = true;
+    load(fln); // this will parse and analyze the code and generate JS code
+	translateJS = false;
+	return jsg;
+
+	//write('r: ', thisFileR);
+	//tp = fget(thisFileR,topicP);
+	///jsg = translateToJS(lastXob);
+
+	/*fnc = '';
+	readFromFile(fnc, fln);
+	x = evaluate(fnc)~Xob;
+	return translateToJS(x);*/
 }
