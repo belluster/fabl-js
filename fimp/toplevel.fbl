@@ -170,7 +170,7 @@ void function analyzeFunction(Sort rts,ob x)//new
     set_collectingSubjects(cls);
     fn = internFunction(ns,fnm,fnsort,pcd ~ ob);
 	setFunctionOf(asmDblock,fn);
-
+	if (translateJS) translateToJS(fn~Xob);
 	}
  thisXob = nil ~ Xob;
 }
@@ -272,8 +272,10 @@ void function analyzeTopVars(ob x,boolean isConstant)
 		   if (nul(lsts)) error('Class needed for variable ',ce);
 		   if (nul(classBeingDefined)) 
 		      {
-			  if (isConstant) error('A value needs to be supplied for the constant ',ce~id);
-			  else bindGlobal(home,ce~id,lsts); 
+			    if (isConstant) error('A value needs to be supplied for the constant ',ce~id);
+			    else {
+					bindGlobal(home,ce~id,lsts); 
+				}
 			  }
 
 
@@ -294,8 +296,11 @@ void function analyzeTopVars(ob x,boolean isConstant)
 			     srt = type(lastXob);
 		         if (nul(classBeingDefined))  
 				    {
-					if (isConstant) bindConstant(home,nm,vl,srt);
-					else bindGlobal(home,nm,vl,srt);
+					  if (isConstant) {
+						bindConstant(home,nm,vl,srt);
+					  } else {
+						bindGlobal(home,nm,vl,srt);
+					  }
 					}
 
 			     else			  
@@ -365,7 +370,6 @@ void function fablLoop(boolean cn)
      cls = collectingSubjects();
 	 set_collectingSubjects(false);
 	 cv =parseToplevel();
-	 if (translateJS) translateToJS(lastXob);
 	 set_collectingSubjects(cls);
 	 if (parse_verbose) writeln('Parse toplevel = ',cv);
 	 if (eq(cv,eof_parse)) um_is_done = true; else
@@ -383,6 +387,7 @@ void function fablLoop(boolean cn)
         lastFablParse = dtv;
 	     if (printParseResults) writeln(dtv);
          if (fablEval) analyzeTop(dtv);
+		 if (translateJS) translateToJS(lastXob);
 		 }
 		}
 	 if (fablLoopPop)

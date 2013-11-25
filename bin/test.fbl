@@ -1,9 +1,17 @@
-var string k;
+var string k, int l;
 
 k = 'test';
-
 if (k == 'test') {
 	k = 'A';
 } else {
-	k = 'B';
+	l = 2;
 }
+
+boolean function isObject(int x)
+{
+   var int m, ob r;
+   m = 0;
+   x = 8;
+   return obkind(x) > 15;
+}
+

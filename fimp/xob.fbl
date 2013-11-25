@@ -202,6 +202,7 @@ Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
 {
   var Property gpr;
   gpr = regarding(nm~ob);
+  if (translateJS) translateToJS(x,nm,vl,s);
   return set(x,gpr,vl,s);
 }
 
