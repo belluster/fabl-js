@@ -180,6 +180,7 @@ Binding function assertDefaultValue(ob bn,Property nm,Sort s)
 Binding function bindLocal(ob bn,id nm,ob vl,Sort s)
   {
   var Binding rs;
+  if (translateJS) translateToJS(bn,nm,vl,s);
   rs =  set(bn,regarding(nm~ob),vl,s);
   setInDblock(rs,true);
 // rs . inDblock = true;

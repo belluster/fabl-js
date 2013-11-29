@@ -7,7 +7,7 @@ if (k == 'test') {
 	l = 2;
 }
 
-boolean function isObject(int x)
+boolean function isObject(int x, string h, int rrr)
 {
    var int m, ob r;
    m = 0;

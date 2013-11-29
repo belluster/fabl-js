@@ -5,7 +5,47 @@ var buildStartTime = timeMsec();
 load('../fimp/translateJS.fbl');
 load('../fimp/toplevel.fbl'); // reload toplevel with js translation
 
-// redefine bindGlobal (from xob.fbl) with js translation
+// redefine bindConstant, bindLocal and bindGlobal (from xob.fbl) with js translation
+Binding function bindConstant(ob x,id nm,ob vl,Sort s)
+{
+  var Property gpr,Binding b,cb,Sort ctp;
+  gpr = regarding(nm~ob);
+  cb = selectBinding(x,gpr);//LATER deal with the case where a compactob has a nm binding
+  if (nnul(cb))
+     {
+	 if (isConstant(cb))
+	    {
+		if (translateJS) translateToJS(x,nm,vl,s);
+		if (hasValueAndType(cb,vl,s)) return cb;
+	    //error('Cannot modify a constant: ',nm);
+		}
+	  else 
+	    {
+		ctp = type(cb);
+		if (nul(ctp) || (ctp == ob))
+		   {
+		   if (not(eq(s,ctp)))
+             obset(cb~ob,Binding_type,s~ob);
+		   set(x,gpr,vl);
+		   set_isConstant(cb,true);
+		   }
+	    else  error('Cannot modify type of ',nm);
+		}
+	  return cb;
+	  }
+  b = set(x,gpr,vl,s);
+  if (nnul(b)) set_isConstant(b,true); else error('Cannot bind as constant ',nm);
+}
+
+/*Binding function bindLocal(ob bn,id nm,ob vl,Sort s)
+{
+  var Binding rs;
+  if (translateJS) translateToJS(bn,nm,vl,s);
+  rs =  set(bn,regarding(nm~ob),vl,s);
+  setInDblock(rs,true);
+  return rs;
+}*/
+
 Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
 {
   var Property gpr;
@@ -16,42 +56,37 @@ Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
 
 resetJS();
 
-outputTypesToJS = true;
+outputTypesToJS = false;
 
 /*translateToJS('../fimp/globals.fbl');
 translateToJS('../fimp/props.fbl');
-translateToJS('../fimp/imports.fbl');
+// translateToJS('../fimp/imports.fbl');
 translateToJS('../fimp/fglobals.fbl');
 translateToJS('../fimp/pcode.fbl');
-translateToJS('../fimp/primops.fbl');
-
-translateToJS('../fimp/xob.fbl');
-
+// ERROR translateToJS('../fimp/primops.fbl');
+// ERROR translateToJS('../fimp/xob.fbl');
 translateToJS('../fimp/utils.fbl');
-
 translateToJS('../fimp/arith.fbl');
 translateToJS('../fimp/hex.fbl');
-translateToJS('../fimp/fun.fbl');
+// ERROR translateToJS('../fimp/fun.fbl');
 translateToJS('../fimp/literal.fbl');
-translateToJS('../fimp/meta.fbl');
+// ERROR translateToJS('../fimp/meta.fbl');
 translateToJS('../fimp/strutils.fbl');
 translateToJS('../fimp/date.fbl');
 translateToJS('../fimp/hexbinary.fbl');
-
 translateToJS('../fimp/cgi.fbl');
 translateToJS('../fimp/label.fbl');
-translateToJS('../fimp/class.fbl');
-translateToJS('../fimp/analyze.fbl');
-translateToJS('../fimp/macros.fbl');
-//translateToJS('../fimp/plussup.fbl');
-translateToJS('../fimp/asm.fbl');
+// ERROR translateToJS('../fimp/class.fbl');
+// ERROR translateToJS('../fimp/analyze.fbl');
+// ERROR translateToJS('../fimp/macros.fbl');
+// ERROR translateToJS('../fimp/asm.fbl');
 translateToJS('../fimp/disasm.fbl');
-translateToJS('../fimp/flat.fbl');
-translateToJS('../fimp/flat2.fbl');
-translateToJS('../fimp/scan.fbl');
-translateToJS('../fimp/parse.fbl');
+// ERROR translateToJS('../fimp/flat.fbl');
+// ERROR translateToJS('../fimp/flat2.fbl');
+// ERROR translateToJS('../fimp/scan.fbl');
+// ERROR translateToJS('../fimp/parse.fbl');
 translateToJS('../fimp/stringbufconst.fbl');
-translateToJS('../fimp/functionals.fbl');
+// ERROR translateToJS('../fimp/functionals.fbl');
 translateToJS('../fimp/toplevel.fbl');
 translateToJS('../fimp/debug.fbl');
 translateToJS('../fimp/printers.fbl');
@@ -61,12 +96,9 @@ translateToJS('../fimp/uri.fbl');
 translateToJS('../fimp/namespace.fbl');
 translateToJS('../fimp/serialize.fbl');
 translateToJS('../fimp/writerdfxml.fbl');
-
-translateToJS('../fimp/raptor.fbl');
-translateToJS('../fimp/translateToJS.fbl');*/
-
-translateToJS('test.fbl');
-
-storeJS('fimp.js');
+translateToJS('../fimp/raptor.fbl');*/
+translateToJS('../fimp/translateJS.fbl');
+/*translateToJS('test.fbl');
+storeJS('fimp.js');*/
 
 writeln('js build in ',timeMsec()-buildStartTime);
