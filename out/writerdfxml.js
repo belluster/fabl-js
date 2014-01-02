@@ -1,340 +1,371 @@
-var blankNodeTable = var beenWrittenTable = var xmlNamespaces = var xmlSizeLimit = 10000;
-function qualifiedNameCollectNamespace(x) {
-	 < unknown Xob type >  : rdfs : Resourceqn = qualifiedName(x);
-	if (nul(qn))
-		return qn; ;
-	clp = indexOf(qn, ascii_colon);
-	ns = toId(substring(qn, 0, clp));
-	if (not(seqobContains(xmlNamespaces, ns)))
-		seqobAdd(xmlNamespaces, ns);
-	return qn; ; ;
+var blankNodeTable;
+
+var beenWrittenTable;
+
+var xmlNamespaces;
+
+var xmlSizeLimit = 1e4;
+
+function __qualifiedNameCollectNamespace(x) {
+    var x;
+    var qn;
+    var clp;
+    var ns;
+    qn = __qualifiedName(x);
+    if (!qn) return qn;
+    clp = ____indexOf(qn, ascii_colon);
+    ns = __toId(______substring(qn, 0, clp));
+    if (!____seqobContains(xmlNamespaces, ns)) ____seqobAdd(xmlNamespaces, ns);
+    return qn;
 }
-var blankIdSeed = 'n_';
-var blankIdCount = 0;
-function blankNodeName(r) {
-	 < unknown Xob type >  : rdfs : Resourcerr = regarding(r);
-	nm = get(blankNodeTable, rr);
-	if (nul(nm)) {
-		nm = genName(blankIdSeed, plus_plus(blankIdCount));
-		set(blankNodeTable, rr, nm); ;
-	}
-	return nm; ; ;
+
+var blankIdSeed = "n_";
+
+var blankIdCount;
+
+0;
+
+function __blankNodeName(r) {
+    var r;
+    var rr;
+    var nm;
+    rr = __regarding(r);
+    nm = ____get(blankNodeTable, rr);
+    if (!nm) {
+        nm = ____genName(blankIdSeed, blankIdCount++);
+        ______set(blankNodeTable, rr, nm);
+    }
+    return nm;
 }
-function xmlWriteResourceTag(bf, r) {
-	 < unknown Xob type >  : rdfs : Resourcerr = regarding(r);
-	u = uri(r);
-	tp = get(r, );
-	tpk = obkind(tp);
-	if (tpk === seq_kind) {
-		tps = tp;
-		ln = seqLength(tps);
-		if (greaterp(ln, 0))
-			mtp = tps[difference(ln, 1)]; ;
-	} else
-		mtp = tp;
-	if (nnul(mtp))
-		tpnm = qualifiedNameCollectNamespace(mtp);
-	if (nul(tpnm)) {
-		times(bf, );
-	} else {
-		times(bf, );
-		times(bf, tpnm);
-	}
-	if (nul(u)) {
-		times(bf, );
-		times(bf, blankNodeName(r));
-		times(bf, );
-	} else {
-		times(bf, );
-		times(bf, u);
-		times(bf, );
-	} {
-		times(bf, );
-	}
-	set(beenWrittenTable, rr, 'yes'); ;
+
+function ____xmlWriteResourceTag(bf, r) {
+    var bf;
+    var r;
+    var u;
+    var tp;
+    var tpk;
+    var ln;
+    var tps;
+    var mtp;
+    var tpnm;
+    var rr;
+    rr = __regarding(r);
+    u = __uri(r);
+    tp = ____get(r, "rdf:type");
+    tpk = __obkind(tp);
+    if (tpk === seq_kind) {
+        tps = tp;
+        ln = __seqLength(tps);
+        if (ln > 0) mtp = tps[ln - 1];
+    } else mtp = tp;
+    if (mtp) tpnm = __qualifiedNameCollectNamespace(mtp);
+    if (!tpnm) {
+        ____times(bf, "<rdf:Description ");
+    } else {
+        ____times(bf, "<");
+        ____times(bf, tpnm);
+    }
+    if (!u) {
+        ____times(bf, ' rdf:nodeID="');
+        ____times(bf, __blankNodeName(r));
+        ____times(bf, '"');
+    } else {
+        ____times(bf, ' rdf:about="');
+        ____times(bf, u);
+        ____times(bf, '"');
+    }
+    {
+        ____times(bf, ">\n");
+    }
+    ______set(beenWrittenTable, rr, "yes");
 }
-function xmlWriteResourceEndTag(bf, r) {
-	 < unknown Xob type >  : rdfs : Resourcemtp = fget(r, );
-	if (nnul(mtp))
-		tpnm = qualifiedNameCollectNamespace(mtp);
-	if (nul(tpnm)) {
-		times(bf, );
-	} else {
-		times(bf, );
-		times(bf, tpnm);
-		times(bf, );
-	};
+
+function ____xmlWriteResourceEndTag(bf, r) {
+    var bf;
+    var r;
+    var mtp;
+    var tpnm;
+    mtp = ____fget(r, "rdf:type");
+    if (mtp) tpnm = __qualifiedNameCollectNamespace(mtp);
+    if (!tpnm) {
+        ____times(bf, "</rdf:Description>");
+    } else {
+        ____times(bf, "</");
+        ____times(bf, tpnm);
+        ____times(bf, ">\n");
+    }
 }
-var intUri = 'http://www.w3.org/2001/XMLSchema#int'; ;
-var doubleUri = 'http://www.w3.org/2001/XMLSchema#double'; ;
-var stringUri = 'http://www.w3.org/2001/XMLSchema#string'; ;
-var booleanUri = 'http://www.w3.org/2001/XMLSchema#boolean'; ;
-var idUri = 'http://nurl.org/0/fabl/id'; ;
-function xmlWriteDatatypeProperty(bf, pnm, v, tp) {
-	 < unknown Xob type >  : rdfs : Resource {
-		times(bf, );
-		times(bf, pnm);
-	}
-	if (not(tp === ob)) {
-		if (tp === fabl_int)
-			tpuri = intUri;
-		else if (tp === fabl_double)
-			tpuri = doubleUri;
-		else if (tp === fabl_string)
-			tpuri = stringUri;
-		else if (tp === fabl_id)
-			tpuri = idUri;
-		else if (tp === fabl_boolean)
-			tpuri = booleanUri;
-		else {
-			beforeError();
-			reset(uwriteBuffer);
-			times(uwriteBuffer, );
-			times(uwriteBuffer, tp);
-			tprint(uwriteBuffer);
-			terpri();
-			afterError();
-		} {
-			times(bf, );
-			times(bf, tpuri);
-			times(bf, );
-		};
-	} {
-		times(bf, );
-		times(bf, v);
-		times(bf, );
-		times(bf, pnm);
-		times(bf, );
-	}
-	if (greaterp(length(bf), xmlSizeLimit)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	};
-} {
-	 < unknown Xob type >  : rdfs : Resource {
-		times(bf, );
-		times(bf, pnm);
-	}
-	if (not(tp === ob)) {
-		if (tp === fabl_int)
-			tpuri = intUri;
-		else if (tp === fabl_double)
-			tpuri = doubleUri;
-		else if (tp === fabl_string)
-			tpuri = stringUri;
-		else if (tp === fabl_id)
-			tpuri = idUri;
-		else if (tp === fabl_boolean)
-			tpuri = booleanUri;
-		else {
-			beforeError();
-			reset(uwriteBuffer);
-			times(uwriteBuffer, );
-			times(uwriteBuffer, tp);
-			tprint(uwriteBuffer);
-			terpri();
-			afterError();
-		} {
-			times(bf, );
-			times(bf, tpuri);
-			times(bf, );
-		};
-	} {
-		times(bf, );
-		times(bf, v);
-		times(bf, );
-		times(bf, pnm);
-		times(bf, );
-	}
-	if (greaterp(length(bf), xmlSizeLimit)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	};
+
+var intUri = "http://www.w3.org/2001/XMLSchema#int";
+
+var doubleUri = "http://www.w3.org/2001/XMLSchema#double";
+
+var stringUri = "http://www.w3.org/2001/XMLSchema#string";
+
+var booleanUri = "http://www.w3.org/2001/XMLSchema#boolean";
+
+var idUri = "http://nurl.org/0/fabl/id";
+
+function ________xmlWriteDatatypeProperty(bf, pnm, v, tp) {
+    var bf;
+    var pnm;
+    var v;
+    var tp;
+    var tpuri;
+    {
+        ____times(bf, "<");
+        ____times(bf, pnm);
+    }
+    if (!(tp === ob)) {
+        if (tp === fabl_int) tpuri = intUri; else if (tp === fabl_double) tpuri = doubleUri; else if (tp === fabl_string) tpuri = stringUri; else if (tp === fabl_id) tpuri = idUri; else if (tp === fabl_boolean) tpuri = booleanUri; else {
+            beforeError();
+            __reset(uwriteBuffer);
+            ____times(uwriteBuffer, "Internal: unexpected type: ");
+            ____times(uwriteBuffer, tp);
+            __tprint(uwriteBuffer);
+            terpri();
+            afterError();
+        }
+        {
+            ____times(bf, ' rdf:datatype="');
+            ____times(bf, tpuri);
+            ____times(bf, '"');
+        }
+    }
+    {
+        ____times(bf, ">");
+        ____times(bf, v);
+        ____times(bf, "</");
+        ____times(bf, pnm);
+        ____times(bf, ">");
+    }
+    if (__length(bf) > xmlSizeLimit) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "exceeded RDF/XML size limit");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
 }
-function xmlWriteProperty(bf, pnm, r) {
-	 < unknown Xob type >  : rdfs : Resource {
-		times(bf, );
-		times(bf, pnm);
-	}
-	if (nul(fget(beenWrittenTable, regarding(r)))) { {
-			times(bf, );
-		}
-		xmlSerialize(bf, r); {
-			times(bf, );
-			times(bf, pnm);
-			times(bf, );
-		};
-	} else {
-		u = uri(r);
-		if (nul(u)) {
-			times(bf, );
-			times(bf, blankNodeName(r));
-			times(bf, );
-		} else {
-			times(bf, );
-			times(bf, u);
-			times(bf, );
-		};
-	}
-	if (greaterp(length(bf), xmlSizeLimit)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	};
+
+function ______xmlWriteProperty(bf, pnm, r) {
+    var bf;
+    var pnm;
+    var r;
+    var u;
+    {
+        ____times(bf, "<");
+        ____times(bf, pnm);
+    }
+    if (!____fget(beenWrittenTable, __regarding(r))) {
+        {
+            ____times(bf, ">\n");
+        }
+        ____xmlSerialize(bf, r);
+        {
+            ____times(bf, "</");
+            ____times(bf, pnm);
+            ____times(bf, ">\n");
+        }
+    } else {
+        u = __uri(r);
+        if (!u) {
+            ____times(bf, ' rdf:nodeID="');
+            ____times(bf, __blankNodeName(r));
+            ____times(bf, '"/>\n');
+        } else {
+            ____times(bf, ' rdf:resource="');
+            ____times(bf, u);
+            ____times(bf, '">/>\n');
+        }
+    }
+    if (__length(bf) > xmlSizeLimit) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "exceeded RDF/XML size limit");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
 }
-function xmlSerialize(bf, b) {
-	 < unknown Xob type >  : rdfs : Resourcek = bindingKey(b);
-	kq = qualifiedNameCollectNamespace(k);
-	if (nul(kq))
-		return false; ;
-	p = k;
-	v = bindingValue(b);
-	btp = obsel(b, Binding_type);
-	if (or(nul(btp), btp === ob)) {
-		ptp = range(p);
-		if (nnul(ptp))
-			vtp = ptp; ;
-	} else
-		vtp = btp;
-	if (nul(vtp))
-		vtp = ob;
-	vtp0 = type0(v);
-	if (not(vtp0 === ob)) {
-		if (vtp === ob)
-			vtp = vtp0;
-		else
-			vtp = mostSpecific([vtp0, vtp]); ;
-	}
-	vk = obkind(v);
-	if (vk === double_kind)
-		vtp = fabl_double;
-	isdtp = or(or(or(isString(v), isId(v)), vk === int_kind), vk === double_kind);
-	pnm = qualifiedNameCollectNamespace(p);
-	if (nul(pnm)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		times(uwriteBuffer, uri(p));
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	if (isdtp)
-		xmlWriteDatatypeProperty(bf, pnm, v, vtp);
-	else
-		xmlWriteProperty(bf, pnm, v);
-	return true; ; ;
+
+function ____xmlSerialize(bf, b) {
+    var bf;
+    var b;
+    var k;
+    var kq;
+    var p;
+    var v;
+    var btp;
+    var vtp0;
+    var ptp;
+    var vtp;
+    var vk;
+    var isdtp;
+    var pnm;
+    k = __bindingKey(b);
+    kq = __qualifiedNameCollectNamespace(k);
+    if (!kq) return fabl_false;
+    p = k;
+    v = __bindingValue(b);
+    btp = ____obsel(b, Binding_type);
+    if (!btp || btp === ob) {
+        ptp = __range(p);
+        if (ptp) vtp = ptp;
+    } else vtp = btp;
+    if (!vtp) vtp = ob;
+    vtp0 = __type0(v);
+    if (!(vtp0 === ob)) {
+        if (vtp === ob) vtp = vtp0; else vtp = __mostSpecific([ vtp0, vtp ]);
+    }
+    vk = __obkind(v);
+    if (vk === double_kind) vtp = fabl_double;
+    isdtp = __isString(v) || __isId(v) || vk === int_kind || vk === double_kind;
+    pnm = __qualifiedNameCollectNamespace(p);
+    if (!pnm) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Cannot write out a property without a qualified name: ");
+        ____times(uwriteBuffer, __uri(p));
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    if (isdtp) ________xmlWriteDatatypeProperty(bf, pnm, v, vtp); else ______xmlWriteProperty(bf, pnm, v);
+    return fabl_true;
 }
-var xmlSerializePage = 0;
-function xmlSerialize(bf, r) {
-	 < unknown Xob type >  : rdfs : Resourceif(greaterp(length(bf), xmlSizeLimit)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	k = obkind(r);
-	if (k === hashtable_kind) {
-		bn = bindings(r);
-		bfln = length(bf);
-		xmlWriteResourceTag(bf, r);
-		ln = seqLength(bn);
-		bcnt = 0;
-		for (i = 0; lessp(i, ln); plus_plus(i)) {
-			b = bn[i];
-			if (or(lessp(xmlSerializePage, 0), page(b) === xmlSerializePage)) {
-				if (xmlSerialize(bf, b))
-					plus_plus(bcnt); ;
-			};
-		};
-		xmlWriteResourceEndTag(bf, r); ;
-	}
-	if (k === seq_kind) {
-		times(bf, );
-		dk = seqDataKind(r);
-		if (dk === seqDataOb_kind) {
-			sqo = r;
-			ln = seqLength(sqo);
-			for (i = 0; lessp(i, ln); plus_plus(i)) {
-				v = sqo[i];
-				vtp = type0(v);
-				vk = obkind(v);
-				if (vk === double_kind)
-					vtp = fabl_double;
-				isdtp = or(or(or(isString(v), isId(v)), vk === int_kind), vk === double_kind);
-				if (isdtp)
-					xmlWriteDatatypeProperty(bf, , v, vtp);
-				else
-					xmlWriteProperty(bf, , v); ;
-			}; ;
-		} else {
-			beforeError();
-			reset(uwriteBuffer);
-			times(uwriteBuffer, );
-			tprint(uwriteBuffer);
-			terpri();
-			afterError();
-		}
-		times(bf, ); ;
-	};
+
+var xmlSerializePage;
+
+0;
+
+function ____xmlSerialize(bf, r) {
+    var bf;
+    var r;
+    var k;
+    var bn;
+    var vk;
+    var dk;
+    var bfln;
+    var bcnt;
+    var ln;
+    var i;
+    var b;
+    var v;
+    var vtp;
+    var sqo;
+    var isdtp;
+    if (__length(bf) > xmlSizeLimit) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "exceeded RDF/XML size limit");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    k = __obkind(r);
+    if (k === hashtable_kind) {
+        bn = __bindings(r);
+        bfln = __length(bf);
+        ____xmlWriteResourceTag(bf, r);
+        ln = __seqLength(bn);
+        bcnt = 0;
+        for (i = 0; i < ln; i++) {
+            b = bn[i];
+            if (xmlSerializePage < 0 || __page(b) === xmlSerializePage) {
+                if (____xmlSerialize(bf, b)) bcnt++;
+            }
+        }
+        ____xmlWriteResourceEndTag(bf, r);
+    }
+    if (k === seq_kind) {
+        ____times(bf, "<rdf:Seq>");
+        dk = __seqDataKind(r);
+        if (dk === seqDataOb_kind) {
+            sqo = r;
+            ln = __seqLength(sqo);
+            for (i = 0; i < ln; i++) {
+                v = sqo[i];
+                vtp = __type0(v);
+                vk = __obkind(v);
+                if (vk === double_kind) vtp = fabl_double;
+                isdtp = __isString(v) || __isId(v) || vk === int_kind || vk === double_kind;
+                if (isdtp) ________xmlWriteDatatypeProperty(bf, "rdf:li", v, vtp); else ______xmlWriteProperty(bf, "rdf:li", v);
+            }
+        } else {
+            beforeError();
+            __reset(uwriteBuffer);
+            ____times(uwriteBuffer, "this kind of sequence not supported yet");
+            __tprint(uwriteBuffer);
+            terpri();
+            afterError();
+        }
+        ____times(bf, "</rdf:Seq>");
+    }
 }
-var xmlBoilerPlate = '<?xml version="1.0" encoding="iso-8859-1" ?>
-	<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-	'; ;
-function addXmlNamespace(bf, ns) {
-	 < unknown Xob type >  : rdfs : Resourcensuri = uri(namespace(ns));
-	times(bf, {
-		 < unknown Xob type >  : rdfs : ResourcestringConstantResult = '' '';
-		times(stringConstantResult, );
-		times(stringConstantResult, ns);
-		times(stringConstantResult, );
-		times(stringConstantResult, nsuri);
-		times(stringConstantResult, );
-		return stringConstantResult; ;
-	}); ;
+
+var xmlBoilerPlate = '<?xml version="1.0" encoding="iso-8859-1" ?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"';
+
+function ____addXmlNamespace(bf, ns) {
+    var bf;
+    var ns;
+    var nsuri;
+    nsuri = __uri(__namespace(ns));
+    ____times(bf, "xmlns:");
+    ____times(bf, ns);
+    ____times(bf, '="');
+    ____times(bf, nsuri);
+    ____times(bf, '"');
 }
-function addXmlNamespaces(bf, ns) {
-	 < unknown Xob type >  : rdfs : Resourceln = seqLength(ns);
-	for (i = 0; lessp(i, ln); plus_plus(i))
-		addXmlNamespace(bf, ns[i]); ;
-	times(bf, ); ;
+
+function ____addXmlNamespaces(bf, ns) {
+    var bf;
+    var ns;
+    var ln;
+    var i;
+    ln = __seqLength(ns);
+    for (i = 0; i < ln; i++) ____addXmlNamespace(bf, ns[i]);
+    ____times(bf, ">");
 }
-function xmlSerialize(bf, v, pg) {
-	 < unknown Xob type >  : rdfs : ResourcexmlSerializePage = pg;
-	blankNodeTable = iNew();
-	beenWrittenTable = iNew();
-	xmlNamespaces = iNew();
-	blankIdCount = 0;
-	ln = seqLength(v);
-	rbf = ;
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		cv = v[i];
-		if (or(lessp(xmlSerializePage, 0), page(cv) === xmlSerializePage))
-			xmlSerialize(rbf, cv); ;
-	};
-	times(bf, xmlBoilerPlate);
-	addXmlNamespaces(bf, xmlNamespaces);
-	times(bf, rbf);
-	times(bf, ); ;
+
+function ______xmlSerialize(bf, v, pg) {
+    var bf;
+    var v;
+    var pg;
+    var i;
+    var ln;
+    var cv;
+    var rbf;
+    xmlSerializePage = pg;
+    blankNodeTable = __iNew("rdfs:Resource");
+    beenWrittenTable = __iNew("rdfs:Resource");
+    xmlNamespaces = __iNew("<unprintable>");
+    blankIdCount = 0;
+    ln = __seqLength(v);
+    rbf = "";
+    for (i = 0; i < ln; i++) {
+        cv = v[i];
+        if (xmlSerializePage < 0 || __page(cv) === xmlSerializePage) ____xmlSerialize(rbf, cv);
+    }
+    ____times(bf, xmlBoilerPlate);
+    ____addXmlNamespaces(bf, xmlNamespaces);
+    ____times(bf, rbf);
+    ____times(bf, "</rdf:RDF>");
 }
-function xmlSerializeToFile(fl, v, pg) {
-	 < unknown Xob type >  : rdfs : Resourcebf = ;
-	xmlSerialize(bf, v, pg);
-	fwrite(fl, bf); ;
+
+function ______xmlSerializeToFile(fl, v, pg) {
+    var fl;
+    var v;
+    var pg;
+    var bf;
+    bf = "";
+    ______xmlSerialize(bf, v, pg);
+    ____fwrite(fl, bf);
 }
-function xmlSerializeToFile(fl, v) {
-	xmlSerializeToFile(fl, v, unary_minus(1)); ;
+
+function ____xmlSerializeToFile(fl, v) {
+    var fl;
+    var v;
+    ______xmlSerializeToFile(fl, v, -1);
 }

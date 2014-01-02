@@ -12,7 +12,7 @@
 // primops are functions that map to pcode ops (rather
 // than to pcode function calls)
 
-/*
+
 var Xob seqob_put_fun;
  var Xob seqint_put_fun;
 var Xob seqchar_put_fun;
@@ -36,7 +36,7 @@ var Xob intset_fun;
 var Xob doubleset_fun;
 var Xob bitset_fun;
 var Xob float_fun;
-*/
+
 
 //introduce the primops
 

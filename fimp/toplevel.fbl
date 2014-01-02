@@ -277,20 +277,17 @@ void function analyzeTopVars(ob x,boolean isConstant)
 					bindGlobal(home,ce~id,lsts); 
 				}
 			  }
-
-
-           // LATER add correct constant handling here
-		   else addField(classBeingDefined,ce~id,lsts);
+             // LATER add correct constant handling here
+		     else {
+		      addField(classBeingDefined,ce~id,lsts);
+			}
 		   } 
-		else
-
-        if (isList(ce))
+		else if (isList(ce))
            {
 	       if (eq(car(ce),'assign'))
 	          {
 		      vl = evaluate_(caddr(ce) ~ ob);
 			  nmo = cadr(ce);
-
 			     {
 			     nm = cadr(ce)~id;
 			     srt = type(lastXob);
@@ -302,7 +299,6 @@ void function analyzeTopVars(ob x,boolean isConstant)
 						bindGlobal(home,nm,vl,srt);
 					  }
 					}
-
 			     else			  
 			     error('Cannot assign default values in a sort definition yet');
 				 }
@@ -314,7 +310,7 @@ void function analyzeTopVars(ob x,boolean isConstant)
 		   }
 		cx = cdr(cx);
 		}
-   if (echoMode && !scanning_console) echoInput();
+		if (echoMode && !scanning_console) echoInput();
     }
 
 
@@ -331,15 +327,19 @@ void function analyzeTop(ob ce) //new
   prce = isList(ce);
   if (prce)
 	 {
-	 if  (eq(car(ce),'function'))  
+	 if  (eq(car(ce),'function'))  {
+		 // writeln(cadr(ce), caddr(ce));
 		 analyzeFunction(analyzeTypen(cadr(ce)),cons('function'~ob,cdr(cdr(ce)))); 
+	 }
 	 else
-	 if (eq(car(ce),'var')) analyzeTopVars(cdr(ce),false); else
-	 if (eq(car(ce),'constant')) analyzeTopVars(cdr(ce),true); else
-		 {
+	 if (eq(car(ce),'var')) {
+		analyzeTopVars(cdr(ce),false);
+	 } else if (eq(car(ce),'constant')) {
+		analyzeTopVars(cdr(ce),true);
+	 } else {
 		 lastValue = evaluateAndPrint(ce~ob);
 		 lastParsedType = void;
-		 }
+     }
 	}
   else
     {

@@ -1,11 +1,13 @@
-var string jsg, boolean translateJS, outputTypesToJS, closeStatementAfterNextXob;
+var string jsg, jsLastLocalVars, boolean translateJS, outputTypesToJS, closeStatementAfterNextXob, skipNextXob;
 var Function(string, Xob) translateXob;
 
 void function resetJS() {
 	jsg = '';
+	jsLastLocalVars = '';
 }
 
 void function storeJS(string fln) {
+	writeln('Storing JS to file ', fln);
 	writeToFile(fln,jsg);
 }
 
@@ -13,7 +15,8 @@ string function translateId(id x) {
 	var string js, xs;
 	xs = '';
 	xs * x;
-	if ((xs == 'id') || (xs == 'void') || (xs == 'int') || (xs == 'string') || (xs == 'double') || (xs == 'boolean') || (xs == 'byte') || (xs == 'date')) {
+	if ((xs == 'id') || (xs == 'void') || (xs == 'int') || (xs == 'string') || (xs == 'double') || (xs == 'boolean')
+		|| (xs == 'false') || (xs == 'true') || (xs == 'byte') || (xs == 'date')) {
 		js = 'fabl_';
 		js * xs;
 	} else {
@@ -23,23 +26,85 @@ string function translateId(id x) {
 }
 
 string function translateBinding(Binding binding) {
-    var string js, ob ky, Sort tp0, ob rg;
+    var string js, ob k, int vk, boolean isdtp, Property p, Class btp,vtp0,ptp,vtp, Sort tp0, ob rg, v;
 	js = '';
-	ky = obsel(binding~ob,Binding_key);
-	if (obkind(ky)==string_kind) js * (ky~id);
+	k = bindingKey(binding);
+	if (obkind(k)==string_kind) js * (k~id);
 	else {
-		tp0 = type0(ky);
+		tp0 = type0(k);
 		if (tp0 == Regarding) {
-			rg = obsel(ky,Regarding_value);
+			rg = obsel(k,Regarding_value);
 			if (obkind(rg) == string_kind) js * translateId(rg~id);
-			else js * '<unprintable>';
+			else {
+				js * '<unprintable>';
+				js * obkind(rg);
+			}
+		} else if (tp0 == FunctionalProperty) {
+			p = k ~ Property;
+			v = bindingValue(binding);
+			btp = obsel(binding~ob,Binding_type)~Class;
+			if (nul(btp) || (btp == ob)) {
+				ptp = range(p);
+				if (nnul(ptp)) vtp = ptp;
+			}
+			else vtp = btp;
+			if (nul(vtp)) vtp = ob;
+			vtp0 = type0(v);
+			if (vtp0 != ob) {
+				if (vtp == ob) vtp = vtp0;
+				else vtp = mostSpecific([vtp0,vtp]);
+			}
+			// note that type deduction involving the class is not present here
+			vk = obkind(v);
+			if (vk == double_kind) vtp = double; //  only case where value is unambiguous in type
+			isdtp = isString(v) || isId(v) || (vk == int_kind) || (vk == double_kind);
+			//if (isString(v)) {
+				addChar(js, ascii_squote);
+				js * v;
+				addChar(js, ascii_squote);
+			//}
+			/*js * '[';
+			js * p;
+			js * vk;
+			if (isdtp)
+				js * v;
+			else {
+				if (nnul(v)) js * obsel(v, rdf:type);
+				js * v;
+			}
+			js * ']';*/
+			/*js * '"';
+			js * 'Not able to extract value from binding';
+			js * '"';*/
+		} else {
+			addChar(js, ascii_squote);
+			js * '<unknown binding type>';
+			js * obkind(k);
+			js * tp0;
+			addChar(js, ascii_squote);
 		}
 	}
     return js;
 }
 
+string function translateThirdBinding(ob x) {
+	var string js, SeqOf(Binding) bn, int i,ln;
+	bn = bindings(x);
+	ln = length(bn);
+	js = '';
+	// apparently the meaningful binding is the second one
+	if (ln >= 3) {
+		js * translateBinding(bn[2]);
+	} else { js * 'only '; js * ln; js * ' bindings';
+		for (i=0;i<ln;i++){
+			js*translateBinding(bn[i]~Binding);
+		}
+	}
+	return js;
+}
+
 string function translateConstant(Xob xconstant) {
-    var string js, int ck, i, ln, dk;
+    var string js,SeqOf(Binding) bn,Binding b,int ck, i, ln, dk;
 	js = '';
 	ck = obkind(xconstant);
 	if (nul(xconstant)) {
@@ -47,28 +112,36 @@ string function translateConstant(Xob xconstant) {
 	} else if (ck == hashtable_kind) {
 		// if (bitsel(xconstant~ob,Xob1_booles,Xob1_isNoop)~boolean) js = ''; // noop => do not translate
 		// else js * 'hashtableconstant';
+		js * translateThirdBinding(xconstant~ob);
+		/*js * '"';
+		js * 'Not able to extract value from binding';
+		js * '"';*/
 	} else if (ck == binding_kind) {
 		js * translateBinding(xconstant~Binding);
+	} else if (ck == double_kind) {
+		js * xconstant;
 	} else if (ck == int_kind) {
 		js * xconstant;
 	} else if (ck == string_kind) {
-		js * "'";
+		addChar(js, ascii_squote);
 		js * xconstant;
-		js * "'";
+		addChar(js, ascii_squote);
 	} else if (ck == seq_kind) {
 		dk = seqDataKind(xconstant);
 		if (dk == seqDataOb_kind) {
 			js * 'seqDataOb_kind';
 		} else if (dk == seqDataByte_kind) {
-			js * "'";
+			addChar(js, ascii_squote);
 			js * (xconstant~string);
-			js * "'";
+			addChar(js, ascii_squote);
 		} else if (dk == seqDataShort_kind) {
 			js * 'seqDataShort_kind';
 		} else if (dk == seqDataInt_kind) {
 			js * 'seqDataInt_kind';
 		} else if (dk == seqDataDouble_kind) {
 			js * 'seqDataDouble_kind';
+		} else {
+			js * '<unknown seq kind>';
 		}
 	} else {
 		js * '<Unhandled constant kind>: ';
@@ -115,10 +188,29 @@ string function translateLocalVariablesDeclaration(ob x) {
 	return js;
 }
 
-string function translateFunction(Function xfunction) {
-	var string js,id nm, ob pid,Sort tp,SeqOfType itps,Sort rtp, Class ptp,int ln,lnm1,i, SeqOfBinding bb, Binding p0;
-
+string function decorateFunctionName(Function xfunction) {
+	var string nm, pnm, dnm,Sort tp,SeqOfType itps, int ln, i;
 	nm = obsel(xfunction~ob,Function_name)~id;
+	tp = obsel(xfunction~ob,Function_type)~Sort;
+	itps = inputTypes(tp);
+	ln = length(itps);
+	dnm = '';
+	for (i = 0;i<ln;i++) {
+		pnm = '';
+		pnm * itps[i];
+		pnm = replaceChar(pnm,ascii_colon,ascii_underbar,0,length(pnm));
+		pnm = replaceChar(pnm,ascii_lparen,ascii_underbar,0,length(pnm));
+		pnm = replaceChar(pnm,ascii_rparen,ascii_underbar,0,length(pnm));
+		dnm * pnm;
+		dnm * '__';
+	}
+	dnm * nm;
+	return dnm;
+}
+
+string function translateFunction(Function xfunction) {
+	var string js,id nm, ob pid,Sort tp,Sort rtp, Class ptp, SeqOfBinding bb, Binding p0;
+
 	tp = obsel(xfunction~ob,Function_type)~Sort;
 
 	js = '';
@@ -129,7 +221,7 @@ string function translateFunction(Function xfunction) {
 		js * rtp;
 		js * '*/ ';
 	}
-	js * nm; // TODO: decorate function name
+	js * decorateFunctionName(xfunction);
 	js * '(';
 	js * translateDeclarations(c_params); // c_params is filled in by translateFunction in toplevel.fbl
 	js * ')';
@@ -144,16 +236,17 @@ string function translateReturn(Xreturn xreturn) {
 		js * ' ';
 		js * translateXob(vl);
 	}
-	js * ';';
 	return js;
 }
 
 string function translateAssign(Xassign xassign) {
-    var string js;
+    var string js, Xob source, dest;
+	dest = obsel(xassign~ob, Xassign_dest)~Xob;
+	source = obsel(xassign~ob, Xassign_source)~Xob;
 	js = '';
-    js * translateXob(obsel(xassign~ob, Xassign_dest)~Xob);
+    js * translateXob(dest);
     js * '=';
-    js * translateXob(obsel(xassign~ob, Xassign_source)~Xob);
+	js * translateXob(source);
     return js;
 }
 
@@ -161,6 +254,8 @@ string function translateBlock(Xblock xblock) {
     var string js, Xob ls, SeqOfXob st, int i, ln, SeqOfOb lv;
 	js = '';
     js * '{';
+	js * jsLastLocalVars;
+	jsLastLocalVars = '';
 	ls = obsel(xblock~ob, Xblock_locals)~Xob;
 	//lv = mget(ls,Regarding);
 	/*if (nnul(ls)) {
@@ -178,8 +273,10 @@ string function translateBlock(Xblock xblock) {
 	ln = length(st);
 	if (nnul(st) && (ln > 0)) {
 		for (i = 0;i < ln;i++) {
-			closeStatementAfterNextXob = true;
-			js * translateXob(st[i]);
+			if (not(isNulXob(st[i]))) {
+				closeStatementAfterNextXob = true;
+				js * translateXob(st[i]);
+			}
 		}
 	}
     js * '}';
@@ -189,13 +286,42 @@ string function translateBlock(Xblock xblock) {
 string function funcname(Xapply xapply) {
 	var string fns, ob fnn, Xob fn;
 	fns = '';
-	fn = obsel(xapply~ob, Xapply_functionOf)~Xob;
-	fnn = obsel(fn, Function_name)~ob;
-	fns * fnn;
+	//writeln(xapply, type0(xapply), obsel(xapply, rdf:type));
+	if (nnul(xapply)) {
+		fn = obsel(xapply~ob, Xapply_functionOf)~Xob;
+		//writeln(fn);
+		if (nnul(fn) && not(isBinding(fn))) { // for some reason sometimes fn is a binding, and next obsel fails
+			fnn = obsel(fn, Function_name)~ob;
+			//writeln('-- ', fnn);
+			fns * fnn;
+		}
+	}
 	return fns;
 }
 
-string function translateEqual(Xapply xapply) {
+string function translateUnaryOp(Xapply xapply, string op, boolean postfix) {
+    var string js, Xob dst, SeqOfXob dt, int ln,i;
+	js = '';
+	dst = obsel(xapply~ob, Xapply_dest)~Xob;
+	if (nnul(dst)) {
+		js * translateXob(dst);
+		js * ' = ';
+	}
+	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
+	ln = length(dt);
+	if (nnul(dt) && (ln == 1)) {
+		if (!postfix) js * op;
+		js * translateXob(dt[0]);
+		if (postfix) js * op;
+	}
+    return js;
+}
+
+string function translateUnaryOp(Xapply xapply, string op) {
+	return translateUnaryOp(xapply, op, false);
+}
+
+string function translateBinaryOp(Xapply xapply, string op, boolean enclosed) {
     var string js, Xob dst, SeqOfXob dt, int ln,i;
 	js = '';
 	dst = obsel(xapply~ob, Xapply_dest)~Xob;
@@ -206,11 +332,17 @@ string function translateEqual(Xapply xapply) {
 	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
 	ln = length(dt);
 	if (nnul(dt) && (ln == 2)) {
+		if (enclosed) js * '(';
 		js * translateXob(dt[0]);
-		js * '===';
+		js * op;
 		js * translateXob(dt[1]);
+		if (enclosed) js * ')';
 	}
     return js;
+}
+
+string function translateBinaryOp(Xapply xapply, string op) {
+	return translateBinaryOp(xapply, op, true);
 }
 
 string function translateMkStringBuf(Xapply xapply) {
@@ -219,37 +351,54 @@ string function translateMkStringBuf(Xapply xapply) {
 	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
 	ln = length(dt);
 	if (nnul(dt) && (ln == 1)) {
-		js * "'";
 		js * translateXob(dt[0]);
-		js * "'";
 	}
     return js;
 }
 
 string function translateApply(Xapply xapply) {
-    var string js, fnn, Xob dst, SeqOfXob dt, int ln,i;
+    var string js, fnn, Xob fn, dst, SeqOfXob dt, int ln,i;
 	js = '';
+	fn = obsel(xapply~ob, Xapply_functionOf)~Xob;
 	fnn = funcname(xapply);
-	if (fnn == 'equal') return translateEqual(xapply);
-	if (fnn == 'mkStringBuf') return translateMkStringBuf(xapply);
-	if (fnn == 'copyStringConst') return ''; // what is this ?
-	dst = obsel(xapply~ob, Xapply_dest)~Xob;
-	if (nnul(dst)) {
-		js * translateXob(dst);
-		js * ' = ';
-	}
-	js * fnn; // TODO: decorate function name
-	js * '(';
-	dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
-	ln = length(dt);
-	if (nnul(dt) && (ln > 0)) {
-		for (i = 0;i < (ln-1);i++) {
-			js * translateXob(dt[i]);
-			js * ',';
+	if (nnul(fnn) && length(fnn) > 0) { // sometimes fnn is an empty string!
+		if (fnn == 'equal') return translateBinaryOp(xapply, '===');
+		if (fnn == 'not') return translateUnaryOp(xapply, '!');
+		if (fnn == 'and') return translateBinaryOp(xapply, '&&');
+		if (fnn == 'or') return translateBinaryOp(xapply, '||');
+		if (fnn == 'greaterp') return translateBinaryOp(xapply, '>');
+		if (fnn == 'geq') return translateBinaryOp(xapply, '>=');
+		if (fnn == 'lessp') return translateBinaryOp(xapply, '<');
+		if (fnn == 'leq') return translateBinaryOp(xapply, '<=');
+		if (fnn == 'mod') return translateBinaryOp(xapply, '%');
+		if (fnn == 'plus') return translateBinaryOp(xapply, '+');
+		if (fnn == 'difference') return translateBinaryOp(xapply, '-');
+		if (fnn == 'plus_plus') return translateUnaryOp(xapply, '++', true);
+		if (fnn == 'minus_minus') return translateUnaryOp(xapply, '--', true);
+		if (fnn == 'unary_minus') return translateUnaryOp(xapply, '-');
+		if (fnn == 'nnul') return translateUnaryOp(xapply, '');
+		if (fnn == 'nul') return translateUnaryOp(xapply, '!');
+		if (fnn == 'mkStringBuf') return translateMkStringBuf(xapply);
+		if (fnn == 'copyStringConst') return ''; // what is this ?
+
+		dst = obsel(xapply~ob, Xapply_dest)~Xob;
+		if (nnul(dst)) {
+			js * translateXob(dst);
+			js * ' = ';
 		}
-		js * translateXob(dt[ln-1]);
+		js * decorateFunctionName(fn~Function);
+		js * '(';
+		dt = obsel(xapply~ob, Xapply_arguments)~SeqOfXob;
+		ln = length(dt);
+		if (nnul(dt) && (ln > 0)) {
+			for (i = 0;i < (ln-1);i++) {
+				js * translateXob(dt[i]);
+				js * ',';
+			}
+			js * translateXob(dt[ln-1]);
+		}
+		js * ')';
 	}
-	js * ')';
     return js;
 }
 
@@ -265,6 +414,18 @@ string function translateFor(Xfor xfor) {
 	js * translateXob(test);
 	js * ';';
 	js * translateXob(incr);
+	js * ') ';
+	closeStatementAfterNextXob = true;
+	js * translateXob(body);
+	return js;
+}
+
+string function translateWhile(Xwhile xwhile) {
+	var string js, Xob test, body;
+	test = obsel(xwhile~ob, Xwhile_test)~Xob;
+	body = obsel(xwhile~ob, Xwhile_body)~Xob;
+	js = 'while(';
+	js * translateXob(test);
 	js * ') ';
 	closeStatementAfterNextXob = true;
 	js * translateXob(body);
@@ -313,6 +474,19 @@ string function translateSelectIndex(XselectIndex xselectindex) {
 	return js;
 }
 
+string function translateSelectProperty(XselectProperty xselectproperty) {
+	var string js, Xob src,Property prp;
+	src = obsel(xselectproperty~ob,XselectProperty_source)~Xob;
+	prp = obsel(xselectproperty~ob,XselectProperty_selector)~Property;
+	js = translateXob(src);
+	js * '[';
+	addChar(js, ascii_squote);
+	js * prp;
+	addChar(js, ascii_squote);
+	js * ']';
+	return js;
+}
+
 string function translateCast(Xcast xcast) {
 	var string js, Xob cv;
 	cv = obsel(xcast~ob,Xcast_castee)~Xob;
@@ -323,7 +497,12 @@ string function translateCast(Xcast xcast) {
 string function translateXob(Xob x) {
     var string js, lv, boolean closeStatement;
 
-	// writeln('type:',obsel(x, rdf:type),'  val  ',x);
+	if (skipNextXob == true) {
+		skipNextXob = false;
+		return '';
+	}
+
+	//writeln('type:',obsel(x, rdf:type),'  val  ',x);
 	closeStatement = false;
 	if (closeStatementAfterNextXob) {
 		closeStatementAfterNextXob = false;
@@ -335,10 +514,11 @@ string function translateXob(Xob x) {
 	js * obkind(x);
 	if (isObject(x)) {
 		js * obsel(x, rdf:type);
-		js * type(x);
-		js * type0(x); // type0 takes the first meaningful type ? ie excluding rdfs:Resource for example ?
+		///js * type(x);
+		//js * type0(x); // type0 takes the first meaningful type ? ie excluding rdfs:Resource for example ?
 	}*/
-	if (isConstant(x)) js * translateConstant(x);
+	if (isNulXob(x)) js * 'null';
+	else if (isConstant(x)) js * translateConstant(x);
 	else if (isFunction(x~ob)) js * translateFunction(x~Function);
 	else if (isBinding(x~ob)) js * translateBinding(x~Binding);
 	else if (hasType(x~ob, Xreturn)) js * translateReturn(x~Xreturn);
@@ -346,14 +526,17 @@ string function translateXob(Xob x) {
 	else if (hasType(x~ob, Xblock)) js * translateBlock(x~Xblock);
 	else if (hasType(x~ob, Xapply)) js * translateApply(x~Xapply);
 	else if (hasType(x~ob, Xfor)) js * translateFor(x~Xfor);
+	else if (hasType(x~ob, Xwhile)) js * translateWhile(x~Xwhile);
 	else if (hasType(x~ob, Xif)) js * translateIf(x~Xif);
 	else if (hasType(x~ob, Xsequence)) js * translateSequence(x~Xsequence);
 	else if (hasType(x~ob, XselectIndex)) js * translateSelectIndex(x~XselectIndex);
+	else if (hasType(x~ob, XselectProperty)) js * translateSelectProperty(x~XselectProperty);
 	else if (hasType(x~ob, Xcast)) js * translateCast(x~Xcast);
+	else if (eq(obsel(x, rdf:type), rdfs:Resource)) writeln('rdfs:Resource found => not translated to JS');
 	else {
 		js = '<unknown Xob type>: ';
 		js * obsel(x, rdf:type);
-		//js * ' ';
+		js * ';';
 		//js * type0(x);
 	}
 	//js * ']';
@@ -387,41 +570,50 @@ string function translateToJS(Xob x) {
 	return js;
 }
 
-translateJS = false;
-outputTypesToJS = false;
-closeStatementAfterNextXob = false;
-
 /**
 * Translation of global and local variable declarations.
 */
-string function translateToJS(ob x,id nm,ob vl,Sort s) {
-	var string js;
+string function translateToJS(ob x,id nm,ob vl,Sort s, boolean local) {
+	var string js, sid;
+
+	sid = translateId(nm);
+	if (startsWith(sid, 'anytemp_')) return '';
+	if (nnul(s) && isFunctionType(s)) {
+		skipNextXob = true;
+		return ''; // ignore function declaration
+	}
 
 	js = 'var ';
 	if (nnul(s) && outputTypesToJS) {
 		js * '/*';
-		js * s;
+		js * obkind(s);
 		js * '*/ ';
 	}
-	js * translateId(nm);
-	js * '=';
+	js * sid;
 
-	if (nnul(vl) && isConstant(vl~Xob) && (obkind(vl) == seq_kind)) {
-		// apparently constants with kind seq_kind follow a separate path
-		js * translateConstant(vl~Xob);
-		js * ';';
-	} else {
-		// right hand side will be translated while parsing it, right after this, but we need to remember to close the statement with a ;
+	if (nnul(vl) && ((obkind(vl) != int_kind) || (vl~int != 0)) && ((obkind(vl) != double_kind) || (vl~double != 0.0))) {
+		js * '=';
 		closeStatementAfterNextXob = true;
+		/*if (isConstant(vl~Xob) && (obkind(vl) == seq_kind)) {
+			// apparently constants with kind seq_kind follow a separate path
+			js * translateConstant(vl~Xob);
+			js * ';';
+		} else {
+			// right hand side will be translated while parsing it, right after this, but we need to remember to close the statement with a ;
+			closeStatementAfterNextXob = true;
+		}*/
+	} else {
+		js * ';';
 	}
 
-	jsg * js;
+	if (local) jsLastLocalVars * js;
+	else jsg * js;
 
 	return js;
 }
 
 string function translateToJS(string fln, boolean storeToJS) {
-	var string fnc, fle, fnn, out, Xob x, ob tp, SeqOfOb hp, int i, n;
+	var string fnc, fle, fnn, out, Xob x, ob tp, SeqOfOb hp, int i, n, lastSlash;
 	writeln('Translating ', fln);
 	translateJS = true;
     load(fln); // this will parse and analyze fabl code and generate JS code
@@ -435,8 +627,9 @@ string function translateToJS(string fln, boolean storeToJS) {
 	}*/
 
 	if (storeToJS) {
+		lastSlash = findFromEnd(fln, ascii_slash); // search for last /
 		fle = fileExtension(fln);
-		fnn = substr(fln, 0, length(fln) - length(fle) - 1);
+		fnn = substr(fln, lastSlash + 1, length(fln) - length(fle) - (lastSlash + 1) - 1);
 		out = '../out/';
 		out * fnn;
 		out * '.js';

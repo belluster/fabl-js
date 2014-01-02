@@ -52,13 +52,13 @@ void function aboutNamespace(id nm)
 {
    var ob ns,SeqOf(ob) dfb,int ln,i;
    ns = namespace(nm);
-   if (nul(ns)) {writeln("Namespace {nm} is undefined");return}
+   if (nul(ns)) {writeln('Namespace {nm} is undefined');return}
    dfb = mget(ns,isDefinedByP);
-   writeln("Namespace {nm} : {uri(ns)}");
+   writeln('Namespace {nm} : {uri(ns)}');
    if (nul(dfb)) {terpri();return}
    ln = length(dfb);
-   write("  isDefinedBy: ");
-   for (i=0;i<ln;i++) write(uri(dfb[i])," ");
+   write('  isDefinedBy: ');
+   for (i=0;i<ln;i++) write(uri(dfb[i]),' ');
    terpri();
 }
 
@@ -78,7 +78,7 @@ boolean function qualifiedName(string rs,ob x)
    return true;
 }
 
-var  qualifiedNameBuf = "";
+var  qualifiedNameBuf = '';
 
 string function qualifiedName(ob x)
 {  
@@ -156,7 +156,7 @@ ob function evalQname(ob x)
    var ob e1,e2;
    e1 = cadr(x);
    e2 = caddr(x);
-   if ((!isId(e1))||(!isId(e2))) error("Bad form for qualified name: ",x);
+   if ((!isId(e1))||(!isId(e2))) error('Bad form for qualified name: ',x);
    return evalQname(e1~id,e2~id);
 }
 
@@ -178,7 +178,7 @@ ob function evalQnameN(ob x)
    var ob e1,e2;
    e1 = cadr(x);
    e2 = caddr(x);
-   if ((!isId(e1))||(!isId(e2))) error("Bad form for qualified name: ",x);
+   if ((!isId(e1))||(!isId(e2))) error('Bad form for qualified name: ',x);
    return evalQnameN(e1~id,e2~id);
 }
 
@@ -242,8 +242,15 @@ string function toUri(string s)
   u = uri(nm);
   ln = length(u);
   lstc = u[ln-1];
-  if (lstc == ascii_sharp) return SB(u,lc);
-  else return SB(u,'/',lc);
+  if (lstc == ascii_sharp) {
+    u * lc;
+	return u; // SB(u,lc);
+  }
+  else {
+    u * '/';
+	u * lc;
+	return u; // SB(u,'/',lc);
+  }
 }
 
 
@@ -357,7 +364,7 @@ void function namespaceDefinedBy(string ns,u0)
 
 }
 // and some standard discovery
-var stdlibPrefix = "http://fabl.net/lib/";
+var stdlibPrefix = 'http://fabl.net/lib/';
 
 
 
@@ -370,7 +377,7 @@ namespace('xsd','http://www.w3.org/2000/10/XMLSchema#');
 namespace('owl','http://www.w3.org/2002/07/owl#');
 namespace('fabl','http://nurl.org/0/fabl/');
 namespace('fimp','http://nurl.org/0/fimp/');
-namespace("discovery","http://fabl.net/vocabularies/discovery");
+namespace('discovery','http://fabl.net/vocabularies/discovery');
 
 }
 
@@ -382,7 +389,7 @@ void function fixPage0()
 {
 rangeProperty = uriAllocate('http://www.w3.org/2000/01/rdf-schema#subClassOf',Property)~Property;
 subClassOf = uriAllocate('http://www.w3.org/2000/01/rdf-schema#subClassOf',Property)~Property;
-FunctionalProperty = uriAllocate("{owlns}FunctionalProperty",Class)~Class;
+FunctionalProperty = uriAllocate('http://www.w3.org/2002/07/owl#FunctionalProperty',Class)~Class;
 assertUriChildAsProperty(Xob1~ob,'isNoop');
 assertUriChildAsProperty(Xob1~ob,'isConstant');
 assertUriChildAsProperty(XselectProperty~ob,'isBitField');

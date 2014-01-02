@@ -30,6 +30,6 @@ void function times(string x,Literal v)
    else
    if (isString(x)) times(x,vo~string);
    else
-   times(x,"<unprintable of type rdfs:Literal>");
+   times(x,'<unprintable of type rdfs:Literal>');
 }
 

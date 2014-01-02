@@ -11,6 +11,8 @@
 
 // cgi support
 
+var SeqOf(boolean) safeChars ;
+
 // replaces %XX by the character with hex value XX
 
 string function urldecode(string ix)
@@ -22,7 +24,7 @@ string function urldecode(string ix)
   if (idx<0) return x;
   ln = length(x);
   rs = slice(x,0,idx);
-  hx = "  ";
+  hx = '  '; // WARN it was "  " CHANGED FOR JS TRANSLATION
   while ((0 <= idx) && ((idx + 3) <= ln))
       {
 	  reset(hx);
@@ -55,7 +57,7 @@ boolean function safeChar1(int c)
   return false;
 }
 
-var SeqOf(boolean) safeChars ;
+
 
 void function initSafeChars()
 {
@@ -96,7 +98,7 @@ string function urlencode(string x)
   var string rs,int i,ln,c;
   // first replace + by space
   ln = length(x);
-  rs = "";
+  rs = ''; // WARN it was "" changed for js translation
   for (i = 0;i<ln;i++)
       {
 	  c = x[i];
@@ -119,7 +121,7 @@ string function javascriptEscape(string x)
   var string rs,int i,ln,c;
   // first replace + by space
   ln = length(x);
-  rs = "";
+  rs = ''; // WARN it was "" changed for js translation
   for (i = 0;i<ln;i++)
       {
 	  c = x[i];
@@ -151,17 +153,17 @@ urldecode("%26def%24dd%3");
 string function getenv(id ev)
 {
    var string rs;
-   rs = "";
+   rs = ''; // WARN it was "" changed for js translation
    if (getenv(rs,ev) < 0) return nil~string;
    return rs;
 }
 
 
-var crlf = SB('');
+var crlf = ''; // SB('');
 addChar(crlf,13);
 addChar(crlf,10);
 
-var crcrlf = SB('');
+var crcrlf = ''; //SB('');
 addChar(crcrlf,13);
 addChar(crcrlf,13);
 addChar(crcrlf,10);
@@ -174,8 +176,8 @@ void function httpHeader(string tp,int ln)
   
   if (!headerEmitted)
      {
-	 write("HTTP 200",crlf);
-	 write("Server: fabl/2.0",crlf);
+	 write('HTTP 200',crlf);
+	 write('Server: fabl/2.0',crlf);
 	 if (ln > 0) write("Content-Length: ",ln);
 	 write('Content-Type: ',tp,crlf,crlf);
      headerEmitted = true;
@@ -199,7 +201,7 @@ void function plainTextHeader()
    if (setHttpHeaderEmitted())
    {
    silent(false);
-	 write("Server: fabl/2.0",crlf);
+	 write('Server: fabl/2.0',crlf);
 	 write('Content-Type: text/plain',crlf,crlf);
    }
 }
@@ -287,12 +289,12 @@ parseApplication("abc(def,hij)
 */
 
 
-var httpContentLengthString = "";
+var httpContentLengthString = '';
 var httpContentLength = 0;
-var httpContentType = "";
-var httpContent = "";
-var httpRequestMethod = "";
-var httpQueryString = "";
+var httpContentType = '';
+var httpContent = '';
+var httpRequestMethod = '';
+var httpQueryString = '';
 var ob httpGet;
 var ob httpPost;
 var ob httpVars;
@@ -305,7 +307,7 @@ void function setCgiVars(boolean parse)
    httpGet = nil;
    httpPost = nil;
    getenv(httpRequestMethod,'REQUEST_METHOD');
-   if (httpRequestMethod == "GET")
+   if (httpRequestMethod == 'GET')
       {
 	  getenv(httpQueryString,'QUERY_STRING');
 	  httpContent = httpQueryString;
@@ -316,7 +318,7 @@ void function setCgiVars(boolean parse)
 		 }
 	  return;
 	  }
-   if (httpRequestMethod == "POST")
+   if (httpRequestMethod == 'POST')
       {
 	  getenv(httpContentLengthString,'CONTENT_LENGTH');
 	  httpContentLength = toInt(httpContentLengthString);
@@ -358,7 +360,7 @@ string function extractUploadPart0(string x)
    return slice(x,bndi+1,ebnd);
 }
 
-var crlfcrlf = "{crlf}{crlf}";
+var crlfcrlf = '{crlf}{crlf}';
 
 string function extractUploadContent(string x)
 {

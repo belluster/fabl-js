@@ -1,3 +1,4 @@
-function reset(h) {
-	reset(h); ;
+function __reset(h) {
+    var h;
+    __reset(h);
 }

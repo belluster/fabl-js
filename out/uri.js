@@ -1,195 +1,292 @@
-var uriTable = var uriDels = seqDataOb_kind;
-[';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#', '.'];
+var uriTable;
+
+var uriDels = [ ";", "/", "?", ":", "@", "&", "=", "+", "$", ",", "#", "." ];
+
 function setupUriTable() {
-	 < unknown Xob type >  : rdfs : Resourceln = seqLength(uriDels);
-	uriTable = mk_emptysequence();
-	seqobExpand(uriTable, 256);
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		s = uriDels[i];
-		uriTable[select(s, 0)] = s; ;
-	}; ;
+    var ln;
+    var i;
+    var s;
+    ln = __seqLength(uriDels);
+    uriTable = __mk_emptysequence("<unprintable>");
+    ____seqobExpand(uriTable, 256);
+    for (i = 0; i < ln; i++) {
+        s = uriDels[i];
+        uriTable[____select(s, 0)] = s;
+    }
 }
+
 setupUriTable();
-var splitBuf = ''; {
-	 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-	times(toStringResult, '');
-	return toStringResult; ;
+
+var splitBuf = "";
+
+function ____splitToIds(bf, dl) {
+    var bf;
+    var dl;
+    var rs;
+    var ln;
+    var i;
+    var c;
+    rs = __mk_emptysequence("<unprintable>");
+    ln = __length(bf);
+    __reset(splitBuf);
+    for (i = 0; i < ln; i++) {
+        c = bf[i];
+        if (c === dl) {
+            ____seqobAdd(rs, __toString(splitBuf));
+            __reset(splitBuf);
+        } else ____addChar(splitBuf, c);
+    }
+    if (__length(splitBuf) > 0) ____seqobAdd(rs, __toString(splitBuf));
+    return rs;
 }
-function splitToIds(bf, dl) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	ln = length(bf);
-	reset(splitBuf);
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		c = bf[i];
-		if (c === dl) {
-			seqobAdd(rs, toString(splitBuf));
-			reset(splitBuf); ;
-		} else
-			addChar(splitBuf, c); ;
-	};
-	if (greaterp(length(splitBuf), 0))
-		seqobAdd(rs, toString(splitBuf));
-	return rs; ; ;
-}
+
 var ascii_sharp = 35;
-function parseUri1(bf) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	ln = length(bf);
-	reset(splitBuf);
-	nfnd = true;
-	 < unknown Xob type >  : fabl : Xwhile;
-	nfnd = true;
-	 < unknown Xob type >  : fabl : Xwhile;
-	if (greaterp(length(splitBuf), 0))
-		seqobAdd(rs, toString(splitBuf));
-	return rs; ; ;
+
+function __parseUri1(bf) {
+    var bf;
+    var rs;
+    var ln;
+    var i;
+    var c;
+    var nfnd;
+    rs = __mk_emptysequence("<unprintable>");
+    ln = __length(bf);
+    __reset(splitBuf);
+    nfnd = fabl_true;
+    while (i < ln && nfnd) {
+        c = bf[i];
+        if (c === ascii_colon || c === ascii_slash) {
+            ____seqobAdd(rs, __toString(splitBuf));
+            nfnd = fabl_false;
+            if (c === ascii_colon) {
+                if (__length(splitBuf) === 0) {
+                    beforeError();
+                    __reset(uwriteBuffer);
+                    ____times(uwriteBuffer, "nul scheme in uri: ");
+                    ____times(uwriteBuffer, bf);
+                    __tprint(uwriteBuffer);
+                    terpri();
+                    afterError();
+                }
+                ____seqobAdd(rs, ":");
+                if (i + 3 > ln && bf[i + 1] === ascii_slash && bf[i + 2] === ascii_slash) i = i + 2;
+            }
+            __reset(splitBuf);
+        } else ____addChar(splitBuf, c);
+        i = i + 1;
+    }
+    nfnd = fabl_true;
+    while (i < ln) {
+        c = bf[i];
+        if (c === ascii_sharp || c === ascii_slash) {
+            ____seqobAdd(rs, __toString(splitBuf));
+            __reset(splitBuf);
+            if (c === ascii_sharp) ____seqobAdd(rs, "#");
+        } else ____addChar(splitBuf, c);
+        i = i + 1;
+    }
+    if (__length(splitBuf) > 0) ____seqobAdd(rs, __toString(splitBuf));
+    return rs;
 }
-function removeNullStringsEx1(s) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	ln = seqLength(s);
-	if (ln === 0)
-		return s; ;
-	seqobAdd(rs, s[0]);
-	for (i = 1; lessp(i, ln); plus_plus(i)) {
-		cs = s[i];
-		if (or(greaterp(length(cs), 0), and(and(and(and(i === 4, 's[0]' === ), 's[1]' === ), 's[2]' === ), 's[3]' === )))
-			seqobAdd(rs, cs); ;
-	};
-	return rs; ; ;
+
+function __removeNullStringsEx1(s) {
+    var s;
+    var ln;
+    var i;
+    var rs;
+    var cs;
+    rs = __mk_emptysequence("<unprintable>");
+    ln = __seqLength(s);
+    if (ln === 0) return s;
+    ____seqobAdd(rs, s[0]);
+    for (i = 1; i < ln; i++) {
+        cs = s[i];
+        if (__length(cs) > 0 || i === 4 && s[0] === "file" && s[1] === ":" && s[2] === "" && s[3] === "") ____seqobAdd(rs, cs);
+    }
+    return rs;
 }
-function parseUri(bf) {
-	return removeNullStringsEx1(parseUri1(bf)); ; ;
+
+function __parseUri(bf) {
+    var bf;
+    return __removeNullStringsEx1(__parseUri1(bf));
 }
-function untyped(x) {
-	 < unknown Xob type >  : rdfs : Resourcetp = iType(x);
-	tpk = obkind(tp);
-	if (tpk === values_kind) {
-		tpsq = tp;
-		lnt = seqLength(tpsq);
-		if (lnt === 0)
-			return true; ;
-		if (lnt === 1)
-			return um_eq(tpsq[0], Resource); ;
-		return false; ; ;
-	}
-	return or(nul(tp), um_eq(tp, Resource)); ; ;
+
+function __untyped(x) {
+    var x;
+    var tp;
+    var tpk;
+    var lnt;
+    var tpsq;
+    tp = __iType(x);
+    tpk = __obkind(tp);
+    if (tpk === values_kind) {
+        tpsq = tp;
+        lnt = __seqLength(tpsq);
+        if (lnt === 0) return fabl_true;
+        if (lnt === 1) return ____um_eq(tpsq[0], Resource);
+        return fabl_false;
+    }
+    return !tp || ____um_eq(tp, Resource);
 }
-function installType(x, srt) {
-	iInstall(ob, srt, false); ;
+
+function ____installType(x, srt) {
+    var x;
+    var srt;
+    ______iInstall(ob, srt, fabl_false);
 }
-var equivalents = iNew();
-function addEquivalent(x, rep) {
-	set(equivalents, regarding(x), rep); ;
+
+var equivalents = __iNew("rdfs:Resource");
+
+function ____addEquivalent(x, rep) {
+    var x;
+    var rep;
+    ______set(equivalents, __regarding(x), rep);
 }
-var internToEquivalents = true;
-function getEquivalent(x) {
-	 < unknown Xob type >  : rdfs : Resourceif(not(internToEquivalents))return x; ;
-	rs = get(equivalents, regarding(x));
-	if (nul(rs))
-		return x; ;
-	return rs; ; ;
-} {
-	 < unknown Xob type >  : rdfs : Resourceif(not(internToEquivalents))return x; ;
-	rs = get(equivalents, regarding(x));
-	if (nul(rs))
-		return x; ;
-	return rs; ; ;
-} {
-	 < unknown Xob type >  : rdfs : Resourceif(not(internToEquivalents))return x; ;
-	rs = get(equivalents, regarding(x));
-	if (nul(rs))
-		return x; ;
-	return rs; ; ;
+
+var internToEquivalents = fabl_true;
+
+function __getEquivalent(x) {
+    var x;
+    var rs;
+    if (!internToEquivalents) return x;
+    rs = ____get(equivalents, __regarding(x));
+    if (!rs) return x;
+    return rs;
 }
+
 function stdEquivalents() {
-	 < unknown Xob type >  : rdfs : ResourcerdfProperty = evalQname('rdf', 'Property');
-	addEquivalent(evalQname('owl', 'Class'), evalQname('rdfs', 'Class'));
-	addEquivalent(evalQname('owl', 'DatatypeProperty'), rdfProperty);
-	addEquivalent(evalQname('owl', 'ObjectProperty'), rdfProperty);
-	addEquivalent(evalQname('owl', 'Thing'), evalQname('rdfs', 'Resource'));
-	addEquivalent(resource(), evalQname('xsd', 'string')); ;
+    var rdfProperty;
+    rdfProperty = ____evalQname("rdf", "Property");
+    ____addEquivalent(____evalQname("owl", "Class"), ____evalQname("rdfs", "Class"));
+    ____addEquivalent(____evalQname("owl", "DatatypeProperty"), rdfProperty);
+    ____addEquivalent(____evalQname("owl", "ObjectProperty"), rdfProperty);
+    ____addEquivalent(____evalQname("owl", "Thing"), ____evalQname("rdfs", "Resource"));
+    ____addEquivalent(__resource(), ____evalQname("xsd", "string"));
 }
-function uriToResource(rt, bf, alloc, srt) {
-	 < unknown Xob type >  : rdfs : Resourceprs = parseUri(bf);
-	ln = seqLength(prs);
-	cv = rt;
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		cprs = prs[i];
-		nv = selectUri(cv, cprs);
-		if (nul(nv)) {
-			if (not(alloc))
-				return; ;
-			if (i === difference(ln, 1))
-				nv = iNew(srt);
-			else
-				nv = mkObject();
-			bindUri(cv, cprs, nv); ;
-		}
-		cv = nv; ;
-	};
-	cv = getEquivalent(cv);
-	if (not(hasType(cv, srt))) {
-		if (untyped(cv))
-			setType(cv, srt);
-		else
-			installType(cv, srt); ;
-	}
-	return cv; ; ;
+
+function ________uriToResource(rt, bf, alloc, srt) {
+    var rt;
+    var bf;
+    var alloc;
+    var srt;
+    var prs;
+    var cprs;
+    var ln;
+    var i;
+    var cv;
+    var nv;
+    prs = __parseUri(bf);
+    ln = __seqLength(prs);
+    cv = rt;
+    for (i = 0; i < ln; i++) {
+        cprs = prs[i];
+        nv = ____selectUri(cv, cprs);
+        if (!nv) {
+            if (!alloc) return null;
+            if (i === ln - 1) nv = __iNew(srt); else nv = mkObject();
+            ______bindUri(cv, cprs, nv);
+        }
+        cv = nv;
+    }
+    cv = __getEquivalent(cv);
+    if (!____hasType(cv, srt)) {
+        if (__untyped(cv)) ____setType(cv, srt); else ____installType(cv, srt);
+    }
+    return cv;
 }
-function uriToResource(rt, bf, alloc) {
-	return uriToResource(rt, bf, alloc, ob); ; ;
+
+function ______uriToResource(rt, bf, alloc) {
+    var rt;
+    var bf;
+    var alloc;
+    return ________uriToResource(rt, bf, alloc, ob);
 }
-function uriToResource(bf, alloc) {
-	return uriToResource(root, bf, alloc); ; ;
+
+function ____uriToResource(bf, alloc) {
+    var bf;
+    var alloc;
+    return ______uriToResource(root, bf, alloc);
 }
-function uriToResource(bf) {
-	return uriToResource(bf, true); ; ;
+
+function __uriToResource(bf) {
+    var bf;
+    return ____uriToResource(bf, fabl_true);
 }
-function resource(bf) {
-	return uriToResource(bf, true); ; ;
+
+function __resource(bf) {
+    var bf;
+    return ____uriToResource(bf, fabl_true);
 }
-function reversip(sq) {
-	 < unknown Xob type >  : rdfs : Resourceln = seqLength(sq);
-	hln = quotient(ln, 2);
-	ln1 = difference(ln, 1);
-	for (i = 0; lessp(i, hln); plus_plus(i)) {
-		hi = difference(ln1, i);
-		v = sq[i];
-		sq[i] = sq[hi];
-		sq[hi] = v; ;
-	}; ;
+
+function __reversip(sq) {
+    var sq;
+    var ln;
+    var hln;
+    var ln1;
+    var i;
+    var hi;
+    var v;
+    ln = __seqLength(sq);
+    hln = ____quotient(ln, 2);
+    ln1 = ln - 1;
+    for (i = 0; i < hln; i++) {
+        hi = ln1 - i;
+        v = sq[i];
+        sq[i] = sq[hi];
+        sq[hi] = v;
+    }
 }
-function uriPath(x) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	cx = x;
-	 < unknown Xob type >  : fabl : Xwhile; ;
+
+function __uriPath(x) {
+    var x;
+    var rs;
+    var cx;
+    var pr;
+    rs = __mk_emptysequence("<unprintable>");
+    cx = x;
+    while (fabl_true) {
+        if (____um_eq(cx, root)) {
+            __reversip(rs);
+            return rs;
+        }
+        pr = __parent(cx);
+        if (!pr) return null;
+        ____seqobAdd(rs, __name(cx));
+        cx = pr;
+    }
 }
-function uriPathToUri(pth) {
-	 < unknown Xob type >  : rdfs : Resourcehasfrag = false;
-	rs = '' '';
-	ln = seqLength(pth);
-	if (or(lessp(seqLength(pth), 3), not(pth[1] === ':')))
-		return; ;
-	times(rs, pth[0]);
-	times(rs, '://');
-	for (i = 2; lessp(i, ln); plus_plus(i)) {
-		cp = pth[i];
-		if (cp === '#') {
-			seqSetLength(rs, difference(length(rs), 1));
-			times(rs, '#');
-			if (lessp(i, difference(ln, 1)))
-				hasfrag = true; ;
-		} else {
-			times(rs, cp);
-			if (lessp(i, difference(ln, 1)))
-				times(rs, '/'); ;
-		};
-	};
-	return rs; ; ;
+
+function __uriPathToUri(pth) {
+    var pth;
+    var rs;
+    var ln;
+    var i;
+    var cp;
+    var hasfrag;
+    hasfrag = fabl_false;
+    rs = "";
+    ln = __seqLength(pth);
+    if (__seqLength(pth) < 3 || !(pth[1] === ":")) return;
+    ____times(rs, pth[0]);
+    ____times(rs, "://");
+    for (i = 2; i < ln; i++) {
+        cp = pth[i];
+        if (cp === "#") {
+            ____seqSetLength(rs, __length(rs) - 1);
+            ____times(rs, "#");
+            if (i < ln - 1) hasfrag = fabl_true;
+        } else {
+            ____times(rs, cp);
+            if (i < ln - 1) ____times(rs, "/");
+        }
+    }
+    return rs;
 }
-function uri(x) {
-	 < unknown Xob type >  : rdfs : Resourcepth = uriPath(x);
-	if (nul(pth))
-		return; ;
-	return uriPathToUri(pth); ; ;
+
+function __uri(x) {
+    var x;
+    var pth;
+    pth = __uriPath(x);
+    if (!pth) return null;
+    return __uriPathToUri(pth);
 }

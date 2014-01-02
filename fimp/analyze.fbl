@@ -337,16 +337,17 @@ var methodArgsBuf = emptysequence(Xob);
 
 // Redefined in xobprint
 
+/*
+THIS DEFINITIONS ARE CAUSING ISSUES IN JS TRANSLATION
 void function times(string s,Xob x)
 {
   s * 'Xob';
 }
-
-
 void function times(string s,ob x)
 {
   s *  'ob';
-}
+}*/
+
 //void function plus(string s,ob x){times(s,x)}//remove
 
 //overwritten by import

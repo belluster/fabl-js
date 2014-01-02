@@ -9,9 +9,26 @@
 
 // Most code comments temporarily excised, pending review
 
-
+var Xob mk_emptyseq1_fun;
 
 var copyStringConst_fun = getVariant(home,'copyStringConst',sequence(string));
+
+var Function(void,string,Sort) gAppend;
+var Function(void,string,boolean) times;
+var Function(boolean,string,ob) times0;
+//var Function(void,string,boolean) plus;
+
+var unprintable_fun = getVariant(home,'unprintable',sequence(string))~Xob;
+
+
+var map_void_ob_ob = mkFunctionType(void,sequence(ob,ob));
+var map_void_ob_int = mkFunctionType(void,sequence(ob,int));
+var map_void_ob_double = mkFunctionType(void,sequence(ob,double));
+// var Function(void,string,ob,Sort) gAppend;
+
+var ob propNS;
+
+var genName_buf = ''; // mkStringBuf();
 
 Xob function stripStringCopy(Xob x)
 {
@@ -132,7 +149,6 @@ var Function(Property,ob) toProperty;
 Sort function analyzeTypedVar(ob fr,ob x,boolean local)
    {
    var ob nm,id nms,Property prp,boolean iss,Sort srt;
-
    nm = caddr(x);
    iss = isId(nm);
    if (iss) nms = nm~id;
@@ -146,7 +162,6 @@ Sort function analyzeTypedVar(ob fr,ob x,boolean local)
    if (nul(classBeingDefined)) 
       {
 	  if (not(iss)) error('NOT YET');
-
       return typeOfBindingOrFunction(bindPif(fr,nms,srt));
 	  }
    if (iss) 
@@ -161,7 +176,6 @@ Sort function analyzeTypedVar(ob fr,ob x,boolean local)
      return srt;
 	 }
    error('Incorrect form for variable in var statement: ',nm)
-
 
    }
 
@@ -394,7 +408,6 @@ Xob function Function_tf(ob x)
 
 
 
-var Xob mk_emptyseq1_fun;
 
 
 
@@ -845,13 +858,6 @@ void function unprintable(string s)
   {
   s*'<unprintable>';
   }
-var unprintable_fun = getVariant(home,'unprintable',sequence(string))~Xob;
-
-
-var map_void_ob_ob = mkFunctionType(void,sequence(ob,ob));
-var map_void_ob_int = mkFunctionType(void,sequence(ob,int));
-var map_void_ob_double = mkFunctionType(void,sequence(ob,double));
-var Function(void,string,ob,Sort) gAppend;
 
 void function gAppend_seq(string s,SeqOfOb x,Sort elsort)
 {
@@ -895,25 +901,17 @@ void function gAppend_seq(string s,SeqOfDouble x,Sort elsort)
 }
 
 
-
 boolean function isFunctionType(Class x)
 {
   var id scn;
   scn = get(x~ob,Sort_constructor)~id;
   return scn == 'Function';
 }
-
-
-
-var Function(void,string,Sort) gAppend;
-var Function(void,string,boolean) times;
-var Function(boolean,string,ob) times0;
-//var Function(void,string,boolean) plus;
-
+/* WARN: issues translating to js: function definition is thrown away
 void function gAppend(string s,ob x,Sort sx)
-   {
-   var map_void_ob_ob fno,map_void_ob_int fni,Sort ssb,rtp,
-                 map_void_ob_double fnd,int st,ob vrv,SeqOfType atps;
+{
+   var map_void_ob_ob ,map_void_ob_int fni, map_void_ob_double fnd,
+       Sort ssb,rtp,int st,ob vrv,SeqOfType atps;
    if (nul(x)) 
       {
 	  if (sx == void) s * '<ok>'; else
@@ -1000,17 +998,20 @@ void function gAppend(string s,ob x,Sort sx)
 	   st = storage(sx);
 	   if (st == storage_ob) 
 	      {
+		  var map_void_ob_ob fno;
 		  fno = vrv~map_void_ob_ob;
 		  fno(s~ob,x);
 		  }
 	   else
 	   if (st == storage_int) 
 	      {
+		  var map_void_ob_int fni;
 		  fni = vrv ~ map_void_ob_int;
 		  fni(s~ob,x~int);
 		  }
      else
 	      {
+		  var map_void_ob_double fnd;
 		  fnd = vrv~map_void_ob_double;
 		  fnd(s~ob,x~double);
 		  }
@@ -1020,6 +1021,8 @@ void function gAppend(string s,ob x,Sort sx)
   gAppend(s,sx~ob,Sort);
 	s*'>';
 	}
+*/
+
 
 
 var Function(boolean,string,ob) qualifiedName;
@@ -1093,9 +1096,9 @@ boolean function times0(string s,ob x)
      {
      ui = uri(x);
      if (nul(ui)) return false;
-	 s * "<";
+	 s * '<'; // "<";
 	 s * ui;
-	 s * ">";
+	 s * '>'; // ">";
      }
   return true;	 
   }
@@ -1364,8 +1367,6 @@ Property function findPropertyInPath(id p)
 // interprets a.b; used for both _dot_ (the parse of a.b) and get;
 // Parsing . to _dot_ rather than get makes the analysis just a bit more efficient,
 // since the get function variants need not be considered, only this macro
-
-var ob propNS;
 
 Xob function _dot_tf(ob x)
   {
@@ -1702,7 +1703,7 @@ Xob function assign_tf(ob ix)
 // 
 
 
-var genName_buf = mkStringBuf();
+
 id function genName(id seed,int count)
   {
   reset(genName_buf);

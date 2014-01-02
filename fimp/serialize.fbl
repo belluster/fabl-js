@@ -24,6 +24,12 @@ var bindingMultiKind = 4;
 
 var serializeCollectInC = false;
 
+// the obs at the beginning of the serialization are the preambleObs
+var int preambleObCount;
+var ob forDebug;
+var SeqOfOb serializeStack;
+var SeqOfOb serializeDebugStack;
+var SeqOfOb debugStacks;
 
 boolean function amongFirstN(SeqOfOb s,int n,ob v)
 {
@@ -34,14 +40,6 @@ boolean function amongFirstN(SeqOfOb s,int n,ob v)
 	 }
   return false;
 }
-
-// the obs at the beginning of the serialization are the preambleObs
-var int preambleObCount;
-var ob forDebug;
-var SeqOfOb serializeStack;
-var SeqOfOb serializeDebugStack;
-var SeqOfOb debugStacks;
-
 
 void function serializeCollect0(ob x,int pg)
 {

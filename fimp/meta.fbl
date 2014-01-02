@@ -14,7 +14,10 @@ var obToDouble_fun = getVariant(home,'toDouble',sequence(ob))~Xob;
 
 var doubleToOb_fun = getVariant(home,'toOb',sequence(double))~Xob;
 
+var Sort funReturnType;
+var Sort blockReturnType;
 
+var Xob not_fun;
 
 Xob function meta(int n)
   {
@@ -542,8 +545,6 @@ Xob function metaWhile(Xob test,body)
   }
 
 
-var Sort funReturnType;
-var Sort blockReturnType;
 
 
 //var typesXreturn = sequence(Xreturn);
@@ -748,9 +749,6 @@ Xob function mkXif(Xob cnd,ift)
   }
 
 
-var Xob not_fun;
-
-
 // checks if x is of the from not(a) and if so returns a; ow returns nil
 
 Xob function unNot(Xob x)
@@ -798,7 +796,7 @@ boolean function toBoolean(Literal x)
    if (isString(xo))
       {
 	  xs = xo ~ string;
-	  if ((xs == "true")||(xs == "1")) return true;
+	  if ((xs == 'true')||(xs == '1')) return true;
 	  return false;
 	  }
    if (obkind(xo) == int_kind)

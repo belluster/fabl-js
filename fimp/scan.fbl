@@ -453,10 +453,10 @@ var scanning_line_comment_state = 6;  // the one line // kind
 var scanning_string_state = 7;  // the one line // kind 
 var scanning_decimal_state = 8; //scanning past decimal point
 
-var c_token_buf = mkStringBuf();
+var c_token_buf = ''; //mkStringBuf();
 
-var  scan_inbuf = mkStringBuf();
-var  unscan_buf = mkStringBuf();
+var  scan_inbuf = ''; //mkStringBuf();
+var  unscan_buf = ''; //mkStringBuf();
 var scan_inbuf_length = 0;
 var c_scan_p = 0;
 
@@ -629,7 +629,7 @@ Token function toStringToken(string s,int ps,boolean isSquote)
    else 
       {
 	  //LATER use copy when available
-	  sb = SB('');
+	  sb = ''; //SB('');
 	  sb * s;
 	  rs = mkToken(sb~ob,ps-ln-1,0);
 	  }
@@ -788,7 +788,7 @@ Token function scanBinaryToken(int ps)
   
 var scanEscape = -1;  // no escape char in use
 //var scanEscape = ascii_backslash;
-var scanHexBuf = "";
+var scanHexBuf = ''; // "";
 
 Token function scanTokenStep()
 {

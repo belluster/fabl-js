@@ -1,521 +1,804 @@
-function arrayRef(s, n) {
-	return select(s, n); ; ;
+function ____arrayRef(s, n) {
+    var s;
+    var n;
+    return ____select(s, n);
 }
-function arrayRef(s, n) {
-	return select(s, n); ; ;
+
+function ____arrayRef(s, n) {
+    var s;
+    var n;
+    return ____select(s, n);
 }
+
 var ascii_space = 32;
+
 var ascii_plus = 43;
+
 var ascii_minus = 45;
+
 var ascii_star = 42;
+
 var ascii_rparen = 41;
+
 var ascii_lparen = 40;
+
 var ascii_rbracket = 93;
+
 var ascii_lbracket = 91;
+
 var ascii_dot = 46;
+
 var ascii_rcurly = 125;
+
 var ascii_lcurly = 123;
+
 var ascii_equal = 61;
+
 var ascii_twiddle = 126;
+
 var ascii_lessp = 60;
+
 var ascii_greaterp = 62;
+
 var ascii_comma = 44;
+
 var ascii_minus = 45;
+
 var ascii_slash = 47;
+
 var ascii_vbar = 124;
+
 var ascii_lf = 10;
+
 var ascii_ampersand = 38;
+
 var ascii_percent = 37;
+
 var ascii_semicolon = 59;
+
 var ascii_squote = 39;
+
 var ascii_dquote = 34;
+
 var ascii_colon = 58;
+
 var ascii_underbar = 95;
+
 var ascii_backslash = 92;
+
 var ascii_bang = 33;
+
 var ascii_e = 101;
+
 var ascii_E = 69;
+
 var ascii_n = 110;
+
 var ascii_r = 114;
+
 var ascii_t = 116;
+
 var ascii_u = 117;
+
 var ascii_x = 120;
+
 var ascii_T = 84;
-function equal(a, b) {
-	return a === b; ; ;
+
+function ____equal(a, b) {
+    var a;
+    var b;
+    return a === b;
 }
-function find(s, c) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(s);
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		if (select(s, i) === c)
-			return i; ; ;
-	};
-	return unary_minus(1); ; ;
+
+function ____find(s, c) {
+    var s;
+    var c;
+    var ln;
+    var i;
+    ln = __length(s);
+    for (i = 0; i < ln; i++) {
+        if (____select(s, i) === c) return i;
+    }
+    return -1;
 }
-function find(s, c, sp) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(s);
-	for (i = sp; lessp(i, ln); plus_plus(i)) {
-		if (select(s, i) === c)
-			return i; ; ;
-	};
-	return unary_minus(1); ; ;
+
+function ______find(s, c, sp) {
+    var s;
+    var c;
+    var sp;
+    var ln;
+    var i;
+    ln = __length(s);
+    for (i = sp; i < ln; i++) {
+        if (____select(s, i) === c) return i;
+    }
+    return -1;
 }
-function findFromEnd(s, c) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(s);
-	ci = c;
-	for (i = difference(ln, 1); geq(i, 0); minus_minus(i)) {
-		if (select(s, i) === ci)
-			return i; ; ;
-	};
-	return unary_minus(1); ; ;
+
+function ____findFromEnd(s, c) {
+    var s;
+    var c;
+    var ci;
+    var ln;
+    var i;
+    ln = __length(s);
+    ci = c;
+    for (i = ln - 1; i >= 0; i--) {
+        if (____select(s, i) === ci) return i;
+    }
+    return -1;
 }
-function findFromEnd(s, c, startat) {
-	 < unknown Xob type >  : rdfs : Resourceci = c;
-	for (i = startat; geq(i, 0); minus_minus(i)) {
-		if (select(s, i) === ci)
-			return i; ; ;
-	};
-	return unary_minus(1); ; ;
+
+function ______findFromEnd(s, c, startat) {
+    var s;
+    var c;
+    var startat;
+    var i;
+    var ci;
+    ci = c;
+    for (i = startat; i >= 0; i--) {
+        if (____select(s, i) === ci) return i;
+    }
+    return -1;
 }
-var temp_stringbuf = ''; ;
-function substr(s, ilb, iln) {
-	 < unknown Xob type >  : rdfs : Resourceif(lessp(ilb, 0))lb = 0;
-	else
-		lb = ilb;
-	ln = length(s);
-	ub = plus(lb, iln);
-	if (greaterp(ub, ln))
-		ub = ln;
-	rs = 'difference(ub,lb)';
-	select(rs, s, lb, difference(ub, 1));
-	return rs; ; ;
+
+var temp_stringbuf = "";
+
+function ______substr(s, ilb, iln) {
+    var s;
+    var ilb;
+    var iln;
+    var lb;
+    var ub;
+    var ln;
+    var rs;
+    if (ilb < 0) lb = 0; else lb = ilb;
+    ln = __length(s);
+    ub = lb + iln;
+    if (ub > ln) ub = ln;
+    rs = ub - lb;
+    ________select(rs, s, lb, ub - 1);
+    return rs;
 }
-function substr(s, ilb) {
-	return substr(s, ilb, length(s)); ; ;
+
+function ____substr(s, ilb) {
+    var s;
+    var ilb;
+    return ______substr(s, ilb, __length(s));
 }
-function slice(s, ilb, iub) {
-	 < unknown Xob type >  : rdfs : Resourceif(lessp(ilb, 0))lb = 0;
-	else
-		lb = ilb;
-	ln = length(s);
-	if (greaterp(iub, ln))
-		ub = ln;
-	else
-		ub = iub;
-	if (leq(ub, lb))
-		return; ;
-	rln = difference(ub, lb);
-	rs = 'rln';
-	select(rs, s, lb, difference(ub, 1));
-	return rs; ; ;
+
+function ______slice(s, ilb, iub) {
+    var s;
+    var ilb;
+    var iub;
+    var lb;
+    var ub;
+    var ln;
+    var rln;
+    var rs;
+    if (ilb < 0) lb = 0; else lb = ilb;
+    ln = __length(s);
+    if (iub > ln) ub = ln; else ub = iub;
+    if (ub <= lb) return "";
+    rln = ub - lb;
+    rs = rln;
+    ________select(rs, s, lb, ub - 1);
+    return rs;
 }
-function slice(rs, s, ilb, iub) {
-	 < unknown Xob type >  : rdfs : Resourceif(lessp(ilb, 0))lb = 0;
-	else
-		lb = ilb;
-	ln = length(s);
-	if (greaterp(iub, ln))
-		ub = ln;
-	else
-		ub = iub;
-	if (leq(ub, lb)) {
-		times(rs, s);
-		return; ; ;
-	}
-	rln = difference(ub, lb);
-	select(rs, s, lb, difference(ub, 1)); ;
+
+function ________slice(rs, s, ilb, iub) {
+    var rs;
+    var s;
+    var ilb;
+    var iub;
+    var lb;
+    var ub;
+    var ln;
+    var rln;
+    if (ilb < 0) lb = 0; else lb = ilb;
+    ln = __length(s);
+    if (iub > ln) ub = ln; else ub = iub;
+    if (ub <= lb) {
+        ____times(rs, s);
+        return;
+    }
+    rln = ub - lb;
+    ________select(rs, s, lb, ub - 1);
 }
-function substring(s, ilb, iub) {
-	 < unknown Xob type >  : rdfs : Resourceif(greaterp(ilb, iub)) {
-		lb = iub;
-		ub = ilb; ;
-	}
-	else {
-		lb = ilb;
-		ub = iub; ;
-	}
-	return slice(s, lb, ub); ; ;
+
+function ______substring(s, ilb, iub) {
+    var s;
+    var ilb;
+    var iub;
+    var lb;
+    var ub;
+    if (ilb > iub) {
+        lb = iub;
+        ub = ilb;
+    } else {
+        lb = ilb;
+        ub = iub;
+    }
+    return ______slice(s, lb, ub);
 }
-function select(s, lb, ub) {
-	 < unknown Xob type >  : rdfs : Resourcers = 'difference(plus(1,ub),lb)';
-	select(rs, s, lb, ub);
-	return rs; ; ;
+
+function ______select(s, lb, ub) {
+    var s;
+    var lb;
+    var ub;
+    var rs;
+    rs = 1 + ub - lb;
+    ________select(rs, s, lb, ub);
+    return rs;
 }
-function substringS(s, ilb, iub) {
-	 < unknown Xob type >  : rdfs : Resourceif(greaterp(ilb, iub)) {
-		lb = iub;
-		ub = ilb; ;
-	}
-	else {
-		lb = ilb;
-		ub = iub; ;
-	}
-	reset(temp_stringbuf);
-	select(temp_stringbuf, s, lb, difference(ub, 1));
-	return toString(temp_stringbuf); ; ;
+
+function ______substringS(s, ilb, iub) {
+    var s;
+    var ilb;
+    var iub;
+    var lb;
+    var ub;
+    if (ilb > iub) {
+        lb = iub;
+        ub = ilb;
+    } else {
+        lb = ilb;
+        ub = iub;
+    }
+    __reset(temp_stringbuf);
+    ________select(temp_stringbuf, s, lb, ub - 1);
+    return __toString(temp_stringbuf);
 }
-function afterLast(s, c) {
-	 < unknown Xob type >  : rdfs : Resourcefs = findFromEnd(s, c);
-	if (lessp(fs, 0))
-		return s; ;
-	else
-		return substring(s, plus(fs, 1), length(s)); ; ;
+
+function ____afterLast(s, c) {
+    var s;
+    var c;
+    var fs;
+    fs = ____findFromEnd(s, c);
+    if (fs < 0) return s; else return ______substring(s, fs + 1, __length(s));
 }
-function afterLastS(s, c) {
-	 < unknown Xob type >  : rdfs : Resourcefs = findFromEnd(s, c);
-	if (lessp(fs, 0))
-		return toString(s); ;
-	else
-		return substringS(s, plus(fs, 1), length(s)); ; ;
+
+function ____afterLastS(s, c) {
+    var s;
+    var c;
+    var fs;
+    fs = ____findFromEnd(s, c);
+    if (fs < 0) return __toString(s); else return ______substringS(s, fs + 1, __length(s));
 }
-function afterLastDotS(s) {
-	return afterLastS(s, ascii_dot); ; ;
+
+function __afterLastDotS(s) {
+    var s;
+    return ____afterLastS(s, ascii_dot);
 }
-function find(cnx, cny, sp) {
-	 < unknown Xob type >  : rdfs : Resourcelny = length(cny);
-	if (lny === 1)
-		return find(cnx, cny[0], sp); ;
-	lnx = length(cnx);
-	mp = sp;
-	mi = unary_minus(1);
-	fnd = false;
-	dn = false;
-	 < unknown Xob type >  : fabl : Xwhile;
-	if (fnd)
-		return mp; ;
-	else
-		return unary_minus(1); ; ;
+
+function ______find(cnx, cny, sp) {
+    var cnx;
+    var cny;
+    var sp;
+    var lnx;
+    var lny;
+    var mp;
+    var mi;
+    var dn;
+    var fnd;
+    lny = __length(cny);
+    if (lny === 1) return ______find(cnx, cny[0], sp);
+    lnx = __length(cnx);
+    mp = sp;
+    mi = -1;
+    fnd = fabl_false;
+    dn = fabl_false;
+    while (!dn) {
+        if (mi === lny - 1) {
+            fnd = fabl_true;
+            dn = fabl_true;
+        } else if (mp + mi === lnx - 1) {
+            fnd = fabl_false;
+            dn = fabl_true;
+        } else {
+            mi = mi + 1;
+            if (!(____select(cnx, mp + mi) === ____select(cny, mi))) {
+                mp = mp + 1;
+                mi = -1;
+            }
+        }
+    }
+    if (fnd) return mp; else return -1;
 }
-function find(cnx, cny) {
-	return find(cnx, cny, 0); ; ;
+
+function ____find(cnx, cny) {
+    var cnx;
+    var cny;
+    return ______find(cnx, cny, 0);
 }
-function findFromEnd(cnx, cny, sp, nosp) {
-	 < unknown Xob type >  : rdfs : Resourcelny = length(cny);
-	if (lny === 1)
-		return findFromEnd(cnx, cny[0], sp); ;
-	lnx = length(cnx);
-	lnxmlny = difference(lnx, lny);
-	if (nosp)
-		mp = lnxmlny;
-	else if (lessp(lnxmlny, sp))
-		mp = lnxmlny;
-	else
-		mp = sp;
-	mi = unary_minus(1);
-	fnd = false;
-	dn = false;
-	 < unknown Xob type >  : fabl : Xwhile;
-	if (fnd)
-		return mp; ;
-	else
-		return unary_minus(1); ; ;
+
+function ________findFromEnd(cnx, cny, sp, nosp) {
+    var cnx;
+    var cny;
+    var sp;
+    var nosp;
+    var lnx;
+    var lny;
+    var lnxmlny;
+    var mp;
+    var mi;
+    var dn;
+    var fnd;
+    lny = __length(cny);
+    if (lny === 1) return ______findFromEnd(cnx, cny[0], sp);
+    lnx = __length(cnx);
+    lnxmlny = lnx - lny;
+    if (nosp) mp = lnxmlny; else if (lnxmlny < sp) mp = lnxmlny; else mp = sp;
+    mi = -1;
+    fnd = fabl_false;
+    dn = fabl_false;
+    while (!dn) {
+        if (mi === lny - 1) {
+            fnd = fabl_true;
+            dn = fabl_true;
+        } else if (mp < 0) {
+            fnd = fabl_false;
+            dn = fabl_true;
+        } else {
+            mi = mi + 1;
+            if (!(____select(cnx, mp + mi) === ____select(cny, mi))) {
+                mp = mp - 1;
+                mi = -1;
+            }
+        }
+    }
+    if (fnd) return mp; else return -1;
 }
-function findFromEnd(cnx, cny, sp) {
-	return findFromEnd(cnx, cny, sp, false); ; ;
+
+function ______findFromEnd(cnx, cny, sp) {
+    var cnx;
+    var cny;
+    var sp;
+    return ________findFromEnd(cnx, cny, sp, fabl_false);
 }
-function findFromEnd(cnx, cny) {
-	return findFromEnd(cnx, cny, 0, true); ; ;
+
+function ____findFromEnd(cnx, cny) {
+    var cnx;
+    var cny;
+    return ________findFromEnd(cnx, cny, 0, fabl_true);
 }
-function indexOf(cnx, cny) {
-	return find(cnx, cny, 0); ; ;
+
+function ____indexOf(cnx, cny) {
+    var cnx;
+    var cny;
+    return ______find(cnx, cny, 0);
 }
-function indexOf(cnx, cny) {
-	return find(cnx, cny, 0); ; ;
+
+function ____indexOf(cnx, cny) {
+    var cnx;
+    var cny;
+    return ______find(cnx, cny, 0);
 }
-function indexOf(cnx, cny, n) {
-	return find(cnx, cny, n); ; ;
+
+function ______indexOf(cnx, cny, n) {
+    var cnx;
+    var cny;
+    var n;
+    return ______find(cnx, cny, n);
 }
-function indexOf(cnx, cny, n) {
-	return find(cnx, cny, n); ; ;
+
+function ______indexOf(cnx, cny, n) {
+    var cnx;
+    var cny;
+    var n;
+    return ______find(cnx, cny, n);
 }
-function lastIndexOf(cnx, cny, sp) {
-	return findFromEnd(cnx, cny, sp, false); ; ;
+
+function ______lastIndexOf(cnx, cny, sp) {
+    var cnx;
+    var cny;
+    var sp;
+    return ________findFromEnd(cnx, cny, sp, fabl_false);
 }
-function lastIndexOf(cnx, cny) {
-	return findFromEnd(cnx, cny, 0, true); ; ;
+
+function ____lastIndexOf(cnx, cny) {
+    var cnx;
+    var cny;
+    return ________findFromEnd(cnx, cny, 0, fabl_true);
 }
-function lastIndexOf(cnx, cny) {
-	return findFromEnd(cnx, cny); ; ;
+
+function ____lastIndexOf(cnx, cny) {
+    var cnx;
+    var cny;
+    return ____findFromEnd(cnx, cny);
 }
-function startsWith(cnx, cny) {
-	 < unknown Xob type >  : rdfs : Resourcelnx = length(cnx);
-	lny = length(cny);
-	if (greaterp(lny, lnx))
-		return false; ;
-	oksf = true;
-	for (i = 0; lessp(i, lny); plus_plus(i)) {
-		if (not(select(cnx, i) === select(cny, i)))
-			return false; ; ;
-	};
-	return true; ; ;
+
+function ____startsWith(cnx, cny) {
+    var cnx;
+    var cny;
+    var lnx;
+    var lny;
+    var i;
+    var oksf;
+    lnx = __length(cnx);
+    lny = __length(cny);
+    if (lny > lnx) return fabl_false;
+    oksf = fabl_true;
+    for (i = 0; i < lny; i++) {
+        if (!(____select(cnx, i) === ____select(cny, i))) return fabl_false;
+    }
+    return fabl_true;
 }
-function endsIn(cnx, cny) {
-	 < unknown Xob type >  : rdfs : Resourcelnx = length(cnx);
-	lny = length(cny);
-	if (greaterp(lny, lnx))
-		return false; ;
-	oksf = true;
-	sp = difference(lnx, lny);
-	for (i = sp; lessp(i, lnx); plus_plus(i)) {
-		if (not(select(cnx, i) === select(cny, difference(i, sp))))
-			return false; ; ;
-	};
-	return true; ; ;
+
+function ____endsIn(cnx, cny) {
+    var cnx;
+    var cny;
+    var lnx;
+    var lny;
+    var i;
+    var sp;
+    var oksf;
+    lnx = __length(cnx);
+    lny = __length(cny);
+    if (lny > lnx) return fabl_false;
+    oksf = fabl_true;
+    sp = lnx - lny;
+    for (i = sp; i < lnx; i++) {
+        if (!(____select(cnx, i) === ____select(cny, i - sp))) return fabl_false;
+    }
+    return fabl_true;
 }
-function plus(a, b) {
-	 < unknown Xob type >  : rdfs : Resourcers = 'a';
-	times(rs, b);
-	return toString(rs); ; ;
+
+function ____plus(a, b) {
+    var a;
+    var b;
+    var rs;
+    rs = a;
+    ____times(rs, b);
+    return __toString(rs);
 }
-function split(s, delim) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	ln = length(s);
-	cbf = {
-		 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-		return toStringResult; ;
-	};
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		c = s[i];
-		if (c === delim) {
-			seqobAdd(rs, cbf);
-			cbf = {
-				 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-				return toStringResult; ;
-			}; ;
-		} else
-			addChar(cbf, c); ;
-	};
-	seqobAdd(rs, cbf);
-	return rs; ; ;
+
+function ____split(s, delim) {
+    var s;
+    var delim;
+    var ln;
+    var i;
+    var c;
+    var cbf;
+    var rs;
+    rs = __mk_emptysequence("<unprintable>");
+    ln = __length(s);
+    cbf = "";
+    for (i = 0; i < ln; i++) {
+        c = s[i];
+        if (c === delim) {
+            ____seqobAdd(rs, cbf);
+            cbf = "";
+        } else ____addChar(cbf, c);
+    }
+    ____seqobAdd(rs, cbf);
+    return rs;
 }
-function matchesAt(buf, p, s) {
-	 < unknown Xob type >  : rdfs : Resourcei = 0;
-	ln = length(s);
-	if (greaterp(plus(p, ln), length(buf)))
-		return false; ;
-	 < unknown Xob type >  : fabl : Xwhile;
-	return true; ; ;
+
+function ______matchesAt(buf, p, s) {
+    var buf;
+    var p;
+    var s;
+    var cc;
+    var i;
+    var ln;
+    i = 0;
+    ln = __length(s);
+    if (p + ln > __length(buf)) return fabl_false;
+    while (i < ln) {
+        cc = buf[p + i];
+        if (cc === s[i]) i++; else return fabl_false;
+    }
+    return fabl_true;
 }
-function split(s, dl) {
-	 < unknown Xob type >  : rdfs : Resourcers = mk_emptysequence();
-	lnd = length(dl);
-	if (lnd === 0) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	dl0 = dl[0];
-	if (lnd === 1)
-		return split(s, dl0); ;
-	ln = length(s);
-	cbf = {
-		 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-		return toStringResult; ;
-	};
-	 < unknown Xob type >  : fabl : Xwhile;
-	if (greaterp(length(cbf), 0))
-		seqobAdd(rs, cbf);
-	return rs; ; ;
+
+function ____split(s, dl) {
+    var s;
+    var dl;
+    var ln;
+    var lnd;
+    var dl0;
+    var i;
+    var c;
+    var cbf;
+    var rs;
+    rs = __mk_emptysequence("<unprintable>");
+    lnd = __length(dl);
+    if (lnd === 0) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "attempt to split on an empty delimiter");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    dl0 = dl[0];
+    if (lnd === 1) return ____split(s, dl0);
+    ln = __length(s);
+    cbf = "";
+    while (i < ln) {
+        c = s[i];
+        if (c === dl0 && ______matchesAt(s, i, dl)) {
+            ____seqobAdd(rs, cbf);
+            i = i + lnd;
+            cbf = "";
+        } else {
+            ____addChar(cbf, c);
+            i = i + 1;
+        }
+    }
+    if (__length(cbf) > 0) ____seqobAdd(rs, cbf);
+    return rs;
 }
-function implode(glue, pieces) {
-	 < unknown Xob type >  : rdfs : Resourceln = seqLength(pieces);
-	lnm1 = difference(ln, 1);
-	rs = {
-		 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-		times(toStringResult, '');
-		return toStringResult; ;
-	};
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		times(rs, pieces[i]);
-		if (lessp(i, lnm1))
-			times(rs, glue); ;
-	};
-	return rs; ; ;
+
+function ____implode(glue, pieces) {
+    var glue;
+    var pieces;
+    var ln;
+    var i;
+    var lnm1;
+    var rs;
+    ln = __seqLength(pieces);
+    lnm1 = ln - 1;
+    rs = "";
+    for (i = 0; i < ln; i++) {
+        ____times(rs, pieces[i]);
+        if (i < lnm1) ____times(rs, glue);
+    }
+    return rs;
 }
-function replaceChar(rs, s, fc, tc, lb, ub) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(s);
-	if (or(or(lessp(lb, 0), greaterp(lb, ub)), greaterp(ub, ln))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	select(rs, s, 0, difference(lb, 1));
-	for (i = lb; lessp(i, ub); plus_plus(i)) {
-		cc = s[i];
-		if (cc === fc)
-			addChar(rs, tc);
-		else
-			addChar(rs, cc); ;
-	};
-	select(rs, s, ub, difference(ln, 1)); ;
+
+function ____________replaceChar(rs, s, fc, tc, lb, ub) {
+    var rs;
+    var s;
+    var fc;
+    var tc;
+    var lb;
+    var ub;
+    var ln;
+    var i;
+    var cc;
+    ln = __length(s);
+    if (lb < 0 || lb > ub || ub > ln) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Bad inputs to replaceChar");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    ________select(rs, s, 0, lb - 1);
+    for (i = lb; i < ub; i++) {
+        cc = s[i];
+        if (cc === fc) ____addChar(rs, tc); else ____addChar(rs, cc);
+    }
+    ________select(rs, s, ub, ln - 1);
 }
-function replaceChar(s, fc, tc, lb, ub) {
-	 < unknown Xob type >  : rdfs : Resourcers = 'length(s)';
-	replaceChar(rs, s, fc, tc, lb, ub);
-	return rs; ; ;
+
+function __________replaceChar(s, fc, tc, lb, ub) {
+    var s;
+    var fc;
+    var tc;
+    var lb;
+    var ub;
+    var rs;
+    rs = __length(s);
+    ____________replaceChar(rs, s, fc, tc, lb, ub);
+    return rs;
 }
-function replaceChar(rs, s, fc, ts, lb, ub) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(s);
-	if (or(or(lessp(lb, 0), greaterp(lb, ub)), greaterp(ub, ln))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	select(rs, s, 0, difference(lb, 1));
-	for (i = lb; lessp(i, ub); plus_plus(i)) {
-		cc = s[i];
-		if (cc === fc)
-			times(rs, ts);
-		else
-			addChar(rs, cc); ;
-	};
-	select(rs, s, ub, difference(ln, 1)); ;
+
+function ____________replaceChar(rs, s, fc, ts, lb, ub) {
+    var rs;
+    var s;
+    var fc;
+    var ts;
+    var lb;
+    var ub;
+    var ln;
+    var i;
+    var cc;
+    ln = __length(s);
+    if (lb < 0 || lb > ub || ub > ln) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Bad inputs to replaceChar");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    ________select(rs, s, 0, lb - 1);
+    for (i = lb; i < ub; i++) {
+        cc = s[i];
+        if (cc === fc) ____times(rs, ts); else ____addChar(rs, cc);
+    }
+    ________select(rs, s, ub, ln - 1);
 }
-function replaceChar(s, fc, ts, lb, ub) {
-	 < unknown Xob type >  : rdfs : Resourceif(lessp(length(ts), 2))rs = 'length(s)';
-	else
-		rs = ;
-	replaceChar(rs, s, fc, ts, lb, ub);
-	return rs; ; ;
+
+function __________replaceChar(s, fc, ts, lb, ub) {
+    var s;
+    var fc;
+    var ts;
+    var lb;
+    var ub;
+    var rs;
+    if (__length(ts) < 2) rs = __length(s); else rs = "";
+    ____________replaceChar(rs, s, fc, ts, lb, ub);
+    return rs;
 }
-function fileExtension(fln) {
-	 < unknown Xob type >  : rdfs : Resourceld = lastIndexOf(fln, ascii_dot);
-	if (lessp(ld, 0))
-		return; ;
-	return slice(fln, plus(ld, 1), length(fln)); ; ;
+
+function __fileExtension(fln) {
+    var fln;
+    var ld;
+    ld = ____lastIndexOf(fln, ascii_dot);
+    if (ld < 0) return null;
+    return ______slice(fln, ld + 1, __length(fln));
 }
-function copy(s) {
-	 < unknown Xob type >  : rdfs : Resourcers = mkString(length(s));
-	times(rs, s);
-	return rs; ; ;
+
+function __copy(s) {
+    var s;
+    var rs;
+    rs = __mkString(__length(s));
+    ____times(rs, s);
+    return rs;
 }
-function isInt(x, sp, ep) {
-	 < unknown Xob type >  : rdfs : Resourcep = sp;
-	if (x[sp] === ascii_minus)
-		plus_plus(p);
-	for (i = p; lessp(i, ep); plus_plus(i)) {
-		cc = x[i];
-		if (or(lessp(cc, 48), greaterp(cc, 57)))
-			return false; ; ;
-	};
-	return true; ; ;
+
+function ______isInt(x, sp, ep) {
+    var x;
+    var sp;
+    var ep;
+    var p;
+    var cc;
+    var i;
+    p = sp;
+    if (x[sp] === ascii_minus) p++;
+    for (i = p; i < ep; i++) {
+        cc = x[i];
+        if (cc < 48 || cc > 57) return fabl_false;
+    }
+    return fabl_true;
 }
-function trim(rs, x) {
-	 < unknown Xob type >  : rdfs : Resourcelb = 0;
-	ln = length(x);
-	nfnd = true;
-	 < unknown Xob type >  : fabl : Xwhile;
-	if (lb === ln)
-		return; ;
-	ub = difference(ln, 1);
-	nfnd = true;
-	 < unknown Xob type >  : fabl : Xwhile;
-	slice(rs, x, lb, plus(ub, 1)); ;
+
+function ____trim(rs, x) {
+    var rs;
+    var x;
+    var lb;
+    var ub;
+    var ln;
+    var nfnd;
+    lb = 0;
+    ln = __length(x);
+    nfnd = fabl_true;
+    while (nfnd && lb < ln) {
+        if (x[lb] === ascii_space) lb++; else nfnd = fabl_false;
+    }
+    if (lb === ln) return;
+    ub = ln - 1;
+    nfnd = fabl_true;
+    while (nfnd && ub >= 0) {
+        if (x[ub] === ascii_space) ub--; else nfnd = fabl_false;
+    }
+    ________slice(rs, x, lb, ub + 1);
 }
-function trim(x) {
-	 < unknown Xob type >  : rdfs : Resourcers = ;
-	trim(rs, x);
-	return rs; ; ;
+
+function __trim(x) {
+    var x;
+    var rs;
+    rs = "";
+    ____trim(rs, x);
+    return rs;
 }
-var trimBuf = ''; ;
-function isInt(x) {
-	if (length(x) === 0)
-		return false; ;
-	reset(trimBuf);
-	trim(trimBuf, x);
-	return isInt(trimBuf, 0, length(trimBuf)); ; ;
+
+var trimBuf = "";
+
+function __isInt(x) {
+    var x;
+    if (__length(x) === 0) return fabl_false;
+    __reset(trimBuf);
+    ____trim(trimBuf, x);
+    return ______isInt(trimBuf, 0, __length(trimBuf));
 }
-function isDouble1(x) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(x);
-	if (ln === 0)
-		return false; ;
-	dcm = indexOf(x, ascii_dot);
-	if (lessp(dcm, 0))
-		return isInt(x, 0, ln); ;
-	if (not(isInt(x, 0, dcm)))
-		return false; ;
-	ep = indexOf(x, ascii_e);
-	if (lessp(ep, 0))
-		ep = indexOf(x, ascii_E);
-	if (lessp(ep, 0)) {
-		if (ln === plus(dcm, 1))
-			return true; ;
-		return isInt(x, plus(dcm, 1), ln); ; ;
-	}
-	if (plus(ep, 1) === ln)
-		return false; ;
-	return isInt(x, plus(ep, 1), ln); ; ;
+
+function __isDouble1(x) {
+    var x;
+    var ln;
+    var dcm;
+    var ep;
+    ln = __length(x);
+    if (ln === 0) return fabl_false;
+    dcm = ____indexOf(x, ascii_dot);
+    if (dcm < 0) return ______isInt(x, 0, ln);
+    if (!______isInt(x, 0, dcm)) return fabl_false;
+    ep = ____indexOf(x, ascii_e);
+    if (ep < 0) ep = ____indexOf(x, ascii_E);
+    if (ep < 0) {
+        if (ln === dcm + 1) return fabl_true;
+        return ______isInt(x, dcm + 1, ln);
+    }
+    if (ep + 1 === ln) return fabl_false;
+    return ______isInt(x, ep + 1, ln);
 }
-function isDouble(x) {
-	if (length(x) === 0)
-		return false; ;
-	reset(trimBuf);
-	trim(trimBuf, x);
-	return isDouble1(trimBuf); ; ;
+
+function __isDouble(x) {
+    var x;
+    if (__length(x) === 0) return fabl_false;
+    __reset(trimBuf);
+    ____trim(trimBuf, x);
+    return __isDouble1(trimBuf);
 }
-function isInt(x) {
-	 < unknown Xob type >  : rdfs : Resourcexo = x;
-	k = obkind(xo);
-	if (k === int_kind)
-		return true; ;
-	if (isString(xo))
-		return isInt(xo); ;
-	return false; ; ;
+
+function __isInt(x) {
+    var x;
+    var xo;
+    var k;
+    xo = x;
+    k = __obkind(xo);
+    if (k === int_kind) return fabl_true;
+    if (__isString(xo)) return __isInt(xo);
+    return fabl_false;
 }
-function isDouble(x) {
-	 < unknown Xob type >  : rdfs : Resourcexo = x;
-	k = obkind(xo);
-	if (or(k === int_kind, k === double_kind))
-		return true; ;
-	if (isString(xo))
-		return isDouble(xo); ;
-	return false; ; ;
+
+function __isDouble(x) {
+    var x;
+    var xo;
+    var k;
+    xo = x;
+    k = __obkind(xo);
+    if (k === int_kind || k === double_kind) return fabl_true;
+    if (__isString(xo)) return __isDouble(xo);
+    return fabl_false;
 }
-function isBoolean(x) {
-	 < unknown Xob type >  : rdfs : Resourcexo = x;
-	k = obkind(xo);
-	if (k === int_kind) {
-		xi = toInt(x);
-		return or(xi === 0, xi === 1); ; ;
-	}
-	if (isString(xo))
-		return isInt(xo); ;
-	return false; ; ;
+
+function __isBoolean(x) {
+    var x;
+    var xo;
+    var k;
+    var xi;
+    xo = x;
+    k = __obkind(xo);
+    if (k === int_kind) {
+        xi = __toInt(x);
+        return xi === 0 || xi === 1;
+    }
+    if (__isString(xo)) return __isInt(xo);
+    return fabl_false;
 }
-function toUpperCase(ci) {
-	if (and(leq(ci, 122), geq(ci, 97)))
-		return difference(ci, 32); ;
-	return ci; ; ;
+
+function __toUpperCase(ci) {
+    var ci;
+    if (ci <= 122 && ci >= 97) return ci - 32;
+    return ci;
 }
-function toUpperCaseD(bf) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(bf);
-	for (i = 0; lessp(i, ln); plus_plus(i))
-		bf[i] = toUpperCase(bf[i]); ;
-	return bf; ; ;
+
+function __toUpperCaseD(bf) {
+    var bf;
+    var ln;
+    var i;
+    ln = __length(bf);
+    for (i = 0; i < ln; i++) bf[i] = __toUpperCase(bf[i]);
+    return bf;
 }
-function toUpperCase(bf) {
-	return toUpperCaseD(copy(bf)); ; ;
+
+function __toUpperCase(bf) {
+    var bf;
+    return __toUpperCaseD(__copy(bf));
 }
-function toLowerCase(ci) {
-	if (and(leq(ci, 90), geq(ci, 65)))
-		return plus(ci, 32); ;
-	return ci; ; ;
+
+function __toLowerCase(ci) {
+    var ci;
+    if (ci <= 90 && ci >= 65) return ci + 32;
+    return ci;
 }
-function toLowerCaseD(bf) {
-	 < unknown Xob type >  : rdfs : Resourceln = length(bf);
-	for (i = 0; lessp(i, ln); plus_plus(i))
-		bf[i] = toLowerCase(bf[i]); ;
-	return bf; ; ;
+
+function __toLowerCaseD(bf) {
+    var bf;
+    var ln;
+    var i;
+    ln = __length(bf);
+    for (i = 0; i < ln; i++) bf[i] = __toLowerCase(bf[i]);
+    return bf;
 }
-function toLowerCase(bf) {
-	return toLowerCaseD(copy(bf)); ; ;
+
+function __toLowerCase(bf) {
+    var bf;
+    return __toLowerCaseD(__copy(bf));
 }

@@ -95,17 +95,17 @@ void function xmlWriteResourceEndTag(string bf,ob r)
 }
 
 
-var intUri = "http://www.w3.org/2001/XMLSchema#int";
-var doubleUri = "http://www.w3.org/2001/XMLSchema#double";
-var stringUri = "http://www.w3.org/2001/XMLSchema#string";
-var booleanUri = "http://www.w3.org/2001/XMLSchema#boolean";
-var idUri = "http://nurl.org/0/fabl/id";
+var intUri = 'http://www.w3.org/2001/XMLSchema#int';
+var doubleUri = 'http://www.w3.org/2001/XMLSchema#double';
+var stringUri = 'http://www.w3.org/2001/XMLSchema#string';
+var booleanUri = 'http://www.w3.org/2001/XMLSchema#boolean';
+var idUri = 'http://nurl.org/0/fabl/id';
 // tp = ob means unknown (no explicit datatype given)
 
 void function xmlWriteDatatypeProperty(string bf,string pnm,ob v,Class tp)
 {
    var string tpuri;
-   writeTo(bf,"<",pnm);
+   writeTo(bf,'<',pnm);
    if (!(tp == ob))
       {
 	  if (tp == int) tpuri = intUri; else
@@ -116,7 +116,7 @@ void function xmlWriteDatatypeProperty(string bf,string pnm,ob v,Class tp)
 	  error("Internal: unexpected type: ",tp);
 	  writeTo(bf," rdf:datatype=\"",tpuri,"\"");
 	  }
-  writeTo(bf,">",v,"</",pnm,">\n");
+  writeTo(bf,'>',v,'</',pnm,'>');
   if (length(bf) > xmlSizeLimit) error("exceeded RDF/XML size limit");
 }
 
@@ -219,7 +219,7 @@ void function xmlSerialize(string bf,ob r)
 	  }
    if (k == seq_kind)
       {
-	  bf * "<rdf:Seq>\n";
+	  bf * '<rdf:Seq>';
 	  dk = seqDataKind(r);
 	  if (dk == seqDataOb_kind)
 	     {
@@ -233,13 +233,13 @@ void function xmlSerialize(string bf,ob r)
 			 if (vk == double_kind) vtp = double; //  only case where value is unambiguous in type
 			 isdtp = isString(v) || isId(v) || (vk == int_kind) || (vk == double_kind);
 			 if (isdtp) 
-		        xmlWriteDatatypeProperty(bf,"rdf:li",v,vtp);
+		        xmlWriteDatatypeProperty(bf,'rdf:li',v,vtp);
 			else
-			    xmlWriteProperty(bf,"rdf:li",v);
+			    xmlWriteProperty(bf,'rdf:li',v);
 			}
 		}	
 	 else  error("this kind of sequence not supported yet");
-	  bf * "</rdf:Seq>\n";
+	  bf * '</rdf:Seq>';
 	 }
 }
  
@@ -252,15 +252,17 @@ void function xmlSerialize(string bf,ob r)
 
 
 var xmlBoilerPlate = 
-"<?xml version=\"1.0\" encoding=\"iso-8859-1\" ?>
-<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"
-";
+'<?xml version="1.0" encoding="iso-8859-1" ?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"';
 
 void function addXmlNamespace(string bf,id ns)
 {
    var string nsuri;
    nsuri = uri(namespace(ns));
-   bf * "xmlns:{ns}=\"{nsuri}\"\n";
+   bf * 'xmlns:';
+   bf * ns;
+   bf * '="';
+   bf * nsuri;
+   bf * '"';
 }
 
 void function addXmlNamespaces(string bf,SeqOf(id) ns)
@@ -268,7 +270,7 @@ void function addXmlNamespaces(string bf,SeqOf(id) ns)
   var int ln,i;
    ln = length(ns);
    for (i=0;i<ln;i++)  addXmlNamespace(bf,ns[i]);
-   bf * ">\n";
+   bf * '>';
 }
 
 void function xmlSerialize(string bf,SeqOfOb v,int pg)
@@ -280,7 +282,7 @@ void function xmlSerialize(string bf,SeqOfOb v,int pg)
    xmlNamespaces = new(SeqOf(id));
    blankIdCount = 0;
    ln = length(v);
-   rbf = "";
+   rbf = '';
    for (i=0;i<ln;i++) 
       {
 	  cv = v[i];
@@ -289,13 +291,13 @@ void function xmlSerialize(string bf,SeqOfOb v,int pg)
    bf * xmlBoilerPlate;
    addXmlNamespaces(bf,xmlNamespaces);
    bf * rbf;
-   bf * "</rdf:RDF>\n";
+   bf * '</rdf:RDF>';
 }
 
 void function xmlSerializeToFile(string fl,SeqOfOb v,int pg)
 {
    var string bf;
-   bf = "";
+   bf = '';
    xmlSerialize(bf,v,pg);
    fwrite(fl,bf);
 }

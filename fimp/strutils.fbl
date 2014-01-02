@@ -121,7 +121,7 @@ int function findFromEnd(string s,int c,int startat)
    }
    return -1;
 }
-var temp_stringbuf = mkStringBuf();
+var temp_stringbuf = ''; // = mkStringBuf();
 
 
  
@@ -149,7 +149,7 @@ string function slice(string s,int ilb,iub)
    if (ilb < 0) lb = 0; else lb = ilb;
    ln = length(s);
    if (iub > ln) ub = ln;  else ub = iub;
-   if (ub <= lb) return "";
+   if (ub <= lb) return ''; //"";
    rln = ub - lb;
    rs = mkStringBuf(rln);
    select(rs,s,lb,ub-1);
@@ -420,14 +420,14 @@ SeqOf(string) function split(string s,int delim)
    var int ln,i,c,string cbf,SeqOf(string) rs;
    rs = emptysequence(string);
    ln = length(s);
-   cbf = SB();
+   cbf = ''; // SB();
    for (i=0;i<ln;i++)
        {
 	   c = s[i];
 	   if (c == delim)
 	      {
 		  push(rs,cbf);
-		  cbf = SB();
+		  cbf = ''; //SB();
 		  }
 	   else
 	      addChar(cbf,c);
@@ -456,11 +456,11 @@ SeqOf(string) function split(string s, string dl)
    var int ln,lnd,dl0,i,c,string cbf,SeqOf(string) rs;
    rs = emptysequence(string);
    lnd = length(dl);
-   if (lnd == 0) error("attempt to split on an empty delimiter");
+   if (lnd == 0) error('attempt to split on an empty delimiter');
    dl0 = dl[0];
    if (lnd == 1) return split(s,dl0);
    ln = length(s);
-   cbf = SB();
+   cbf = ''; //SB();
    while (i < ln)
        {
 	   c = s[i];
@@ -468,7 +468,7 @@ SeqOf(string) function split(string s, string dl)
 	      {
 		  push(rs,cbf);
 		  i = i + lnd;
-		  cbf = SB();
+		  cbf = ''; // SB();
 		  }
 	   else
 	      {
@@ -485,7 +485,7 @@ string function implode(id glue,SeqOf(string) pieces)
   var int ln,i,lnm1,string rs;
   ln = length(pieces);
   lnm1 = ln - 1;
-  rs = SB('');
+  rs = ''; //SB('');
   for (i=0;i<ln;i++)
       {
 	  rs * pieces[i];
@@ -499,7 +499,7 @@ void function replaceChar(string rs,string s,int fc,tc,lb,ub)
 {
    var int ln,i,cc;
    ln = length(s);
-   if ((lb < 0) || (lb > ub) || (ub > ln)) error("Bad inputs to replaceChar");
+   if ((lb < 0) || (lb > ub) || (ub > ln)) error('Bad inputs to replaceChar');
    select(rs,s,0,lb-1);
    for (i = lb;i<ub;i++)
        {
@@ -522,7 +522,7 @@ void function replaceChar(string rs,string s,int fc,string ts,int lb,ub)
 {
    var int ln,i,cc;
    ln = length(s);
-   if ((lb < 0) || (lb > ub) || (ub > ln)) error("Bad inputs to replaceChar");
+   if ((lb < 0) || (lb > ub) || (ub > ln)) error('Bad inputs to replaceChar');
    select(rs,s,0,lb-1);
    for (i = lb;i<ub;i++)
        {
@@ -536,7 +536,7 @@ string function replaceChar(string s,int fc,string ts,int lb,ub)
 {
    var string rs;
    if (length(ts) < 2) rs = mkStringBuf(length(s));
-   else rs = "";
+   else rs = '';
    replaceChar(rs,s,fc,ts,lb,ub);
    return rs;
 }
@@ -609,7 +609,7 @@ void function trim(string rs,string x)
 string function trim(string x)
 {
    var string rs;
-   rs = "";
+   rs = ''; // "";
    trim(rs,x);
    return rs;
 }
@@ -623,7 +623,7 @@ trim("abc");
    
    
 // allow 
-var trimBuf = "";
+var trimBuf = ''; // "";
 
 boolean function isInt(string x)
 {

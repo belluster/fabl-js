@@ -4,6 +4,79 @@ var buildStartTime = timeMsec();
 
 load('../fimp/translateJS.fbl');
 load('../fimp/toplevel.fbl'); // reload toplevel with js translation
+// load('../fimp/macros.fbl');
+
+void function translateGlobal(ob x,id nm,ob vl,Sort s)
+{
+  var Property gpr;
+  gpr = regarding(nm~ob);
+  if (translateJS) translateToJS(x,nm,vl,s, false);
+}
+
+void function translateGlobal(ob x,id nm,Sort s)
+{
+  translateGlobal(x,nm,nulValue(s),s);
+}
+
+void function translatePropertyRestriction(Sort tp,Property prp,Sort valueType,ob value,int crd,int maxc)
+{
+   var Restriction crst;
+   if (nnul(value))
+      {
+	  crst = mkHasValueRestriction(prp,value);
+	  ///assert(tp~ob,rdfs:subClassOf,crst~ob);
+	  }
+   if (nnul(valueType))
+      {
+      crst = mkAllValuesFromRestriction(prp,valueType);
+      ///assert(tp~ob,rdfs:subClassOf,crst~ob);
+	  }
+   if (crd == 1) 
+   {
+      crst = mkCardinalityRestriction(prp,1);
+      ///assert(tp~ob,rdfs:subClassOf,crst~ob);
+	}
+   if (maxc == 1) 
+   {
+      crst = mkMaxCardinalityRestriction(prp,1);
+      ///assert(tp~ob,rdfs:subClassOf,crst~ob);
+	}
+}
+
+
+void function translatePropertyRestriction(Sort tp,Property prp,Sort valueType)
+{
+    translatePropertyRestriction(tp,prp,valueType,nil,0,1);
+}
+
+void function translatePropertyRestriction(Property prp,Sort valueType,ob value,int crd,int maxc)
+{
+   if (nul(classBeingDefined)) error('No class being defined');
+   translatePropertyRestriction(classBeingDefined,prp,valueType,value,crd,maxc);
+}
+
+
+void function translatePropertyRestriction(Property prp,Sort valueType)
+{
+   translatePropertyRestriction(prp,valueType,nil,0,1);
+}
+
+void function translateField(Sort tp,id nm,Sort vtp)
+{
+  var Property prp,ob cv;
+  cv = selectUri(tp~ob,nm);
+  if (nnul(cv)) 
+     {
+	 if (not(hasType(cv,Property))) error("Cannot redefine ",nm," as a field");
+	 prp = cv ~ Property;
+	 }
+  else
+     {
+     prp = iNew(Property)~Property;
+     ///bindUri(tp~ob,nm,prp~ob);
+	 }
+  translatePropertyRestriction(tp,prp,vtp,nil,1,0);
+}
 
 // redefine bindConstant, bindLocal and bindGlobal (from xob.fbl) with js translation
 Binding function bindConstant(ob x,id nm,ob vl,Sort s)
@@ -15,7 +88,7 @@ Binding function bindConstant(ob x,id nm,ob vl,Sort s)
      {
 	 if (isConstant(cb))
 	    {
-		if (translateJS) translateToJS(x,nm,vl,s);
+		if (translateJS) translateToJS(x,nm,vl,s,false);
 		if (hasValueAndType(cb,vl,s)) return cb;
 	    //error('Cannot modify a constant: ',nm);
 		}
@@ -37,67 +110,164 @@ Binding function bindConstant(ob x,id nm,ob vl,Sort s)
   if (nnul(b)) set_isConstant(b,true); else error('Cannot bind as constant ',nm);
 }
 
-/*Binding function bindLocal(ob bn,id nm,ob vl,Sort s)
+Binding function bindLocal(ob bn,id nm,ob vl,Sort s)
 {
   var Binding rs;
-  if (translateJS) translateToJS(bn,nm,vl,s);
+  if (translateJS) translateToJS(bn,nm,vl,s, true);
   rs =  set(bn,regarding(nm~ob),vl,s);
   setInDblock(rs,true);
   return rs;
-}*/
+}
 
-Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
+Binding function bindLocal(ob bn,id nm,Sort s)
+  {
+  var Binding rs;
+  if (translateJS) translateToJS(bn,nm,nulValue(s),s, true);
+  rs =  set(bn,regarding(nm~ob),nulValue(s),s);
+  setInDblock(rs,true);
+  return rs;
+}
+
+/*Binding function bindGlobal(ob x,id nm,ob vl,Sort s)
 {
   var Property gpr;
   gpr = regarding(nm~ob);
-  if (translateJS) translateToJS(x,nm,vl,s);
+  if (translateJS) translateToJS(x,nm,vl,s,false);
   return set(x,gpr,vl,s);
+}*/
+
+void function translateTypedVar(ob fr,ob x,boolean local)
+{
+   var ob nm,id nms,Property prp,boolean iss,Sort srt;
+   nm = caddr(x);
+   iss = isId(nm);
+   if (iss) nms = nm~id;
+   srt = analyzeType(cadr(x));
+   if (local)
+      {
+	  if (not(iss)) error('Expected id: ',nm);
+	  bindLocal(fr,nms,srt)~ob;
+	  return;
+	  }
+   if (nul(classBeingDefined)) 
+      {
+	  if (not(iss)) error('NOT YET');
+	  translateGlobal(fr,nms,srt);
+      ///return typeOfBindingOrFunction(bindPif(fr,nms,srt));
+	  return;
+	  }
+   if (iss) 
+      {
+	  translateField(classBeingDefined,nms,srt);
+	  return;
+	  }
+   if  (isQname(nm))
+     {
+	 prp = toProperty(nm);
+	 translatePropertyRestriction(classBeingDefined,prp,srt);
+	 return;
+	 }
+   error('Incorrect form for variable in var statement: ',nm);
+}
+
+void function analyzeTopVars(ob x,boolean isConstant) {
+  var ob cx,ce,Sort lsts,srt,ob vl,nmo,id nm,ob bnd;
+  copyInto(cPath,homePath());
+  cx = x;
+  lsts = nil ~ Sort;
+  while (isList(cx))
+        {
+		ce = car(cx);
+		if (obkind(ce)==string_kind)
+		   {
+		   if (nul(lsts)) writeln('Class needed for variable ',ce);
+		   if (nul(classBeingDefined)) 
+		      {
+			    if (isConstant) error('A value needs to be supplied for the constant ',ce~id);
+			    else {
+					translateGlobal(home,ce~id,lsts); 
+				}
+			  }
+             // LATER add correct constant handling here
+		     else {
+		      translateField(classBeingDefined,ce~id,lsts);
+			}
+		   } 
+		else if (isList(ce))
+           {
+	       if (eq(car(ce),'assign'))
+	          {
+		      vl = evaluate_(caddr(ce) ~ ob);
+			  nmo = cadr(ce);
+			     {
+			     nm = cadr(ce)~id;
+			     srt = type(lastXob);
+		         if (nul(classBeingDefined))  
+				    {
+					  if (isConstant) {
+						bindConstant(home,nm,vl,srt);
+					  } else {
+						translateGlobal(home,nm,vl,srt);
+					  }
+					}
+			     else			  
+			     error('Cannot assign default values in a sort definition yet');
+				 }
+			  }
+		   else 
+		      {
+			    translateTypedVar(home,ce,false);
+			  }
+		   }
+		cx = cdr(cx);
+		}
+		if (echoMode && !scanning_console) echoInput();
 }
 
 resetJS();
 
 outputTypesToJS = false;
+parse_verbose = false;
+printParseResults = false;
+printQualifiedClassNames = true;
 
-/*translateToJS('../fimp/globals.fbl');
+translateToJS('../fimp/printers.fbl');
+translateToJS('../fimp/xobprint.fbl');
+translateToJS('../fimp/globals.fbl');
 translateToJS('../fimp/props.fbl');
 // translateToJS('../fimp/imports.fbl');
 translateToJS('../fimp/fglobals.fbl');
 translateToJS('../fimp/pcode.fbl');
-// ERROR translateToJS('../fimp/primops.fbl');
-// ERROR translateToJS('../fimp/xob.fbl');
+translateToJS('../fimp/xob.fbl');
 translateToJS('../fimp/utils.fbl');
 translateToJS('../fimp/arith.fbl');
 translateToJS('../fimp/hex.fbl');
-// ERROR translateToJS('../fimp/fun.fbl');
 translateToJS('../fimp/literal.fbl');
-// ERROR translateToJS('../fimp/meta.fbl');
+translateToJS('../fimp/meta.fbl');
 translateToJS('../fimp/strutils.fbl');
 translateToJS('../fimp/date.fbl');
 translateToJS('../fimp/hexbinary.fbl');
 translateToJS('../fimp/cgi.fbl');
 translateToJS('../fimp/label.fbl');
-// ERROR translateToJS('../fimp/class.fbl');
-// ERROR translateToJS('../fimp/analyze.fbl');
-// ERROR translateToJS('../fimp/macros.fbl');
-// ERROR translateToJS('../fimp/asm.fbl');
+translateToJS('../fimp/class.fbl');
+translateToJS('../fimp/analyze.fbl');
+translateToJS('../fimp/macros.fbl');
 translateToJS('../fimp/disasm.fbl');
-// ERROR translateToJS('../fimp/flat.fbl');
-// ERROR translateToJS('../fimp/flat2.fbl');
-// ERROR translateToJS('../fimp/scan.fbl');
-// ERROR translateToJS('../fimp/parse.fbl');
+translateToJS('../fimp/scan.fbl');
+translateToJS('../fimp/parse.fbl');
 translateToJS('../fimp/stringbufconst.fbl');
-// ERROR translateToJS('../fimp/functionals.fbl');
-translateToJS('../fimp/toplevel.fbl');
 translateToJS('../fimp/debug.fbl');
-translateToJS('../fimp/printers.fbl');
-translateToJS('../fimp/xobprint.fbl');
 translateToJS('../fimp/home.fbl');
 translateToJS('../fimp/uri.fbl');
 translateToJS('../fimp/namespace.fbl');
 translateToJS('../fimp/serialize.fbl');
 translateToJS('../fimp/writerdfxml.fbl');
-translateToJS('../fimp/raptor.fbl');*/
+// translateToJS('../fimp/raptor.fbl');*/
 translateToJS('../fimp/translateJS.fbl');
+translateToJS('../fimp/fun.fbl');
+translateToJS('../fimp/functionals.fbl');
+translateToJS('../fimp/toplevel.fbl');
+
 /*translateToJS('test.fbl');
 storeJS('fimp.js');*/
 

@@ -1,33 +1,45 @@
-function abs(x) {
-	if (lessp(x, 0))
-		return unary_minus(x); ;
-	return x; ; ;
+function __abs(x) {
+    var x;
+    if (x < 0) return -x;
+    return x;
 }
-function max(x, y) {
-	if (lessp(x, y))
-		return y; ;
-	return x; ; ;
+
+function ____max(x, y) {
+    var x;
+    var y;
+    if (x < y) return y;
+    return x;
 }
-function min(x, y) {
-	if (lessp(x, y))
-		return x; ;
-	return y; ; ;
+
+function ____min(x, y) {
+    var x;
+    var y;
+    if (x < y) return x;
+    return y;
 }
-function abs(x) {
-	if (lessp(x, float(0)))
-		return unary_minus(x); ;
-	return x; ; ;
+
+function __abs(x) {
+    var x;
+    if (x < __float(0)) return -x;
+    return x;
 }
-function max(x, y) {
-	if (lessp(x, y))
-		return y; ;
-	return x; ; ;
+
+function ____max(x, y) {
+    var x;
+    var y;
+    if (x < y) return y;
+    return x;
 }
-function min(x, y) {
-	if (lessp(x, y))
-		return x; ;
-	return y; ; ;
+
+function ____min(x, y) {
+    var x;
+    var y;
+    if (x < y) return x;
+    return y;
 }
-var pi =  < Unhandled constant kind >  : 2;
-var degreesToRadians = quotient(pi,  < Unhandled constant kind >  : 2);
-var radiansToDegrees = quotient( < Unhandled constant kind >  : 2, pi);
+
+var pi = 3.141593;
+
+var degreesToRadians = ____quotient(pi, 180);
+
+var radiansToDegrees = ____quotient(180, pi);

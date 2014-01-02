@@ -292,7 +292,7 @@ void function times(string s,Sort tp)
 	 cns =  obsel(tp~ob,Sort_constructor)~id;
 	 if (nul(cns))
 	    {
-		s * "unprintable Class";
+		s * 'unprintable Class';
 		return;
 		}
 	 if (cns == 'Function')

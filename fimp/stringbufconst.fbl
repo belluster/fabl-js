@@ -27,7 +27,7 @@ int function unescapedLcurly(string bf,int sf)
 }
 
 // remove the 1 escapes 
-var removeEscapesBuf = "";
+var removeEscapesBuf = ''; //"";
 
 void function removeEscapes(string bf,int esc)
 {

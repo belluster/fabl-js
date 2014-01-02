@@ -1,153 +1,253 @@
 var lhwm = 65535;
-var hhwm = unary_minus(65536);
+
+var hhwm = -65536;
+
 var byte0_mask = 255;
+
 var byte1_mask = 65280;
+
 var byte2_mask = 16711680;
-var byte3_mask = unary_minus(16777216);
-function highHalf(x) {
-	return lshift(x, unary_minus(16)); ; ;
+
+var byte3_mask = -16777216;
+
+function __highHalf(x) {
+    var x;
+    return ____lshift(x, -16);
 }
-function low_half(x) {
-	return land(x, lhwm); ; ;
+
+function __low_half(x) {
+    var x;
+    return ____land(x, lhwm);
 }
-function setLowHalf(x, y) {
-	return lor(land(x, hhwm), land(y, lhwm)); ; ;
+
+function ____setLowHalf(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, hhwm), ____land(y, lhwm));
 }
-function setHighHalf(x, y) {
-	return lor(lshift(y, 16), land(x, lhwm)); ; ;
+
+function ____setHighHalf(x, y) {
+    var x;
+    var y;
+    return ____lor(____lshift(y, 16), ____land(x, lhwm));
 }
-function byte0(x) {
-	return land(x, byte0_mask); ; ;
+
+function __byte0(x) {
+    var x;
+    return ____land(x, byte0_mask);
 }
-function byte1(x) {
-	return land(lshift(x, unary_minus(8)), byte0_mask); ; ;
+
+function __byte1(x) {
+    var x;
+    return ____land(____lshift(x, -8), byte0_mask);
 }
-function byte2(x) {
-	return land(lshift(x, unary_minus(16)), byte0_mask); ; ;
+
+function __byte2(x) {
+    var x;
+    return ____land(____lshift(x, -16), byte0_mask);
 }
-function byte3(x) {
-	return land(lshift(x, unary_minus(24)), byte0_mask); ; ;
+
+function __byte3(x) {
+    var x;
+    return ____land(____lshift(x, -24), byte0_mask);
 }
-function setByte0(x, y) {
-	return lor(land(x, lnot(byte0_mask)), land(y, byte0_mask)); ; ;
+
+function ____setByte0(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte0_mask)), ____land(y, byte0_mask));
 }
-function setByte0(x, y) {
-	return lor(land(x, lnot(byte0_mask)), y); ; ;
+
+function ____setByte0(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte0_mask)), y);
 }
-function setByte1(x, y) {
-	return lor(land(x, lnot(byte1_mask)), lshift(land(y, byte0_mask), 8)); ; ;
+
+function ____setByte1(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte1_mask)), ____lshift(____land(y, byte0_mask), 8));
 }
-function setByte1(x, y) {
-	return lor(land(x, lnot(byte1_mask)), lshift(y, 8)); ; ;
+
+function ____setByte1(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte1_mask)), ____lshift(y, 8));
 }
-function setByte2(x, y) {
-	return lor(land(x, lnot(byte2_mask)), lshift(land(y, byte0_mask), 16)); ; ;
+
+function ____setByte2(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte2_mask)), ____lshift(____land(y, byte0_mask), 16));
 }
-function setByte2(x, y) {
-	return lor(land(x, lnot(byte2_mask)), lshift(y, 16)); ; ;
+
+function ____setByte2(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte2_mask)), ____lshift(y, 16));
 }
-function setByte3(x, y) {
-	return lor(land(x, lnot(byte3_mask)), lshift(land(y, byte0_mask), 24)); ; ;
+
+function ____setByte3(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte3_mask)), ____lshift(____land(y, byte0_mask), 24));
 }
-function setByte3(x, y) {
-	return lor(land(x, lnot(byte3_mask)), lshift(y, 24)); ; ;
+
+function ____setByte3(x, y) {
+    var x;
+    var y;
+    return ____lor(____land(x, __lnot(byte3_mask)), ____lshift(y, 24));
 }
-function toHex(x) {
-	 < unknown Xob type >  : rdfs : Resources = '' '';
-	cx = x;
-	for (i = 0; lessp(i, 8); plus_plus(i)) {
-		ln = land(cx, 15);
-		if (lessp(ln, 10))
-			set(s, difference(7, i), plus(48, ln));
-		else
-			set(s, difference(7, i), plus(87, ln));
-		cx = lshift(cx, unary_minus(4)); ;
-	};
-	return s; ; ;
+
+function __toHex(x) {
+    var x;
+    var s;
+    var i;
+    var cx;
+    var ln;
+    s = "        ";
+    cx = x;
+    for (i = 0; i < 8; i++) {
+        ln = ____land(cx, 15);
+        if (ln < 10) ______set(s, 7 - i, 48 + ln); else ______set(s, 7 - i, 87 + ln);
+        cx = ____lshift(cx, -4);
+    }
+    return s;
 }
-function to_hex(rs, x, numdigits) {
-	 < unknown Xob type >  : rdfs : Resourcefor(i = 0; lessp(i, numdigits); plus_plus(i))times(rs, '0'); ;
-	lnr = difference(length(rs), 1);
-	cx = x;
-	for (i = 0; lessp(i, numdigits); plus_plus(i)) {
-		ln = land(cx, 15);
-		if (lessp(ln, 10))
-			set(rs, difference(lnr, i), plus(48, ln));
-		else
-			set(rs, difference(lnr, i), plus(87, ln));
-		cx = lshift(cx, unary_minus(4)); ;
-	}; ;
+
+function ______to_hex(rs, x, numdigits) {
+    var rs;
+    var x;
+    var numdigits;
+    var i;
+    var cx;
+    var ln;
+    var lnr;
+    for (i = 0; i < numdigits; i++) ____times(rs, "0");
+    lnr = __length(rs) - 1;
+    cx = x;
+    for (i = 0; i < numdigits; i++) {
+        ln = ____land(cx, 15);
+        if (ln < 10) ______set(rs, lnr - i, 48 + ln); else ______set(rs, lnr - i, 87 + ln);
+        cx = ____lshift(cx, -4);
+    }
 }
-function toInt(x) {
-	if (x)
-		return 1; ;
-	return 0; ; ;
+
+function __toInt(x) {
+    var x;
+    if (x) return 1;
+    return 0;
 }
-function equal(a, b) {
-	return um_eq(a, b); ; ;
+
+function ____equal(a, b) {
+    var a;
+    var b;
+    return ____um_eq(a, b);
 }
-var regardingNamespaces = regarding('namespaces');
+
+var regardingNamespaces = __regarding("namespaces");
+
 function homeNamespaces() {
-	 < unknown Xob type >  : rdfs : Resourcenms = get(home, regardingNamespaces);
-	if (nul(nms)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, 'Home is missing namespaces property');
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return nms; ; ;
+    var nms;
+    nms = ____get(home, regardingNamespaces);
+    if (!nms) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Home is missing namespaces property");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return nms;
 }
-function car(x) {
-	return listSelect(x, 0); ; ;
+
+function __car(x) {
+    var x;
+    return ____listSelect(x, 0);
 }
-function cdr(x) {
-	if (not(isList(x))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, 'cdr of non-list');
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return obsel(x, List_rest); ; ;
+
+function __cdr(x) {
+    var x;
+    if (!__isList(x)) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "cdr of non-list");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return ____obsel(x, List_rest);
 }
-function cadr(x) {
-	return listSelect(x, 1); ; ;
+
+function __cadr(x) {
+    var x;
+    return ____listSelect(x, 1);
 }
-function caddr(x) {
-	return listSelect(x, 2); ; ;
+
+function __caddr(x) {
+    var x;
+    return ____listSelect(x, 2);
 }
-function cadddr(x) {
-	return listSelect(x, 3); ; ;
+
+function __cadddr(x) {
+    var x;
+    return ____listSelect(x, 3);
 }
-function garbageCollection(v) {
-	allocStatically(not(v)); ;
+
+function __garbageCollection(v) {
+    var v;
+    __allocStatically(!v);
 }
-function list1(x) {
-	return cons(x, ); ; ;
+
+function __list1(x) {
+    var x;
+    return ____cons(x, "rdf:nil");
 }
-function list2(x, y) {
-	return cons(x, cons(y, )); ; ;
+
+function ____list2(x, y) {
+    var x;
+    var y;
+    return ____cons(x, ____cons(y, "rdf:nil"));
 }
-function list3(x, y, z) {
-	return cons(x, cons(y, cons(z, ))); ; ;
+
+function ______list3(x, y, z) {
+    var x;
+    var y;
+    var z;
+    return ____cons(x, ____cons(y, ____cons(z, "rdf:nil")));
 }
-function list4(x, y, z, z2) {
-	return cons(x, cons(y, cons(z, cons(z2, )))); ; ;
+
+function ________list4(x, y, z, z2) {
+    var x;
+    var y;
+    var z;
+    var z2;
+    return ____cons(x, ____cons(y, ____cons(z, ____cons(z2, "rdf:nil"))));
 }
-function list5(x, y, z, z2, z3) {
-	return cons(x, cons(y, cons(z, cons(z2, cons(z3, ))))); ; ;
+
+function __________list5(x, y, z, z2, z3) {
+    var x;
+    var y;
+    var z;
+    var z2;
+    var z3;
+    return ____cons(x, ____cons(y, ____cons(z, ____cons(z2, ____cons(z3, "rdf:nil")))));
 }
-function toList(a) {
-	 < unknown Xob type >  : rdfs : Resourceif(nul(a))return; ;
-	ln = seqLength(a);
-	rs = ;
-	for (i = difference(ln, 1); geq(i, 0); minus_minus(i))
-		rs = cons(a[i], rs); ;
-	return rs; ; ;
+
+function __toList(a) {
+    var a;
+    var rs;
+    var ln;
+    var i;
+    if (!a) return "rdf:nil";
+    ln = __seqLength(a);
+    rs = "rdf:nil";
+    for (i = ln - 1; i >= 0; i--) rs = ____cons(a[i], rs);
+    return rs;
 }
-function listNul(x) {
-	return or(nul(x), um_eq(x, )); ; ;
+
+function __listNul(x) {
+    var x;
+    return !x || ____um_eq(x, "rdf:nil");
 }

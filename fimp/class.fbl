@@ -19,7 +19,7 @@ var aa = new(Restriction);
 //allocate("fabl:bitFields",FunctionalProperty);
 //constant bitFields = fabl:bitFields~Property;
 
-var Function(int,Class) subClassDepth;
+//var Function(int,Class) subClassDepth;
 
 // Resource has a depth of -1 
 int function subClassDepth(Class c)
@@ -293,7 +293,7 @@ void function addField(Sort tp,id nm,Sort vtp)
   cv = selectUri(tp~ob,nm);
   if (nnul(cv)) 
      {
-	 if (not(hasType(cv,Property))) error("Cannot redefine ",nm," as a field");
+	 if (not(hasType(cv,Property))) error('Cannot redefine ',nm,' as a field');
 	 prp = cv ~ Property;
 	 }
   else
@@ -420,12 +420,12 @@ string function nameOrQnamePrint(ob x)
       {
       if (eq(car(x),'_colon_'))
          {
-         rs = "";
+         rs = '';
          writeTo(rs,cadr(x),':',caddr(x));
          return rs;
          }
       }
-   error("Expected name or qualified name: ",x);
+   error('Expected name or qualified name: ',x);
 }
 
 boolean function isOne(ob x)
@@ -455,7 +455,7 @@ Xob function analyzeRestrict(ob x)
      }
   else
      {
-	 if (!(hasType(prpx,Property))) error("Expected a property: ",nameOrQnamePrint(car(cx)));
+	 if (!(hasType(prpx,Property))) error('Expected a property: ',nameOrQnamePrint(car(cx)));
      prp = prpx~Property;
 	 }
   cx = cdr(cx);

@@ -1,323 +1,443 @@
-function namespace(nm, uri) {
-	 < unknown Xob type >  : rdfs : Resourcenmv = uriToResource(uri);
-	bindConstant(home, nm, nmv, ob);
-	inv = globalValue(home, 'inverseNamespaces');
-	if (nul(inv)) {
-		inv = mkResource();
-		bindGlobal(home, 'inverseNamespaces', inv, ob); ;
-	}
-	set(inv, regarding(nmv), nm, ob); ;
+function ____namespace(nm, uri) {
+    var nm;
+    var uri;
+    var nms;
+    var nmv;
+    var inv;
+    nmv = __uriToResource(uri);
+    ________bindConstant(home, nm, nmv, ob);
+    inv = ____globalValue(home, "inverseNamespaces");
+    if (!inv) {
+        inv = mkResource();
+        ________bindGlobal(home, "inverseNamespaces", inv, ob);
+    }
+    ________set(inv, __regarding(nmv), nm, ob);
 }
-function namespacePrefix(x) {
-	 < unknown Xob type >  : rdfs : Resourceinv = globalValue(home, 'inverseNamespaces');
-	if (nul(inv))
-		return; ;
-	return get(inv, regarding(x)); ; ;
+
+function __namespacePrefix(x) {
+    var x;
+    var inv;
+    inv = ____globalValue(home, "inverseNamespaces");
+    if (!inv) return null;
+    return ____get(inv, __regarding(x));
 }
-function namespace(nm, uri) {
-	namespace(toId(nm), uri); ;
+
+function ____namespace(nm, uri) {
+    var nm;
+    var uri;
+    ____namespace(__toId(nm), uri);
 }
-function aboutNamespace(nm) {
-	 < unknown Xob type >  : rdfs : Resourcens = namespace(nm);
-	if (nul(ns)) { {
-			reset(uwriteBuffer);
-			times(uwriteBuffer, {
-				 < unknown Xob type >  : rdfs : ResourcestringConstantResult = '' '';
-				times(stringConstantResult, );
-				times(stringConstantResult, nm);
-				times(stringConstantResult, );
-				return stringConstantResult; ;
-			});
-			tprint(uwriteBuffer);
-			terpri();
-		}
-		return; ;
-	}
-	dfb = mget(ns, isDefinedByP); {
-		reset(uwriteBuffer);
-		times(uwriteBuffer, {
-			 < unknown Xob type >  : rdfs : ResourcestringConstantResult = '' '';
-			times(stringConstantResult, );
-			times(stringConstantResult, nm);
-			times(stringConstantResult, );
-			times(stringConstantResult, uri(ns));
-			return stringConstantResult; ;
-		});
-		tprint(uwriteBuffer);
-		terpri();
-	}
-	if (nul(dfb)) {
-		terpri();
-		return; ;
-	}
-	ln = seqLength(dfb); {
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-	}
-	for (i = 0; lessp(i, ln); plus_plus(i)) {
-		reset(uwriteBuffer);
-		times(uwriteBuffer, uri(dfb[i]));
-		times(uwriteBuffer, );
-		tprint(uwriteBuffer);
-	};
-	terpri(); ;
+
+function __aboutNamespace(nm) {
+    var nm;
+    var ns;
+    var dfb;
+    var ln;
+    var i;
+    ns = __namespace(nm);
+    if (!ns) {
+        {
+            __reset(uwriteBuffer);
+            ____times(uwriteBuffer, "Namespace {nm} is undefined");
+            __tprint(uwriteBuffer);
+            terpri();
+        }
+        return;
+    }
+    dfb = ____mget(ns, isDefinedByP);
+    {
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Namespace {nm} : {uri(ns)}");
+        __tprint(uwriteBuffer);
+        terpri();
+    }
+    if (!dfb) {
+        terpri();
+        return;
+    }
+    ln = __seqLength(dfb);
+    {
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "  isDefinedBy: ");
+        __tprint(uwriteBuffer);
+    }
+    for (i = 0; i < ln; i++) {
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, __uri(dfb[i]));
+        ____times(uwriteBuffer, " ");
+        __tprint(uwriteBuffer);
+    }
+    terpri();
 }
-function qualifiedName(rs, x) {
-	 < unknown Xob type >  : rdfs : Resourcepr = parent(x);
-	if (nul(pr))
-		return false; ;
-	pfx = namespacePrefix(pr);
-	if (nul(pfx))
-		return false; ;
-	times(rs, pfx);
-	times(rs, ':');
-	times(rs, name(x));
-	return true; ; ;
+
+function ____qualifiedName(rs, x) {
+    var rs;
+    var x;
+    var pr;
+    var pfx;
+    pr = __parent(x);
+    if (!pr) return fabl_false;
+    pfx = __namespacePrefix(pr);
+    if (!pfx) return fabl_false;
+    ____times(rs, pfx);
+    ____times(rs, ":");
+    ____times(rs, __name(x));
+    return fabl_true;
 }
-var qualifiedNameBuf = ''; ;
-function qualifiedName(x) {
-	reset(qualifiedNameBuf);
-	if (qualifiedName(qualifiedNameBuf, x))
-		return copy(qualifiedNameBuf); ;
-	return; ; ;
+
+var qualifiedNameBuf = "";
+
+function __qualifiedName(x) {
+    var x;
+    __reset(qualifiedNameBuf);
+    if (____qualifiedName(qualifiedNameBuf, x)) return __copy(qualifiedNameBuf);
+    return null;
 }
-var rdfns = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-var rdfsns = 'http://www.w3.org/2000/01/rdf-schema#';
-var xsdns = 'http://www.w3.org/2000/10/XMLSchema#';
-var owlns = 'http://www.w3.org/2002/07/owl#';
-var fablns = 'http://nurl.org/0/fabl/';
-var fimpns = 'http://nurl.org/0/fimp/';
-rangeProperty = uriToResource('plus(rdfsns,' range ')');
-function range(p) {
-	 < unknown Xob type >  : rdfs : Resourcer = get(p, rangeProperty);
-	if (obkind(r) === values_kind)
-		return mostSpecific(r); ;
-	return r; ; ;
+
+var rdfns = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+
+var rdfsns = "http://www.w3.org/2000/01/rdf-schema#";
+
+var xsdns = "http://www.w3.org/2000/10/XMLSchema#";
+
+var owlns = "http://www.w3.org/2002/07/owl#";
+
+var fablns = "http://nurl.org/0/fabl/";
+
+var fimpns = "http://nurl.org/0/fimp/";
+
+rangeProperty = __uriToResource(rdfsns + "range");
+
+function __range(p) {
+    var p;
+    var r;
+    r = ____get(p, rangeProperty);
+    if (__obkind(r) === values_kind) return __mostSpecific(r);
+    return r;
 }
-function namespace(pr) {
-	 < unknown Xob type >  : rdfs : Resourceif(pr === 'home')return home; ;
-	b = selectBinding(homePath(), pr);
-	if (nul(b)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, 'No such namespace: ');
-		times(uwriteBuffer, pr);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	if (not(isConstant(b))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, 'Not a namespace: ');
-		times(uwriteBuffer, pr);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	vl = bindingValue(b);
-	vlk = obkind(vl);
-	if (not(or(vlk === hashtable_kind, vlk === smallob_kind))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, 'Not a namespace: ');
-		times(uwriteBuffer, pr);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return vl; ; ;
+
+function __namespace(pr) {
+    var pr;
+    var b;
+    var vl;
+    var vlk;
+    if (pr === "home") return home;
+    b = ____selectBinding(homePath(), pr);
+    if (!b) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "No such namespace: ");
+        ____times(uwriteBuffer, pr);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    if (!__isConstant(b)) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Not a namespace: ");
+        ____times(uwriteBuffer, pr);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    vl = __bindingValue(b);
+    vlk = __obkind(vl);
+    if (!(vlk === hashtable_kind || vlk === smallob_kind)) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Not a namespace: ");
+        ____times(uwriteBuffer, pr);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return vl;
 }
-function namespace(pr) {
-	return namespace(toId(pr)); ; ;
+
+function __namespace(pr) {
+    var pr;
+    return __namespace(__toId(pr));
 }
-function evalQname(pr, lc) {
-	 < unknown Xob type >  : rdfs : Resourcens = namespace(pr);
-	rs = selectUri(ns, lc);
-	if (nul(rs)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, lc);
-		times(uwriteBuffer, ' not found in namespace ');
-		times(uwriteBuffer, ns);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return getEquivalent(rs); ; ;
+
+function ____evalQname(pr, lc) {
+    var pr;
+    var lc;
+    var ns;
+    var rs;
+    ns = __namespace(pr);
+    rs = ____selectUri(ns, lc);
+    if (!rs) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, lc);
+        ____times(uwriteBuffer, " not found in namespace ");
+        ____times(uwriteBuffer, ns);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return __getEquivalent(rs);
 }
-function evalQname(x) {
-	 < unknown Xob type >  : rdfs : Resourcee1 = cadr(x);
-	e2 = caddr(x);
-	if (or(not(isId(e1)), not(isId(e2)))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		times(uwriteBuffer, x);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return evalQname(e1, e2); ; ;
+
+function __evalQname(x) {
+    var x;
+    var e1;
+    var e2;
+    e1 = __cadr(x);
+    e2 = __caddr(x);
+    if (!__isId(e1) || !__isId(e2)) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Bad form for qualified name: ");
+        ____times(uwriteBuffer, x);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return ____evalQname(e1, e2);
 }
-function evalQnameN(pr, lc) {
-	 < unknown Xob type >  : rdfs : Resourcens = namespace(pr);
-	rs = selectUri(ns, lc);
-	if (nul(rs))
-		return; ;
-	return getEquivalent(rs); ; ;
+
+function ____evalQnameN(pr, lc) {
+    var pr;
+    var lc;
+    var ns;
+    var rs;
+    var cb;
+    var k;
+    ns = __namespace(pr);
+    rs = ____selectUri(ns, lc);
+    if (!rs) return null;
+    return __getEquivalent(rs);
 }
-function evalQnameN(x) {
-	 < unknown Xob type >  : rdfs : Resourcee1 = cadr(x);
-	e2 = caddr(x);
-	if (or(not(isId(e1)), not(isId(e2)))) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, );
-		times(uwriteBuffer, x);
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return evalQnameN(e1, e2); ; ;
+
+function __evalQnameN(x) {
+    var x;
+    var e1;
+    var e2;
+    e1 = __cadr(x);
+    e2 = __caddr(x);
+    if (!__isId(e1) || !__isId(e2)) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, "Bad form for qualified name: ");
+        ____times(uwriteBuffer, x);
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return ____evalQnameN(e1, e2);
 }
-function toProperty(pr) {
-	 < unknown Xob type >  : rdfs : Resourcecb = selectBinding(homePath(), pr);
-	if (nul(cb))
-		return; ;
-	if (not(isConstant(cb)))
-		return; ;
-	if (not(um_eq(obsel(cb, Binding_type), Property)))
-		return; ;
-	return bindingValue(cb); ; ;
+
+function __toProperty(pr) {
+    var pr;
+    var cb;
+    cb = ____selectBinding(homePath(), pr);
+    if (!cb) return null;
+    if (!__isConstant(cb)) return null;
+    if (!____um_eq(____obsel(cb, Binding_type), Property)) return null;
+    return __bindingValue(cb);
 }
-function isQname(x) {
-	 < unknown Xob type >  : rdfs : Resourceif(not(isList(x)))return false; ;
-	if (um_eq(car(x), '_colon_')) {
-		pr = cadr(x);
-		lc = caddr(x);
-		return and(isId(pr), isId(lc)); ; ;
-	}
-	return false; ; ;
+
+function __isQname(x) {
+    var x;
+    var lc;
+    var pr;
+    if (!__isList(x)) return fabl_false;
+    if (____um_eq(__car(x), "_colon_")) {
+        pr = __cadr(x);
+        lc = __caddr(x);
+        return __isId(pr) && __isId(lc);
+    }
+    return fabl_false;
 }
-function toProperty(x) {
-	return evalQname(x); ; ;
+
+function __toProperty(x) {
+    var x;
+    return __evalQname(x);
 }
-function parseQname(s) {
-	 < unknown Xob type >  : rdfs : Resourceclp = find(s, ascii_colon);
-	if (lessp(clp, 0)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, s);
-		times(uwriteBuffer, ' does not have the right form (prefix:localpart) for a qualified name');
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	if (greaterp(find(s, ascii_slash), 0)) {
-		beforeError();
-		reset(uwriteBuffer);
-		times(uwriteBuffer, s);
-		times(uwriteBuffer, ' does not have the right form (prefix:localpart) for a qualified name');
-		tprint(uwriteBuffer);
-		terpri();
-		afterError();
-	}
-	return cons('_colon_', cons(toString(substring(s, 0, clp)), cons(toString(substring(s, plus(clp, 1), length(s))), ))); ; ;
+
+function __parseQname(s) {
+    var s;
+    var clp;
+    clp = ____find(s, ascii_colon);
+    if (clp < 0) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, s);
+        ____times(uwriteBuffer, " does not have the right form (prefix:localpart) for a qualified name");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    if (____find(s, ascii_slash) > 0) {
+        beforeError();
+        __reset(uwriteBuffer);
+        ____times(uwriteBuffer, s);
+        ____times(uwriteBuffer, " does not have the right form (prefix:localpart) for a qualified name");
+        __tprint(uwriteBuffer);
+        terpri();
+        afterError();
+    }
+    return ____cons("_colon_", ____cons(__toString(______substring(s, 0, clp)), ____cons(__toString(______substring(s, clp + 1, __length(s))), null)));
 }
-function toUri(s) {
-	 < unknown Xob type >  : rdfs : Resourceprs = parseQname(s);
-	pr = cadr(prs);
-	lc = caddr(prs);
-	nm = namespace(pr);
-	u = uri(nm);
-	ln = length(u);
-	lstc = u[difference(ln, 1)];
-	if (lstc === ascii_sharp)
-		return {
-			 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-			times(toStringResult, u);
-			times(toStringResult, lc);
-			return toStringResult; ;
-		}; ;
-	else
-		return {
-			 < unknown Xob type >  : rdfs : ResourcetoStringResult = '' '';
-			times(toStringResult, u);
-			times(toStringResult, '/');
-			times(toStringResult, lc);
-			return toStringResult; ;
-		}; ; ;
+
+function __toUri(s) {
+    var s;
+    var prs;
+    var pr;
+    var lc;
+    var nm;
+    var u;
+    var ln;
+    var lstc;
+    prs = __parseQname(s);
+    pr = __cadr(prs);
+    lc = __caddr(prs);
+    nm = __namespace(pr);
+    u = __uri(nm);
+    ln = __length(u);
+    lstc = u[ln - 1];
+    if (lstc === ascii_sharp) {
+        ____times(u, lc);
+        return u;
+    } else {
+        ____times(u, "/");
+        ____times(u, lc);
+        return u;
+    }
 }
-function newResource(s) {
-	 < unknown Xob type >  : rdfs : Resourceq = parseQname(s);
-	pr = cadr(q);
-	ns = namespace(pr);
-	lc = caddr(q);
-	if (length(lc) === 0)
-		return ns; ;
-	rs = selectUri(ns, lc);
-	if (nnul(rs))
-		return getEquivalent(rs); ;
-	rs = mkResource();
-	bindUri(ns, lc, rs);
-	return rs; ; ;
+
+function __newResource(s) {
+    var s;
+    var q;
+    var ns;
+    var rs;
+    var pr;
+    var lc;
+    q = __parseQname(s);
+    pr = __cadr(q);
+    ns = __namespace(pr);
+    lc = __caddr(q);
+    if (__length(lc) === 0) return ns;
+    rs = ____selectUri(ns, lc);
+    if (rs) return __getEquivalent(rs);
+    rs = mkResource();
+    ______bindUri(ns, lc, rs);
+    return rs;
 }
-function allocate(s, tp) {
-	 < unknown Xob type >  : rdfs : Resourceq = parseQname(s);
-	pr = cadr(q);
-	ns = namespace(pr);
-	lc = caddr(q);
-	if (length(lc) === 0)
-		return ns; ;
-	cv = selectUri(ns, lc);
-	if (nul(cv)) {
-		rs = iNew(tp);
-		bindUri(ns, lc, rs);
-		return rs; ; ;
-	} else {
-		cv = getEquivalent(cv);
-		if (not(hasType(cv, tp))) {
-			if (untyped(cv)) {
-				if (tp === FunctionalProperty)
-					setType(cv, [Property, FunctionalProperty]);
-				else
-					setType(cv, tp); ;
-			} else {
-				beforeError();
-				reset(uwriteBuffer);
-				times(uwriteBuffer, 'Attempt to allocate a resource where one of a different type already exists: ');
-				times(uwriteBuffer, s);
-				tprint(uwriteBuffer);
-				terpri();
-				afterError();
-			};
-		}
-		return cv; ; ;
-	};
+
+function ____allocate(s, tp) {
+    var s;
+    var tp;
+    var q;
+    var ns;
+    var rs;
+    var pr;
+    var lc;
+    var cv;
+    q = __parseQname(s);
+    pr = __cadr(q);
+    ns = __namespace(pr);
+    lc = __caddr(q);
+    if (__length(lc) === 0) return ns;
+    cv = ____selectUri(ns, lc);
+    if (!cv) {
+        rs = __iNew(tp);
+        ______bindUri(ns, lc, rs);
+        return rs;
+    } else {
+        cv = __getEquivalent(cv);
+        if (!____hasType(cv, tp)) {
+            if (__untyped(cv)) {
+                if (tp === FunctionalProperty) ____setType(cv, [ Property, FunctionalProperty ]); else ____setType(cv, tp);
+            } else {
+                beforeError();
+                __reset(uwriteBuffer);
+                ____times(uwriteBuffer, "Attempt to allocate a resource where one of a different type already exists: ");
+                ____times(uwriteBuffer, s);
+                __tprint(uwriteBuffer);
+                terpri();
+                afterError();
+            }
+        }
+        return cv;
+    }
 }
-function allocate(s) {
-	return allocate(s, ob); ; ;
+
+function __allocate(s) {
+    var s;
+    return ____allocate(s, ob);
 }
-function allocateProperty(s) {
-	return allocate(s, Property); ; ;
+
+function __allocateProperty(s) {
+    var s;
+    return ____allocate(s, Property);
 }
-function getChild(x, s) {
-	return selectUri(x, s); ; ;
+
+function ____getChild(x, s) {
+    var x;
+    var s;
+    return ____selectUri(x, s);
 }
-function uriAllocate(s, tp) {
-	return uriToResource(root, s, true, tp); ; ;
+
+function ____uriAllocate(s, tp) {
+    var s;
+    var tp;
+    return ________uriToResource(root, s, fabl_true, tp);
 }
-function uriAllocate(s) {
-	return uriAllocate(s, ob); ; ;
+
+function __uriAllocate(s) {
+    var s;
+    return ____uriAllocate(s, ob);
 }
-function isDefinedBy(u0, u1) {
-	 < unknown Xob type >  : fabl : XselectProperty = resource(u1); ;
+
+function ____isDefinedBy(u0, u1) {
+    var u0;
+    var u1;
+    __resource(u0)["rdfs:isDefinedBy"] = __resource(u1);
 }
-function namespaceDefinedBy(ns, u0) {
-	 < unknown Xob type >  : fabl : XselectProperty = resource(u0); ;
+
+function ____namespaceDefinedBy(ns, u0) {
+    var ns;
+    var u0;
+    __namespace(u0)["rdfs:isDefinedBy"] = __resource(u0);
 }
-var stdlibPrefix = 'http://fabl.net/lib/'; ;
+
+var stdlibPrefix = "http://fabl.net/lib/";
+
 function stdNamespaces() {
-	< unknown Xob type >  : rdfs : Resourcenamespace('rdf', '' http : //www.w3.org/1999/02/22-rdf-syntax-ns#'');namespace('rdfs',''http://www.w3.org/2000/01/rdf-schema#'');namespace('xsd',''http://www.w3.org/2000/10/XMLSchema#'');namespace('owl',''http://www.w3.org/2002/07/owl#'');namespace('fabl',''http://nurl.org/0/fabl/'');namespace('fimp',''http://nurl.org/0/fimp/'');namespace(,);;}function fixPage0(){rangeProperty=uriAllocate(''http://www.w3.org/2000/01/rdf-schema#subClassOf'',Property);subClassOf=uriAllocate(''http://www.w3.org/2000/01/rdf-schema#subClassOf'',Property);FunctionalProperty=uriAllocate({<unknown Xob type>: rdfs:ResourcestringConstantResult='''';times(stringConstantResult,);times(stringConstantResult,owlns);times(stringConstantResult,);return stringConstantResult;;},Class);assertUriChildAsProperty(Xob1,'isNoop');assertUriChildAsProperty(Xob1,'isConstant');assertUriChildAsProperty(XselectProperty,'isBitField');assertUriChildAsProperty(Xreturn,'blockReturn');assertUriChildAsProperty(Xreturn,'loopBreak');assertUriChildAsProperty(Xreturn,'loopContinue');assertUriChildAsProperty(Xgo,'goIfFalse');assertUriChildAsProperty(Xblock,'isFunctionBody');assertUriChildAsProperty(Token,'isInfix');assertUriChildAsProperty(Token,'isPrefix');assertUriChildAsProperty(Token,'isPostfix');assertUriChildAsProperty(Token,'isTerminator');assertUriChildAsProperty(Token,'isOperator');assertUriChildAsProperty(Token,'isAtom');assertUriChildAsProperty(Token,'isKeyword');assertUriChildAsProperty(Token,'isNumber');assertUriChildAsProperty(Token,'isString');assertUriChildAsProperty(Token,'isId');rangeProperty=uriAllocate(''http://www.w3.org/2000/01/rdf-schema#range'',Property);;}
+    var rp;
+    ____namespace("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+    ____namespace("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+    ____namespace("xsd", "http://www.w3.org/2000/10/XMLSchema#");
+    ____namespace("owl", "http://www.w3.org/2002/07/owl#");
+    ____namespace("fabl", "http://nurl.org/0/fabl/");
+    ____namespace("fimp", "http://nurl.org/0/fimp/");
+    ____namespace("discovery", "http://fabl.net/vocabularies/discovery");
+}
+
+function fixPage0() {
+    rangeProperty = ____uriAllocate("http://www.w3.org/2000/01/rdf-schema#subClassOf", Property);
+    subClassOf = ____uriAllocate("http://www.w3.org/2000/01/rdf-schema#subClassOf", Property);
+    FunctionalProperty = ____uriAllocate("http://www.w3.org/2002/07/owl#FunctionalProperty", Class);
+    ____assertUriChildAsProperty(Xob1, "isNoop");
+    ____assertUriChildAsProperty(Xob1, "isConstant");
+    ____assertUriChildAsProperty(XselectProperty, "isBitField");
+    ____assertUriChildAsProperty(Xreturn, "blockReturn");
+    ____assertUriChildAsProperty(Xreturn, "loopBreak");
+    ____assertUriChildAsProperty(Xreturn, "loopContinue");
+    ____assertUriChildAsProperty(Xgo, "goIfFalse");
+    ____assertUriChildAsProperty(Xblock, "isFunctionBody");
+    ____assertUriChildAsProperty(Token, "isInfix");
+    ____assertUriChildAsProperty(Token, "isPrefix");
+    ____assertUriChildAsProperty(Token, "isPostfix");
+    ____assertUriChildAsProperty(Token, "isTerminator");
+    ____assertUriChildAsProperty(Token, "isOperator");
+    ____assertUriChildAsProperty(Token, "isAtom");
+    ____assertUriChildAsProperty(Token, "isKeyword");
+    ____assertUriChildAsProperty(Token, "isNumber");
+    ____assertUriChildAsProperty(Token, "isString");
+    ____assertUriChildAsProperty(Token, "isId");
+    rangeProperty = ____uriAllocate("http://www.w3.org/2000/01/rdf-schema#range", Property);
+}

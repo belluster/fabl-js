@@ -1,0 +1,31 @@
+{
+  "name": "fabl-js",
+  "description": "Fabl JS",
+  "version": "0.1.0",
+  "author": {
+    "name": "Alessandro Bellucci",
+    "email": "belluster@gmail.com",
+    "url": "http://github.com/belluster"
+  },
+  "license": "BSD",
+  "homepage": "https://github.com/belluster/fabl-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/belluster/fabl-js"
+  },
+  "bugs": {
+      "url" : "https://github.com/belluster/fabl-js/issues"
+  },
+  "bin": {
+      "fabl": "./bin/fabl.js"
+  },
+  "dependencies": {
+    "optimist": "0.6.x",
+	"async": "0.2.x",
+	"uglify-js": "2.4.x"
+  },
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "readme": "# JS implementation of the Fabl programming language"
+}

@@ -12,6 +12,10 @@
 var parse_verbose = false;
 parse_verbose = false;//notneeded
 
+var ob eof_parse;
+var parsing_rdf = false;
+parsing_rdf = false;//notneeded
+
 void function atline()
 {
 write('At ',scan_linenumber,' ');
@@ -680,9 +684,6 @@ ob function parseConstantStatement()
   }
 
 
-var ob eof_parse;
-var parsing_rdf = false;
-parsing_rdf = false;//notneeded
 ob function parseToplevel()
   {
   var Token tk,ob prs,fprs;

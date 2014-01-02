@@ -53,7 +53,7 @@ void function setupUriTable()
 }
 
 setupUriTable();
-var splitBuf = SB('');
+var splitBuf = ''; // SB('');
 
 SeqOf(id) function splitToIds(string bf,int dl)
 {
@@ -142,8 +142,8 @@ SeqOf(id) function removeNullStringsEx1(SeqOf(id) s)
        {
 	   cs = s[i];
 	   if ((length(cs) > 0)||
-	       ((i==4) && (s[0] == "file") && 
-		    (s[1]==":") && (s[2]=="") && (s[3]==""))) push(rs , cs);
+	       ((i==4) && (s[0] == 'file') && 
+		    (s[1]==':') && (s[2]=='') && (s[3]==''))) push(rs , cs);
 	   }
    return rs;
 }

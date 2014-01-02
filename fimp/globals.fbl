@@ -13,7 +13,7 @@
 // eg, allows using Xob1 instead of fabl:Xob1
 //var owlns =  'http://www.w3.org/2002/07/owl#';
 
-constant fablVersion = "2.0.8";
+constant fablVersion = '2.0.8';
 
 constant xsdNS = selectUri(root,  sequence('http',':','www.w3.org','2000','10','XMLSchema','#'));
 constant rdfNS = selectUri(root,  sequence('http',':','www.w3.org','1999','02','22-rdf-syntax-ns','#'));
